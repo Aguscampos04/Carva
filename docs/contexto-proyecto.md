@@ -158,6 +158,29 @@ Sin embargo, no deberá considerar una propuesta como decisión definitiva hasta
 * Se utilizará IA como soporte.
 * El proyecto se desarrollará incrementalmente mediante Sprints.
 
+### Decisiones funcionales aprobadas
+
+Estas decisiones definen el comportamiento funcional del producto. Las fórmulas concretas de las métricas y las decisiones técnicas que se indican más abajo continúan pendientes.
+
+1. **Estado del proyecto:** los estados son **Planificado**, **En progreso** y **Finalizado**.
+2. **Estado de una User Story:** los estados son **Pendiente**, **En progreso** y **Completada**.
+3. **Finalización de una User Story:** se considera completada cuando se verifican sus Acceptance Criteria.
+4. **Cierre de un Sprint:** las User Stories incompletas se trasladan automáticamente al siguiente Sprint.
+5. **Story Points iniciales:** una User Story puede crearse con Story Points provisionales.
+6. **Actualización de Story Points:** el Story Point actual solo se actualiza cuando se registra una estimación acordada mediante Planning Poker.
+7. **Planning Poker:** la votación es individual y oculta; las estimaciones se revelan simultáneamente; se discuten las diferencias; pueden realizarse nuevas rondas; y se registra el valor acordado.
+8. **Diferencia de estimaciones:** existe cuando los valores votados no son todos iguales.
+9. **Estimación acordada:** se registra como Story Point definitivo. Si no hay consenso, la estimación no se finaliza.
+10. **Horas:** las horas estimadas se registran para la User Story durante la planificación; las horas reales provienen del registro de esfuerzo.
+11. **Fórmulas de métricas:** las fórmulas de las métricas obligatorias se definirán explícitamente en sus SDD antes de implementarlas.
+12. **Alcance temporal de las métricas:** se calculan por Sprint y pueden agregarse a nivel proyecto. El conjunto planificado de un Sprint debe preservarse aunque el Backlog cambie posteriormente.
+13. **Datos faltantes en métricas:** cuando falten datos para una métrica, se muestra **«No disponible»**, nunca cero en reemplazo de esos datos.
+14. **Defectos:** sus estados son **Abierto**, **En progreso**, **Resuelto** y **Cerrado**. Sus severidades son **Baja**, **Media**, **Alta** y **Crítica**.
+15. **Defectos y Sprints:** los defectos pueden existir sin Sprint, asociarse posteriormente a uno y resolverse en un Sprint diferente al de detección.
+16. **Reportes:** habrá un reporte de proyecto completo y un reporte de Sprint individual. Incluirán User Stories, Story Points, horas estimadas y reales, métricas y defectos.
+17. **Reporte final:** debe poder generarse en PDF e incluir información general del proyecto, Sprints, User Stories, Story Points, horas, métricas, defectos y estado general.
+18. **MVP e identificación:** se identificará a los miembros para Planning Poker y el registro de esfuerzo. No se implementará un sistema complejo de permisos en el MVP.
+
 ### Decisiones pendientes
 
 Todavía deben definirse y documentarse, entre otras:
