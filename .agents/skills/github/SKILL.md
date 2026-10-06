@@ -1,3 +1,8 @@
+---
+name: github
+description: Gestiona la interacción con GitHub, incluyendo Issues, branches, commits, push, Pull Requests, revisión y trazabilidad.
+---
+
 # GitHub Skill
 
 ## Propósito

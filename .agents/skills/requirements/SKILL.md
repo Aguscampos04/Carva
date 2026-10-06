@@ -1,3 +1,8 @@
+---
+name: requirements
+description: Convierte los requisitos del proyecto en épicas, User Stories, Issues y criterios de aceptación manteniendo trazabilidad y evitando duplicados.
+---
+
 # Requirements Skill
 
 ## Propósito

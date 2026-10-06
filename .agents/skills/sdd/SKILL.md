@@ -1,3 +1,8 @@
+---
+name: sdd
+description: Define y valida Software Design Documents según los requisitos del TPI y mantiene la trazabilidad con User Stories, criterios de aceptación, BDD, TDD y código.
+---
+
 # SDD Skill
 
 ## Propósito

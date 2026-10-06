@@ -1,3 +1,8 @@
+---
+name: scrum
+description: Gestiona las prácticas Scrum del proyecto, incluyendo Product Backlog, Sprint Backlog, Sprint Goal, planificación, review, retrospectiva y Definition of Done.
+---
+
 # Scrum Skill
 
 ## Propósito

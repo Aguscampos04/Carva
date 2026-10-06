@@ -1,3 +1,8 @@
+---
+name: testing-quality
+description: Coordina la validación funcional y técnica, tests, cobertura, regresión, calidad, seguridad básica y Definition of Done.
+---
+
 # Testing & Quality Skill
 
 ## Propósito

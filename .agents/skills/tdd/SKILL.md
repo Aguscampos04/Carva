@@ -1,3 +1,8 @@
+---
+name: tdd
+description: Gestiona el desarrollo orientado por tests mediante RED-GREEN-REFACTOR y asegura evidencia de pruebas automatizadas.
+---
+
 # TDD Skill
 
 ## Propósito

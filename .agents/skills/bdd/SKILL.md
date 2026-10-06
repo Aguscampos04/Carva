@@ -1,3 +1,8 @@
+---
+name: bdd
+description: Define escenarios de comportamiento en formato Given-When-Then y mantiene su trazabilidad con criterios de aceptación y tests.
+---
+
 # BDD Skill
 
 ## Propósito

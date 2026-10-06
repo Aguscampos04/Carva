@@ -1,3 +1,8 @@
+---
+name: project-manager
+description: Coordina el desarrollo del proyecto y determina qué skills utilizar según la tarea, manteniendo trazabilidad, Scrum, calidad y cumplimiento del TPI.
+---
+
 # Project Manager Skill
 
 ## Propósito

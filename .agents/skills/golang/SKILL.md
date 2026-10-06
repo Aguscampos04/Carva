@@ -1,3 +1,8 @@
+---
+name: golang
+description: Define y valida las prácticas de desarrollo en Go para la lógica de negocio, arquitectura, calidad, seguridad y testing.
+---
+
 # Golang Skill
 
 ## Propósito
