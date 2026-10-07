@@ -24,13 +24,13 @@ Esta decisión ya está tomada y no debe ser modificada por el agente salvo que 
 
 El proyecto deberá utilizar:
 
-* Go (Golang) para el núcleo de la aplicación y las reglas de negocio.
-* Scrum como marco de trabajo.
-* SDD para especificar funcionalidades antes de implementarlas.
-* BDD para definir el comportamiento mediante escenarios.
-* TDD para desarrollar y validar las reglas y funcionalidades mediante pruebas.
-* Git para el control de versiones.
-* Herramientas de Inteligencia Artificial como soporte al desarrollo.
+- Go (Golang) para el núcleo de la aplicación y las reglas de negocio.
+- Scrum como marco de trabajo.
+- SDD para especificar funcionalidades antes de implementarlas.
+- BDD para definir el comportamiento mediante escenarios.
+- TDD para desarrollar y validar las reglas y funcionalidades mediante pruebas.
+- Git para el control de versiones.
+- Herramientas de Inteligencia Artificial como soporte al desarrollo.
 
 ## 5. Principios de trabajo
 
@@ -58,28 +58,28 @@ Antes de comenzar la implementación deberá existir una decisión arquitectóni
 
 La arquitectura deberá favorecer:
 
-* Separación de responsabilidades.
-* Testabilidad.
-* Mantenibilidad.
-* Trazabilidad.
-* Evolución incremental.
-* Claridad de las reglas de negocio.
+- Separación de responsabilidades.
+- Testabilidad.
+- Mantenibilidad.
+- Trazabilidad.
+- Evolución incremental.
+- Claridad de las reglas de negocio.
 
 ## 7. Funcionalidades principales
 
 La solución deberá contemplar, como mínimo:
 
-* Gestión de proyectos.
-* Gestión de miembros.
-* Product Backlog.
-* Gestión de Sprints.
-* Estimación mediante Story Points.
-* Planning Poker.
-* Registro y comparación de esfuerzo.
-* Gestión de defectos.
-* Métricas.
-* Dashboard.
-* Reportes.
+- Gestión de proyectos.
+- Gestión de miembros.
+- Product Backlog.
+- Gestión de Sprints.
+- Estimación mediante Story Points.
+- Planning Poker.
+- Registro y comparación de esfuerzo.
+- Gestión de defectos.
+- Métricas.
+- Dashboard.
+- Reportes.
 
 El detalle de cada funcionalidad deberá derivarse del enunciado oficial y posteriormente formalizarse mediante User Stories, SDD, BDD y TDD.
 
@@ -89,11 +89,11 @@ El proyecto utilizará un repositorio Git y un tablero Scrum.
 
 Las unidades principales de trabajo serán:
 
-* Epic.
-* User Story.
-* Issue.
-* Sprint.
-* Task, cuando sea necesario.
+- Epic.
+- User Story.
+- Issue.
+- Sprint.
+- Task, cuando sea necesario.
 
 Cada elemento deberá mantener relaciones con los artefactos correspondientes.
 
@@ -115,19 +115,19 @@ El agente será utilizado como asistente técnico y de gestión del proyecto.
 
 Podrá colaborar en:
 
-* Análisis de requerimientos.
-* Identificación y refinamiento de User Stories.
-* Creación y actualización de Issues.
-* Elaboración de especificaciones SDD.
-* Elaboración de escenarios BDD.
-* Diseño y seguimiento de TDD.
-* Generación y revisión de código Go.
-* Generación y revisión de tests.
-* Análisis de cobertura.
-* Revisión de calidad.
-* Control de trazabilidad.
-* Documentación.
-* Organización Scrum.
+- Análisis de requerimientos.
+- Identificación y refinamiento de User Stories.
+- Creación y actualización de Issues.
+- Elaboración de especificaciones SDD.
+- Elaboración de escenarios BDD.
+- Diseño y seguimiento de TDD.
+- Generación y revisión de código Go.
+- Generación y revisión de tests.
+- Análisis de cobertura.
+- Revisión de calidad.
+- Control de trazabilidad.
+- Documentación.
+- Organización Scrum.
 
 El agente no reemplaza la responsabilidad del equipo.
 
@@ -139,38 +139,38 @@ El agente podrá proponer soluciones, estructuras, historias, especificaciones, 
 
 Sin embargo, no deberá considerar una propuesta como decisión definitiva hasta que el equipo la apruebe cuando dicha decisión afecte significativamente:
 
-* Arquitectura.
-* Requerimientos.
-* Reglas de negocio.
-* Alcance.
-* Tecnologías.
-* Organización del proyecto.
+- Arquitectura.
+- Requerimientos.
+- Reglas de negocio.
+- Alcance.
+- Tecnologías.
+- Organización del proyecto.
 
 ## 12. Estado actual
 
 ### Decisiones tomadas
 
-* El proyecto será una aplicación web.
-* Se utilizará Go para el núcleo y las reglas de negocio.
-* Se utilizará Scrum.
-* Se utilizarán SDD, BDD y TDD.
-* Se utilizará Git.
-* Se utilizará IA como soporte.
-* El proyecto se desarrollará incrementalmente mediante Sprints.
+- El proyecto será una aplicación web.
+- Se utilizará Go para el núcleo y las reglas de negocio.
+- Se utilizará Scrum.
+- Se utilizarán SDD, BDD y TDD.
+- Se utilizará Git.
+- Se utilizará IA como soporte.
+- El proyecto se desarrollará incrementalmente mediante Sprints.
 
 ### Decisiones funcionales aprobadas
 
 Estas decisiones definen el comportamiento funcional del producto. Las fórmulas concretas de las métricas y las decisiones técnicas que se indican más abajo continúan pendientes.
 
-1. **Estado del proyecto:** los estados son **Planificado**, **En progreso** y **Finalizado**.
+1. **Estado del proyecto:** al crearlo queda **Planificado**; al crear su primer Sprint pasa a **En progreso**; pasa a **Finalizado** cuando se cumple la condición de finalización del proyecto. La condición exacta que determina que el proyecto está terminado sigue pendiente de definición.
 2. **Estado de una User Story:** los estados son **Pendiente**, **En progreso** y **Completada**.
 3. **Finalización de una User Story:** se considera completada cuando se verifican sus Acceptance Criteria.
-4. **Cierre de un Sprint:** las User Stories incompletas se trasladan automáticamente al siguiente Sprint.
+4. **Cierre de un Sprint:** las User Stories incompletas se trasladan automáticamente al siguiente Sprint. Si existen historias incompletas, no se puede cerrar el Sprint hasta que haya un siguiente Sprint disponible. Las historias completadas no se trasladan. El Sprint cerrado conserva su historial y el conjunto originalmente planificado.
 5. **Story Points iniciales:** una User Story puede crearse con Story Points provisionales.
 6. **Actualización de Story Points:** el Story Point actual solo se actualiza cuando se registra una estimación acordada mediante Planning Poker.
 7. **Planning Poker:** la votación es individual y oculta; las estimaciones se revelan simultáneamente; se discuten las diferencias; pueden realizarse nuevas rondas; y se registra el valor acordado.
 8. **Diferencia de estimaciones:** existe cuando los valores votados no son todos iguales.
-9. **Estimación acordada:** se registra como Story Point definitivo. Si no hay consenso, la estimación no se finaliza.
+9. **Estimación acordada:** hay consenso cuando todos los participantes de la ronda votan el mismo valor. Ese valor se registra como Story Point definitivo. Sin consenso, la estimación no se finaliza ni se actualiza el Story Point actual.
 10. **Horas:** las horas estimadas se registran para la User Story durante la planificación; las horas reales provienen del registro de esfuerzo.
 11. **Fórmulas de métricas:** las fórmulas de las métricas obligatorias se definirán explícitamente en sus SDD antes de implementarlas.
 12. **Alcance temporal de las métricas:** se calculan por Sprint y pueden agregarse a nivel proyecto. El conjunto planificado de un Sprint debe preservarse aunque el Backlog cambie posteriormente.
@@ -185,15 +185,18 @@ Estas decisiones definen el comportamiento funcional del producto. Las fórmulas
 
 Todavía deben definirse y documentarse, entre otras:
 
-* Arquitectura concreta.
-* Tecnología del frontend.
-* Tecnología de persistencia/base de datos.
-* Organización definitiva de carpetas.
-* API y contratos.
-* Modelo de dominio.
-* Estrategia de autenticación, si corresponde.
-* Estrategia de despliegue, si corresponde.
-* Diseño visual de la interfaz.
+- Arquitectura concreta.
+- Tecnología del frontend.
+- Tecnología de persistencia/base de datos.
+- Organización definitiva de carpetas.
+- API y contratos.
+- Modelo de dominio.
+- Estrategia de autenticación, si corresponde.
+- Estrategia de despliegue, si corresponde.
+- Diseño visual de la interfaz.
+- Condición exacta que determina cuándo el proyecto está terminado y pasa a **Finalizado**.
+- Fórmulas de las métricas obligatorias, que deberán especificarse en sus SDD antes de implementarlas.
+- Tratamiento de los defectos sin Sprint en los SDD correspondientes.
 
 Estas decisiones deberán tomarse antes de implementarlas y quedar documentadas cuando corresponda.
 
