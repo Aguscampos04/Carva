@@ -25,10 +25,15 @@ Esta decisión ya está tomada y no debe ser modificada por el agente salvo que 
 El proyecto deberá utilizar:
 
 - Go (Golang) para el núcleo de la aplicación y las reglas de negocio.
+- HTML, CSS y JavaScript para el frontend.
+- Una API REST para la comunicación entre frontend y backend.
+- SQLite como base de datos.
+- Separación en las capas de presentación, aplicación, dominio y persistencia.
 - Scrum como marco de trabajo.
 - SDD para especificar funcionalidades antes de implementarlas.
 - BDD para definir el comportamiento mediante escenarios.
 - TDD para desarrollar y validar las reglas y funcionalidades mediante pruebas.
+- Testing de Go y pruebas de integración.
 - Git para el control de versiones.
 - Herramientas de Inteligencia Artificial como soporte al desarrollo.
 
@@ -50,11 +55,17 @@ El avance entre etapas deberá realizarse de forma controlada y con revisión de
 
 ## 6. Arquitectura
 
-La arquitectura concreta de la aplicación todavía no está cerrada.
+El equipo aprobó oficialmente la arquitectura descrita en [`docs/arquitectura.md`](arquitectura.md):
 
-El agente deberá proponer una arquitectura adecuada para una aplicación web cuyo núcleo y reglas de negocio estén implementados en Go.
+- Backend y núcleo de negocio en Go.
+- Frontend con HTML, CSS y JavaScript.
+- Comunicación entre frontend y backend mediante una API REST.
+- Persistencia en SQLite.
+- Separación de responsabilidades en presentación, aplicación, dominio y persistencia.
+- Registro de miembros asociados a cada proyecto, inicialmente sin autenticación compleja.
+- Pruebas de Go y pruebas de integración.
 
-Antes de comenzar la implementación deberá existir una decisión arquitectónica documentada.
+La estructura de carpetas incluida en ese documento es una propuesta para revisión; no constituye una decisión aprobada sobre la organización definitiva del repositorio. Los detalles de contratos, modelo de dominio, dependencias y configuración deben precisarse antes de implementarlos.
 
 La arquitectura deberá favorecer:
 
@@ -151,16 +162,26 @@ Sin embargo, no deberá considerar una propuesta como decisión definitiva hasta
 ### Decisiones tomadas
 
 - El proyecto será una aplicación web.
-- Se utilizará Go para el núcleo y las reglas de negocio.
+- El backend, núcleo y reglas de negocio se implementarán en Go.
+- El frontend utilizará HTML, CSS y JavaScript.
+- El frontend y el backend se comunicarán mediante una API REST.
+- La base de datos será SQLite.
+- La aplicación se organizará en capas de presentación, aplicación, dominio y persistencia.
+- Los miembros se registrarán asociados a cada proyecto, inicialmente sin autenticación compleja.
+- Se realizarán pruebas de Go y pruebas de integración.
 - Se utilizará Scrum.
 - Se utilizarán SDD, BDD y TDD.
 - Se utilizará Git.
 - Se utilizará IA como soporte.
 - El proyecto se desarrollará incrementalmente mediante Sprints.
 
+### Product Backlog inicial aprobado
+
+El responsable del proyecto confirma la aprobación de las **9 Épicas (EP-01 a EP-09)** y las **24 User Stories (US-01 a US-24)** como versión inicial del Product Backlog. Esta aprobación establece la base inicial del alcance planificado; el Product Backlog podrá evolucionar mediante decisiones posteriores aprobadas por el equipo, manteniendo la trazabilidad con los requisitos del enunciado.
+
 ### Decisiones funcionales aprobadas
 
-Estas decisiones definen el comportamiento funcional del producto. Las fórmulas concretas de las métricas y las decisiones técnicas que se indican más abajo continúan pendientes.
+Estas decisiones definen el comportamiento funcional del producto. Las fórmulas concretas de las métricas continúan pendientes y deberán documentarse en sus SDD.
 
 1. **Estado del proyecto:** al crearlo queda **Planificado**; al crear su primer Sprint pasa a **En progreso**; pasa a **Finalizado** cuando se cumple la condición de finalización del proyecto. La condición exacta que determina que el proyecto está terminado sigue pendiente de definición.
 2. **Estado de una User Story:** los estados son **Pendiente**, **En progreso** y **Completada**.
@@ -185,13 +206,14 @@ Estas decisiones definen el comportamiento funcional del producto. Las fórmulas
 
 Todavía deben definirse y documentarse, entre otras:
 
-- Arquitectura concreta.
-- Tecnología del frontend.
-- Tecnología de persistencia/base de datos.
-- Organización definitiva de carpetas.
-- API y contratos.
+- Organización definitiva de carpetas y paquetes; la propuesta de `docs/arquitectura.md` requiere revisión.
+- Contratos concretos de la API REST: rutas, formatos, versionado, códigos HTTP y formato de errores.
 - Modelo de dominio.
-- Estrategia de autenticación, si corresponde.
+- Driver y versión de SQLite, estrategia de migraciones y configuración de concurrencia.
+- Estrategia para servir los archivos estáticos del frontend y configurar su acceso a la API.
+- Herramientas concretas para pruebas de integración y configuración de los entornos de prueba.
+- Mecanismo concreto para identificar miembros registrados por proyecto. Para la etapa inicial está aprobada la ausencia de autenticación compleja.
+- Si se requiere autenticación en una etapa posterior.
 - Estrategia de despliegue, si corresponde.
 - Diseño visual de la interfaz.
 - Condición exacta que determina cuándo el proyecto está terminado y pasa a **Finalizado**.
