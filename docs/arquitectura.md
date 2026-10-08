@@ -15,8 +15,13 @@ El equipo aprobó las decisiones arquitectónicas de la sección 2 y la estructu
 | Arquitectura | Separación en presentación, aplicación, dominio y persistencia. |
 | Identificación | Los miembros se registran asociados a proyectos; inicialmente no se implementa autenticación compleja. |
 | Pruebas | Testing de Go y pruebas de integración. |
+| Go mínimo | `go 1.26.0` en `go.mod`. |
+| Driver SQLite | `modernc.org/sqlite v1.60.1`, sin CGO. |
+| Ruta de base local | `CARVA_DB_PATH`; por defecto `.local/carva.db`. |
+| Migraciones | Archivos SQL versionados e incluidos mediante `embed`. |
+| Bases de pruebas | Archivos temporales independientes por prueba de integración. |
 
-Estas decisiones no definen rutas HTTP, esquemas JSON, tablas, columnas, reglas de validación no aprobadas, ni una biblioteca o framework particular.
+Estas decisiones no definen rutas HTTP, esquemas JSON, tablas de negocio, columnas, reglas de validación no aprobadas ni un framework web.
 
 ## 3. Estructura de carpetas aprobada para Sprint 1
 
@@ -43,7 +48,11 @@ La siguiente estructura fue aprobada por el equipo y creada como base del reposi
 │   │   └── sprint/
 │   └── persistence/
 │       └── sqlite/
+│           ├── db.go
+│           ├── migrate.go
 │           └── migrations/
+│               ├── embed.go
+│               └── README.md
 ├── web/
 │   └── static/
 │       ├── css/
@@ -52,6 +61,7 @@ La siguiente estructura fue aprobada por el equipo y creada como base del reposi
 ├── sdd/
 ├── tests/
 │   └── integration/
+│       └── sqlite_test.go
 ├── docs/
 └── go.mod
 ```
@@ -59,6 +69,10 @@ La siguiente estructura fue aprobada por el equipo y creada como base del reposi
 El módulo Go es `github.com/Aguscampos04/Carva`. El punto de entrada `cmd/carva/main.go` es mínimo y no inicia todavía un servidor ni implementa funcionalidades. Las carpetas `src/`, `sdd/`, `bdd/` y `tests/` que ya existían se conservan; no se utiliza `src/` para el código Go.
 
 Los paquetes iniciales son `presentation/httpapi`, `application/projects`, `application/members`, `application/backlog`, `application/sprints`, `domain/project`, `domain/member`, `domain/backlog`, `domain/sprint` y `persistence/sqlite`. Sus archivos `doc.go` documentan el paquete sin introducir comportamiento. Los directorios aún vacíos se conservan con `.gitkeep`.
+
+El paquete `persistence/sqlite` obtiene su ruta desde `CARVA_DB_PATH` y usa `.local/carva.db` si la variable no está definida o está vacía. `Open` valida la conexión y crea el directorio padre del archivo si hace falta. Las migraciones se almacenan como SQL versionado (`NNNNNN_descripcion.sql`) en `internal/persistence/sqlite/migrations/`, se embeben y se aplican en orden; `carva_schema_migrations` registra las versiones aplicadas. La migración `000001_baseline.sql` establece la línea de base sin crear tablas de negocio. La tabla de registro es metadato de infraestructura. `.local/` y los archivos SQLite locales están excluidos de Git.
+
+`modernc.org/sqlite v1.60.1` declara compatibilidad desde Go 1.26.0. Su módulo incorpora dependencias transitivas, entre ellas `modernc.org/libc`, `modernc.org/mathutil`, `modernc.org/fileutil` y `golang.org/x/sys`; sus versiones quedan fijadas en `go.mod`/`go.sum`.
 
 ## 4. Responsabilidades por capa
 
@@ -118,22 +132,20 @@ cmd/carva compone Presentación, Aplicación y Persistencia.
 
 - **Pruebas unitarias de dominio:** reglas e invariantes definidas en SDD, sin infraestructura externa.
 - **Pruebas unitarias de aplicación:** casos de uso con adaptadores de prueba para los puertos.
-- **Pruebas de integración:** verificar conjuntamente los límites acordados, por ejemplo persistencia SQLite y API HTTP, usando una base controlada para pruebas.
+- **Pruebas de integración:** verificar conjuntamente los límites acordados, por ejemplo persistencia SQLite y API HTTP, usando bases de archivos temporales independientes dentro de `t.TempDir()`. Las pruebas aplican las migraciones y descartan sus archivos al finalizar; no utilizan la ruta configurada para desarrollo.
 - Los escenarios BDD deberán derivarse de criterios de aceptación. Las pruebas deben mantener trazabilidad con User Story, SDD y comportamiento.
-- No se selecciona todavía un framework BDD, driver SQLite ni herramienta adicional de integración.
+- El driver elegido es `modernc.org/sqlite`; no requiere CGO. No se agrega un framework BDD ni una herramienta externa de migraciones.
 
 ## 7. Decisiones técnicas pendientes
 
 Antes de implementar los aspectos correspondientes, el equipo debe revisar o decidir:
 
-1. Versión mínima/directiva Go del módulo (`go.mod`); no se fija mientras el equipo no la apruebe.
-2. Rutas, métodos, versionado, formatos JSON, códigos HTTP, errores y validaciones de la API REST.
-3. Atributos, identificadores, invariantes y relaciones detalladas del modelo de dominio, manteniendo las reglas funcionales aprobadas.
-4. Driver y versión de SQLite, esquema, migraciones, transacciones, restricciones e índices.
-5. Cómo se sirven los recursos estáticos y cómo configuran su URL de API los distintos entornos.
-6. Configuración, logging, apagado ordenado y despliegue.
-7. Librerías y mecanismos concretos para pruebas de integración y aislamiento de dependencias.
-8. Si se requiere autenticación en una etapa posterior. Para la etapa inicial está aprobada la ausencia de autenticación compleja; el modo de identificar miembros dentro de cada proyecto aún debe especificarse.
+1. Rutas, métodos, versionado, formatos JSON, códigos HTTP, errores y validaciones de la API REST.
+2. Atributos, identificadores, invariantes y relaciones detalladas del modelo de dominio, manteniendo las reglas funcionales aprobadas.
+3. Esquema de negocio SQLite, migraciones funcionales, restricciones, índices y política de concurrencia/transacciones.
+4. Cómo se sirven los recursos estáticos y cómo configuran su URL de API los distintos entornos.
+5. Configuración general, logging, apagado ordenado y despliegue.
+6. Si se requiere autenticación en una etapa posterior. Para la etapa inicial está aprobada la ausencia de autenticación compleja; el modo de identificar miembros dentro de cada proyecto aún debe especificarse.
 
 Estas decisiones no deben convertirse en reglas funcionales por inferencia. Deben resolverse mediante SDD y aprobación del equipo cuando afecten el comportamiento o la arquitectura.
 
