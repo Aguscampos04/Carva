@@ -2,7 +2,7 @@
 
 **Estado:** borrador local para revisión del equipo. Estos textos no son Issues creadas en GitHub ni representan trabajo implementado.
 
-**Fuentes:** `docs/enunciado.md`, `docs/contexto-proyecto.md`, las nueve Épicas y las 24 User Stories aprobadas en la conversación, y las decisiones funcionales adicionales comunicadas por el equipo al solicitar estos borradores. Estas últimas aún no figuran en `docs/contexto-proyecto.md`.
+**Fuentes:** `docs/enunciado.md`, `docs/contexto-proyecto.md`, las nueve Épicas y las 24 User Stories aprobadas como versión inicial del Product Backlog, y las decisiones funcionales aprobadas que allí se documentan.
 
 **Prioridad:** MVP identifica el conjunto candidato del Sprint 1 (US-01, US-03, US-04, US-05, US-06, US-07, US-08 y US-09); importante y secundaria ordenan el trabajo posterior. Todas las funciones exigidas por el enunciado siguen siendo obligatorias para la entrega final. No se asignan Story Points a estas Issues antes de que el equipo las estime.
 
@@ -493,5 +493,4 @@ En cada sección, **SDD, BDD, TDD, Go y tests** son artefactos previstos, todav�
 - Las fórmulas de las métricas, los casos de datos insuficientes y la atribución de defectos sin Sprint deben quedar explícitos en los SDD de US-20 a US-22 antes de implementar.
 - La decisión aprobada de admitir defectos sin Sprint requiere expresar en el SDD cómo se representan temporalmente los campos de Sprint de detección y resolución exigidos por el enunciado.
 - US-24 concentra tres salidas y puede ser grande; no se divide en esta etapa. Su tamaño deberá estimarse antes de comprometerla en un Sprint.
-- Las últimas reglas comunicadas para estado del proyecto, disponibilidad del siguiente Sprint y consenso de Planning Poker aún no están registradas en `docs/contexto-proyecto.md`; este borrador las usa como decisiones aprobadas en la conversación.
 
