@@ -65,7 +65,7 @@ El equipo aprobó oficialmente la arquitectura descrita en [`docs/arquitectura.m
 - Registro de miembros asociados a cada proyecto, inicialmente sin autenticación compleja.
 - Pruebas de Go y pruebas de integración.
 
-La estructura de carpetas incluida en ese documento es una propuesta para revisión; no constituye una decisión aprobada sobre la organización definitiva del repositorio. Los detalles de contratos, modelo de dominio, dependencias y configuración deben precisarse antes de implementarlos.
+La estructura de carpetas y paquetes para Sprint 1 descrita en ese documento fue aprobada por el equipo y creada en el repositorio. El módulo Go aprobado es `github.com/Aguscampos04/Carva`. Los detalles de contratos, modelo de dominio, dependencias y configuración deben precisarse antes de implementarlos.
 
 La arquitectura deberá favorecer:
 
@@ -169,6 +169,7 @@ Sin embargo, no deberá considerar una propuesta como decisión definitiva hasta
 - La aplicación se organizará en capas de presentación, aplicación, dominio y persistencia.
 - Los miembros se registrarán asociados a cada proyecto, inicialmente sin autenticación compleja.
 - Se realizarán pruebas de Go y pruebas de integración.
+- Se aprobó y creó la estructura inicial de carpetas y paquetes para Sprint 1, con el módulo `github.com/Aguscampos04/Carva`.
 - Se utilizará Scrum.
 - Se utilizarán SDD, BDD y TDD.
 - Se utilizará Git.
@@ -206,7 +207,7 @@ Estas decisiones definen el comportamiento funcional del producto. Las fórmulas
 
 Todavía deben definirse y documentarse, entre otras:
 
-- Organización definitiva de carpetas y paquetes; la propuesta de `docs/arquitectura.md` requiere revisión.
+- Versión mínima/directiva Go del módulo (`go.mod`).
 - Contratos concretos de la API REST: rutas, formatos, versionado, códigos HTTP y formato de errores.
 - Modelo de dominio.
 - Driver y versión de SQLite, estrategia de migraciones y configuración de concurrencia.

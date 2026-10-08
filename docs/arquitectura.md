@@ -2,7 +2,7 @@
 
 ## 1. Estado de las decisiones
 
-El equipo aprobó las decisiones arquitectónicas de la sección 2. Este documento registra esas decisiones y propone una organización de carpetas para revisión. La estructura y los detalles técnicos que el equipo no aprobó expresamente permanecen como propuestas o pendientes.
+El equipo aprobó las decisiones arquitectónicas de la sección 2 y la estructura de carpetas y paquetes de la sección 3 para Sprint 1. Esta estructura inicial ya está creada en el repositorio. Los detalles técnicos que el equipo no aprobó expresamente permanecen pendientes y no se consideran definidos por la creación del esqueleto.
 
 ## 2. Decisiones aprobadas
 
@@ -18,9 +18,9 @@ El equipo aprobó las decisiones arquitectónicas de la sección 2. Este documen
 
 Estas decisiones no definen rutas HTTP, esquemas JSON, tablas, columnas, reglas de validación no aprobadas, ni una biblioteca o framework particular.
 
-## 3. Estructura de carpetas propuesta
+## 3. Estructura de carpetas aprobada para Sprint 1
 
-La siguiente estructura es una propuesta para revisión. No se crearon estos directorios ni se aprobaron todavía los nombres definitivos de carpetas y paquetes.
+La siguiente estructura fue aprobada por el equipo y creada como base del repositorio. Los paquetes todavía no implementan funcionalidades.
 
 ```text
 .
@@ -30,16 +30,12 @@ La siguiente estructura es una propuesta para revisión. No se crearon estos dir
 ├── internal/
 │   ├── presentation/
 │   │   └── httpapi/
-│   │       ├── handlers/
-│   │       ├── requests/
-│   │       ├── responses/
-│   │       └── router.go
+│   │       └── doc.go
 │   ├── application/
 │   │   ├── projects/
 │   │   ├── members/
 │   │   ├── backlog/
-│   │   ├── sprints/
-│   │   └── ports/
+│   │   └── sprints/
 │   ├── domain/
 │   │   ├── project/
 │   │   ├── member/
@@ -47,11 +43,9 @@ La siguiente estructura es una propuesta para revisión. No se crearon estos dir
 │   │   └── sprint/
 │   └── persistence/
 │       └── sqlite/
-│           ├── migrations/
-│           └── repositories/
+│           └── migrations/
 ├── web/
 │   └── static/
-│       ├── index.html
 │       ├── css/
 │       └── js/
 ├── bdd/
@@ -59,11 +53,12 @@ La siguiente estructura es una propuesta para revisión. No se crearon estos dir
 ├── tests/
 │   └── integration/
 ├── docs/
-├── go.mod
-└── README.md
+└── go.mod
 ```
 
-El repositorio contiene actualmente directorios vacíos `src/`, `sdd/`, `bdd/` y `tests/`. No contiene código de aplicación ni un `go.mod` rastreado. La propuesta ubica `cmd/` e `internal/` en la raíz del módulo Go y no requiere conservar `src/`; el equipo deberá aprobar esa organización antes de crearla o mover contenido.
+El módulo Go es `github.com/Aguscampos04/Carva`. El punto de entrada `cmd/carva/main.go` es mínimo y no inicia todavía un servidor ni implementa funcionalidades. Las carpetas `src/`, `sdd/`, `bdd/` y `tests/` que ya existían se conservan; no se utiliza `src/` para el código Go.
+
+Los paquetes iniciales son `presentation/httpapi`, `application/projects`, `application/members`, `application/backlog`, `application/sprints`, `domain/project`, `domain/member`, `domain/backlog`, `domain/sprint` y `persistence/sqlite`. Sus archivos `doc.go` documentan el paquete sin introducir comportamiento. Los directorios aún vacíos se conservan con `.gitkeep`.
 
 ## 4. Responsabilidades por capa
 
@@ -131,7 +126,7 @@ cmd/carva compone Presentación, Aplicación y Persistencia.
 
 Antes de implementar los aspectos correspondientes, el equipo debe revisar o decidir:
 
-1. Organización definitiva de carpetas, paquetes y módulo Go (`go.mod`).
+1. Versión mínima/directiva Go del módulo (`go.mod`); no se fija mientras el equipo no la apruebe.
 2. Rutas, métodos, versionado, formatos JSON, códigos HTTP, errores y validaciones de la API REST.
 3. Atributos, identificadores, invariantes y relaciones detalladas del modelo de dominio, manteniendo las reglas funcionales aprobadas.
 4. Driver y versión de SQLite, esquema, migraciones, transacciones, restricciones e índices.
