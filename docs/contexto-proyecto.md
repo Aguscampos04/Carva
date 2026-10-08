@@ -65,7 +65,7 @@ El equipo aprobó oficialmente la arquitectura descrita en [`docs/arquitectura.m
 - Registro de miembros asociados a cada proyecto, inicialmente sin autenticación compleja.
 - Pruebas de Go y pruebas de integración.
 
-La estructura de carpetas y paquetes para Sprint 1 descrita en ese documento fue aprobada por el equipo y creada en el repositorio. El módulo Go aprobado es `github.com/Aguscampos04/Carva`. Los detalles de contratos, modelo de dominio, dependencias y configuración deben precisarse antes de implementarlos.
+La estructura de carpetas y paquetes para Sprint 1 descrita en ese documento fue aprobada por el equipo y creada en el repositorio. El módulo Go aprobado es `github.com/Aguscampos04/Carva`. Los contratos de API, el modelo y esquema de negocio, y las decisiones de despliegue aún deben precisarse antes de implementarlos.
 
 La arquitectura deberá favorecer:
 
@@ -170,6 +170,10 @@ Sin embargo, no deberá considerar una propuesta como decisión definitiva hasta
 - Los miembros se registrarán asociados a cada proyecto, inicialmente sin autenticación compleja.
 - Se realizarán pruebas de Go y pruebas de integración.
 - Se aprobó y creó la estructura inicial de carpetas y paquetes para Sprint 1, con el módulo `github.com/Aguscampos04/Carva`.
+- Se aprobó Go 1.26.0 como versión mínima del módulo y `modernc.org/sqlite v1.60.1` como driver SQLite sin CGO.
+- La ruta de la base se configura con `CARVA_DB_PATH`; el valor predeterminado local es `.local/carva.db`.
+- Las migraciones serán SQL versionado e incorporado mediante `embed`; las pruebas de integración usarán bases temporales independientes.
+- Git ignora `.local/` y los archivos de bases SQLite locales.
 - Se utilizará Scrum.
 - Se utilizarán SDD, BDD y TDD.
 - Se utilizará Git.
@@ -207,12 +211,11 @@ Estas decisiones definen el comportamiento funcional del producto. Las fórmulas
 
 Todavía deben definirse y documentarse, entre otras:
 
-- Versión mínima/directiva Go del módulo (`go.mod`).
 - Contratos concretos de la API REST: rutas, formatos, versionado, códigos HTTP y formato de errores.
 - Modelo de dominio.
-- Driver y versión de SQLite, estrategia de migraciones y configuración de concurrencia.
+- Esquema de negocio SQLite, restricciones, índices y configuración de concurrencia/transacciones.
 - Estrategia para servir los archivos estáticos del frontend y configurar su acceso a la API.
-- Herramientas concretas para pruebas de integración y configuración de los entornos de prueba.
+- Configuración completa de los entornos de desarrollo y pruebas, más allá de la ruta base aprobada.
 - Mecanismo concreto para identificar miembros registrados por proyecto. Para la etapa inicial está aprobada la ausencia de autenticación compleja.
 - Si se requiere autenticación en una etapa posterior.
 - Estrategia de despliegue, si corresponde.
