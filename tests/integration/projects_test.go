@@ -3,7 +3,6 @@ package integration_test
 import (
 	"context"
 	"errors"
-	"path/filepath"
 	"testing"
 
 	"github.com/Aguscampos04/Carva/internal/application/projects"
@@ -13,15 +12,7 @@ import (
 
 func TestProjectCreationAndLookupPersistAcrossDatabaseReopen(t *testing.T) {
 	ctx := context.Background()
-	databasePath := filepath.Join(t.TempDir(), "project.db")
-
-	db, err := carvasqlite.OpenPath(ctx, databasePath)
-	if err != nil {
-		t.Fatalf("OpenPath() error = %v", err)
-	}
-	if err := carvasqlite.Migrate(ctx, db); err != nil {
-		t.Fatalf("Migrate() error = %v", err)
-	}
+	databasePath, db := openMigratedProjectDB(t)
 	service := projects.NewService(carvasqlite.NewProjectRepository(db))
 
 	first, err := service.Create(ctx, "Carva MVP")
@@ -62,14 +53,7 @@ func TestProjectCreationAndLookupPersistAcrossDatabaseReopen(t *testing.T) {
 
 func TestProjectLookupReturnsNotFound(t *testing.T) {
 	ctx := context.Background()
-	db, err := carvasqlite.OpenPath(ctx, filepath.Join(t.TempDir(), "project.db"))
-	if err != nil {
-		t.Fatalf("OpenPath() error = %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-	if err := carvasqlite.Migrate(ctx, db); err != nil {
-		t.Fatalf("Migrate() error = %v", err)
-	}
+	_, db := openMigratedProjectDB(t)
 	service := projects.NewService(carvasqlite.NewProjectRepository(db))
 	if _, err := service.Get(ctx, "missing"); !errors.Is(err, project.ErrNotFound) {
 		t.Errorf("Get(missing) error = %v, want %v", err, project.ErrNotFound)

@@ -1,30 +1,20 @@
 package integration_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/Aguscampos04/Carva/internal/application/projects"
 	"github.com/Aguscampos04/Carva/internal/domain/project"
-	"github.com/Aguscampos04/Carva/internal/presentation/httpapi"
 	carvasqlite "github.com/Aguscampos04/Carva/internal/persistence/sqlite"
+	"github.com/Aguscampos04/Carva/internal/presentation/httpapi"
 )
 
 func TestProjectHTTPCreateReadAndRejectClientControlledIdentityOrStatus(t *testing.T) {
-	ctx := context.Background()
-	db, err := carvasqlite.OpenPath(ctx, filepath.Join(t.TempDir(), "project.db"))
-	if err != nil {
-		t.Fatalf("OpenPath() error = %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-	if err := carvasqlite.Migrate(ctx, db); err != nil {
-		t.Fatalf("Migrate() error = %v", err)
-	}
+	_, db := openMigratedProjectDB(t)
 	handler := httpapi.NewHandler(projects.NewService(carvasqlite.NewProjectRepository(db)))
 
 	request := httptest.NewRequest(http.MethodPost, "/api/projects", strings.NewReader(
@@ -66,15 +56,7 @@ func TestProjectHTTPCreateReadAndRejectClientControlledIdentityOrStatus(t *testi
 }
 
 func TestProjectHTTPValidationAndMissingProject(t *testing.T) {
-	ctx := context.Background()
-	db, err := carvasqlite.OpenPath(ctx, filepath.Join(t.TempDir(), "project.db"))
-	if err != nil {
-		t.Fatalf("OpenPath() error = %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-	if err := carvasqlite.Migrate(ctx, db); err != nil {
-		t.Fatalf("Migrate() error = %v", err)
-	}
+	_, db := openMigratedProjectDB(t)
 	handler := httpapi.NewHandler(projects.NewService(carvasqlite.NewProjectRepository(db)))
 
 	invalid := httptest.NewRequest(http.MethodPost, "/api/projects", strings.NewReader(`{"name":" \t "}`))
@@ -94,14 +76,7 @@ func TestProjectHTTPValidationAndMissingProject(t *testing.T) {
 }
 
 func TestProjectHTTPDoesNotReportPersistenceFailureAsSuccess(t *testing.T) {
-	ctx := context.Background()
-	db, err := carvasqlite.OpenPath(ctx, filepath.Join(t.TempDir(), "project.db"))
-	if err != nil {
-		t.Fatalf("OpenPath() error = %v", err)
-	}
-	if err := carvasqlite.Migrate(ctx, db); err != nil {
-		t.Fatalf("Migrate() error = %v", err)
-	}
+	_, db := openMigratedProjectDB(t)
 	if err := db.Close(); err != nil {
 		t.Fatalf("Close() error = %v", err)
 	}
