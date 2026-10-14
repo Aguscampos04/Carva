@@ -7,7 +7,7 @@
 
 ## Instrucción recibida
 
-El Developer solicitó implementar US-01 de extremo a extremo, consultar la Issue #1 y las decisiones vigentes, producir SDD/BDD, seguir RED → GREEN → REFACTOR con commits que reflejen evidencia real, mantener Go/SQLite/API/web en las capas aprobadas y ejecutar `gofmt`, tests, `vet`, `build`, verificación de módulos y cobertura. Indicó expresamente no hacer push, PR, cierre de Issue ni cambios de Sprint.
+**Prompt:** «Quiero que me ayudes a desarrollar la US-01 — Crear proyecto, del proyecto Carva.» La instrucción completa está en el adjunto `Texto pegado.txt`; solicitó implementar US-01 de extremo a extremo, consultar la Issue #1 y las decisiones vigentes, producir SDD/BDD, seguir RED → GREEN → REFACTOR con commits que reflejen evidencia real, mantener Go/SQLite/API/web en las capas aprobadas y ejecutar `gofmt`, tests, `vet`, `build`, verificación de módulos y cobertura. Indicó expresamente no hacer push, PR, cierre de Issue ni cambios de Sprint.
 
 ## Decisiones usadas
 
