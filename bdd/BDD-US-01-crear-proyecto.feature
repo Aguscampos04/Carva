@@ -1,6 +1,7 @@
 # US-01 — Crear proyecto
 # Fuente: docs/enunciado.md §2.1, borrador local de Issue #1 y SDD-US-01.
-# La validez de los datos y el formato del identificador esperan aprobación del contrato de alta.
+# Contrato aprobado: nombre obligatorio (no vacío tras recortar espacios; sin límite ni unicidad),
+# UUID generado por servidor y estado inicial controlado por Go.
 
 Feature: Crear y consultar un proyecto
   Como integrante del equipo
@@ -9,7 +10,7 @@ Feature: Crear y consultar un proyecto
 
   # AC-01 → BDD-01 → test de aplicación/integración; presentación/API y SQLite.
   Scenario: Crear un proyecto y consultar los datos registrados
-    Given que se proporcionan los campos válidos acordados para el alta
+    Given que se proporciona el nombre "Carva MVP"
     When se registra el proyecto y luego se consulta por su identificador
     Then se recuperan los datos ingresados
     And se recupera el mismo identificador asignado al proyecto
@@ -33,7 +34,7 @@ Feature: Crear y consultar un proyecto
     When se registra el proyecto
     Then el estado del proyecto creado sigue siendo "Planificado"
 
-  # AC-01 y contrato de validación pendiente → BDD-05 → test de dominio/aplicación.
+  # AC-01 y BR-04 → BDD-05 → test de dominio/aplicación.
   Scenario: Rechazar datos que no cumplen las validaciones aprobadas
     Given que los datos del alta incumplen una validación aprobada
     When se intenta registrar el proyecto

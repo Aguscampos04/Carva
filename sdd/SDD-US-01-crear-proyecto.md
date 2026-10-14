@@ -1,6 +1,6 @@
 # SDD-US-01 — Crear proyecto
 
-**Estado:** Borrador en revisión; no habilita todavía la implementación.  
+**Estado:** Especificación aprobada para US-01.  
 **Trazabilidad:** requisito §2.1 → EP-01 → US-01 → Issue #1 → este SDD → BDD-US-01 → tests y código.
 
 ## 1. Objetivo
@@ -9,13 +9,13 @@ Permitir que un integrante registre un proyecto, lo consulte después y obtenga 
 
 ## 2. Entradas
 
-El conjunto de campos del alta y sus reglas de obligatoriedad todavía no están definidos en la documentación local. La propuesta pendiente de aprobación es:
+El alta recibe únicamente el nombre del proyecto:
 
 | Campo | Obligatorio | Validación propuesta |
 | --- | --- | --- |
-| Nombre | Sí | Debe contener al menos un carácter que no sea espacio en blanco, luego de recortar espacios exteriores. Sin límite de longitud ni regla de unicidad. |
+| Nombre | Sí | Debe contener al menos un carácter que no sea espacio en blanco, luego de recortar espacios exteriores. Se conserva el texto ingresado. Sin límite de longitud ni regla de unicidad. |
 
-El identificador lo genera el servidor; la propuesta pendiente es UUID. El cliente no puede enviar ni elegir el identificador o el estado.
+El identificador lo genera el servidor como UUID. El cliente no puede enviar ni elegir el identificador o el estado.
 
 ## 3. Salidas esperadas
 
@@ -28,7 +28,7 @@ El identificador lo genera el servidor; la propuesta pendiente es UUID. El clien
 
 - **BR-01:** todo proyecto creado por US-01 comienza en estado **Planificado**.
 - **BR-02:** el estado inicial lo determina el dominio en Go; el cliente no puede seleccionar otro estado.
-- **BR-03:** el identificador del proyecto es estable y lo genera el servidor (formato pendiente de aprobación).
+- **BR-03:** el identificador del proyecto es un UUID estable generado por el servidor.
 - **BR-04:** la validación de los campos del proyecto se ejecuta en Go, independientemente de la interfaz.
 - **BR-05:** dos proyectos distintos conservan sus datos y pueden consultarse sin sobrescribirse.
 
@@ -38,7 +38,8 @@ El identificador lo genera el servidor; la propuesta pendiente es UUID. El clien
 - Se reutilizan Go, API REST, SQLite y la separación presentación/aplicación/dominio/persistencia ya establecidas.
 - La migración de esquema será versionada y embebida según la infraestructura existente.
 - Los detalles del contrato REST se documentarán junto con la implementación; la arquitectura no ha establecido aún rutas, JSON ni códigos HTTP.
-- La especificación de campos marcada como propuesta no se considera decisión del equipo hasta su aprobación.
+- El alta no acepta otros campos funcionales; las propiedades `id` y `status` enviadas por el cliente no controlan el recurso creado.
+- El contrato REST inicial es `POST /api/projects` para crear y `GET /api/projects/{id}` para consultar, y el alta responde con el proyecto persistido.
 
 ## 6. Casos límite
 
@@ -59,8 +60,7 @@ El identificador lo genera el servidor; la propuesta pendiente es UUID. El clien
 - **AC-01:** Dado un alta válida, cuando se registra, entonces el proyecto puede consultarse con los datos ingresados.
 - **AC-02:** Dado un proyecto recién creado y sin Sprint, cuando se consulta su estado, entonces figura **Planificado**.
 
-## 9. Decisiones pendientes para cerrar este SDD
+## 9. Decisiones y límites de esta especificación
 
-1. Confirmar campos, obligatoriedad y validaciones del alta (incluida la regla propuesta para nombre).
-2. Confirmar el formato del identificador estable (propuesta: UUID generado por el servidor).
-3. Verificar el contrato final de la Issue #1 cuando haya acceso a GitHub; por ahora se usa el borrador local y el texto facilitado por el Developer.
+1. No se pudo consultar GitHub Issue #1 desde el entorno. Se usa el texto facilitado por el Developer y el borrador local; los criterios de aceptación coinciden.
+2. La UI se embebe en el binario con `embed` y se sirve desde el mismo proceso HTTP, para no requerir una URL de API separada.
