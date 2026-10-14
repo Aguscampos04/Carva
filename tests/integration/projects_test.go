@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"testing"
 
@@ -70,7 +71,7 @@ func TestProjectLookupReturnsNotFound(t *testing.T) {
 		t.Fatalf("Migrate() error = %v", err)
 	}
 	service := projects.NewService(carvasqlite.NewProjectRepository(db))
-	if _, err := service.Get(ctx, "missing"); err != project.ErrNotFound {
+	if _, err := service.Get(ctx, "missing"); !errors.Is(err, project.ErrNotFound) {
 		t.Errorf("Get(missing) error = %v, want %v", err, project.ErrNotFound)
 	}
 }
