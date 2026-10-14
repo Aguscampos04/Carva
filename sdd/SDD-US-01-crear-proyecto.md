@@ -11,7 +11,7 @@ Permitir que un integrante registre un proyecto, lo consulte después y obtenga 
 
 El alta recibe únicamente el nombre del proyecto:
 
-| Campo | Obligatorio | Validación propuesta |
+| Campo | Obligatorio | Validación |
 | --- | --- | --- |
 | Nombre | Sí | Debe contener al menos un carácter que no sea espacio en blanco, luego de recortar espacios exteriores. Se conserva el texto ingresado. Sin límite de longitud ni regla de unicidad. |
 
@@ -37,9 +37,10 @@ El identificador lo genera el servidor como UUID. El cliente no puede enviar ni 
 - La historia cubre alta y consulta mínima. No cubre modificación, eliminación, finalización, miembros, backlog, Sprints ni permisos complejos.
 - Se reutilizan Go, API REST, SQLite y la separación presentación/aplicación/dominio/persistencia ya establecidas.
 - La migración de esquema será versionada y embebida según la infraestructura existente.
-- Los detalles del contrato REST se documentarán junto con la implementación; la arquitectura no ha establecido aún rutas, JSON ni códigos HTTP.
-- El alta no acepta otros campos funcionales; las propiedades `id` y `status` enviadas por el cliente no controlan el recurso creado.
-- El contrato REST inicial es `POST /api/projects` para crear y `GET /api/projects/{id}` para consultar, y el alta responde con el proyecto persistido.
+- La API de esta historia utiliza JSON. `POST /api/projects` acepta `{"name":"..."}` y responde `201` con el proyecto y un encabezado `Location`; nombre inválido o JSON malformado responde `400`, y fallo de persistencia responde `500`.
+- `GET /api/projects/{id}` responde `200` con el proyecto, `404` si no existe o `500` ante fallo de almacenamiento.
+- Los contratos REST de las demás historias se definirán en sus SDD.
+- El alta solo consume el nombre; las propiedades `id` y `status` enviadas por el cliente no controlan el recurso creado.
 
 ## 6. Casos límite
 

@@ -36,7 +36,7 @@ Feature: Crear y consultar un proyecto
 
   # AC-01 y BR-04 → BDD-05 → test de dominio/aplicación.
   Scenario: Rechazar datos que no cumplen las validaciones aprobadas
-    Given que los datos del alta incumplen una validación aprobada
+    Given que el nombre del proyecto contiene únicamente espacios en blanco
     When se intenta registrar el proyecto
     Then se informa un error de validación
     And no se crea ningún proyecto
