@@ -42,7 +42,7 @@ func TestBacklogHTTPCreateUpdateAndConsult(t *testing.T) {
 
 	updateBody := map[string]any{
 		"title": "Updated login", "description": "Updated description", "priority": string(domain.PriorityMedium),
-		"acceptance_criteria": []string{"Updated criterion"}, "status": string(domain.Completed),
+		"provisional_story_points": provisional, "acceptance_criteria": []string{"Updated criterion"}, "status": string(domain.Completed),
 		"story_points": 99, "id": "client-id", "project_id": "other-project",
 	}
 	updatedResponse := performJSONRequest(handler, http.MethodPut, "/api/projects/"+projectID+"/backlog/"+created.ID, updateBody)

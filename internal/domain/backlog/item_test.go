@@ -9,11 +9,11 @@ import (
 func TestNewCreatesPendingBacklogItemWithIndependentStoryPointValues(t *testing.T) {
 	provisional := 5
 	got, err := New("item-1", "project-1", Input{
-		Title:                   "  Login  ",
-		Description:             "  User can sign in  ",
-		Priority:                PriorityHigh,
-		ProvisionalStoryPoints:  &provisional,
-		AcceptanceCriteria:      []string{"Valid credentials grant access"},
+		Title:                  "  Login  ",
+		Description:            "  User can sign in  ",
+		Priority:               PriorityHigh,
+		ProvisionalStoryPoints: &provisional,
+		AcceptanceCriteria:     []string{"Valid credentials grant access"},
 	})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Aguscampos04/Carva/internal/application/backlog"
 	"github.com/Aguscampos04/Carva/internal/application/projects"
 	"github.com/Aguscampos04/Carva/internal/persistence/sqlite"
 	"github.com/Aguscampos04/Carva/internal/presentation/httpapi"
@@ -23,8 +24,9 @@ func main() {
 	}
 
 	service := projects.NewService(sqlite.NewProjectRepository(db))
+	backlogService := backlog.NewService(sqlite.NewBacklogRepository(db))
 	mux := http.NewServeMux()
-	mux.Handle("/api/", httpapi.NewHandler(service))
+	mux.Handle("/api/", httpapi.NewHandler(service, backlogService))
 	mux.Handle("/", http.FileServer(http.FS(static.Files)))
 
 	log.Print("Carva listening on http://localhost:8080")
