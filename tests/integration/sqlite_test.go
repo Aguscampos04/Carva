@@ -42,8 +42,8 @@ func TestSQLiteConnectionAndMigrationsUseTemporaryDatabase(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM carva_schema_migrations`).Scan(&recordedMigrations); err != nil {
 		t.Fatalf("query applied migrations: %v", err)
 	}
-	if recordedMigrations != 2 {
-		t.Fatalf("expected the baseline and project migrations to be recorded once each, got %d", recordedMigrations)
+	if recordedMigrations != 3 {
+		t.Fatalf("expected the baseline, project, and backlog migrations to be recorded once each, got %d", recordedMigrations)
 	}
 
 	var businessTables int
@@ -52,8 +52,8 @@ func TestSQLiteConnectionAndMigrationsUseTemporaryDatabase(t *testing.T) {
 	).Scan(&businessTables); err != nil {
 		t.Fatalf("query application tables: %v", err)
 	}
-	if businessTables != 1 {
-		t.Fatalf("expected the projects application table, got %d tables", businessTables)
+	if businessTables != 2 {
+		t.Fatalf("expected the projects and backlog application tables, got %d tables", businessTables)
 	}
 	var projectsTableExists bool
 	if err := db.QueryRowContext(ctx,
