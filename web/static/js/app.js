@@ -3,6 +3,10 @@ const nameInput = document.querySelector("#project-name");
 const message = document.querySelector("#message");
 const details = document.querySelector("#project-details");
 const refreshButton = document.querySelector("#refresh-project");
+const backlogSection = document.querySelector("#backlog-section");
+const backlogForm = document.querySelector("#create-backlog-form");
+const backlogMessage = document.querySelector("#backlog-message");
+const backlogItems = document.querySelector("#backlog-items");
 let currentProjectID = "";
 
 function showProject(project) {
@@ -12,7 +16,160 @@ function showProject(project) {
   document.querySelector("#project-status-result").textContent = project.status;
   details.hidden = false;
   refreshButton.hidden = false;
-  message.textContent = "Proyecto guardado y consultado.";
+  backlogSection.hidden = false;
+  message.textContent = "Proyecto disponible.";
+  loadBacklog();
+}
+
+async function requestJSON(url, options = {}) {
+  const response = await fetch(url, options);
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "No se pudo completar la operación.");
+  return result;
+}
+
+function backlogPath(projectID = currentProjectID) {
+  return `/api/projects/${encodeURIComponent(projectID)}/backlog`;
+}
+
+async function loadBacklog() {
+  if (!currentProjectID) return;
+  backlogMessage.textContent = "Consultando Product Backlog…";
+  backlogItems.replaceChildren();
+  try {
+    const items = await requestJSON(backlogPath());
+    renderBacklog(items);
+    backlogMessage.textContent = items.length === 0 ? "Todavía no hay User Stories." : `${items.length} User Stories.`;
+  } catch (error) {
+    backlogMessage.textContent = error.message;
+  }
+}
+
+function renderBacklog(items) {
+  backlogItems.replaceChildren();
+  for (const item of items) backlogItems.append(createBacklogCard(item));
+}
+
+function createBacklogCard(item) {
+  const card = document.createElement("article");
+  card.className = "backlog-card";
+  const title = document.createElement("h3");
+  title.textContent = item.title;
+  const description = document.createElement("p");
+  description.textContent = item.description;
+  const detailsList = document.createElement("dl");
+  addDetail(detailsList, "Prioridad", item.priority);
+  addDetail(detailsList, "Estado", item.status);
+  if (item.story_points !== null) {
+    addDetail(detailsList, "Story Points", item.story_points);
+  } else if (item.provisional_story_points !== null) {
+    addDetail(detailsList, "Story Points provisionales", item.provisional_story_points);
+  } else {
+    addDetail(detailsList, "Story Points", "Sin estimar");
+  }
+  addDetail(detailsList, "Identificador", item.id);
+
+  const criteriaTitle = document.createElement("h4");
+  criteriaTitle.textContent = "Criterios de aceptación";
+  const criteria = document.createElement("ul");
+  for (const criterion of item.acceptance_criteria) {
+    const row = document.createElement("li");
+    row.textContent = criterion;
+    criteria.append(row);
+  }
+
+  const editButton = document.createElement("button");
+  editButton.type = "button";
+  editButton.textContent = "Editar";
+  editButton.addEventListener("click", () => {
+    card.replaceChildren(title, description, detailsList, criteriaTitle, criteria, createEditForm(item));
+  });
+  card.append(title, description, detailsList, criteriaTitle, criteria, editButton);
+  return card;
+}
+
+function addDetail(list, label, value) {
+  const term = document.createElement("dt");
+  term.textContent = label;
+  const detail = document.createElement("dd");
+  detail.textContent = String(value);
+  list.append(term, detail);
+}
+
+function createEditForm(item) {
+  const editForm = document.createElement("form");
+  editForm.className = "backlog-edit-form";
+  const title = addFormField(editForm, item, "title", "Título", "input", item.title);
+  title.required = true;
+  const description = addFormField(editForm, item, "description", "Descripción", "textarea", item.description);
+  description.required = true;
+  const priority = addFormField(editForm, item, "priority", "Prioridad", "select", item.priority);
+  for (const value of ["Alta", "Media", "Baja"]) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    priority.append(option);
+  }
+  const points = addFormField(editForm, item, "provisional_story_points", "Story Points provisionales", "input", item.provisional_story_points ?? "");
+  points.type = "number";
+  points.min = "0";
+  points.step = "1";
+  points.readOnly = item.story_points !== null;
+  const criteria = addFormField(editForm, item, "acceptance_criteria", "Criterios de aceptación (uno por línea)", "textarea", item.acceptance_criteria.join("\n"));
+  criteria.required = true;
+  const error = document.createElement("p");
+  error.className = "form-error";
+  error.setAttribute("aria-live", "polite");
+  const save = document.createElement("button");
+  save.type = "submit";
+  save.textContent = "Guardar cambios";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.className = "secondary-button";
+  cancel.textContent = "Cancelar";
+  cancel.addEventListener("click", () => loadBacklog());
+  editForm.append(error, save, cancel);
+  editForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      await requestJSON(`${backlogPath()}/${encodeURIComponent(item.id)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(readBacklogFields(editForm)),
+      });
+      await loadBacklog();
+    } catch (cause) {
+      error.textContent = cause.message;
+    }
+  });
+  return editForm;
+}
+
+function addFormField(formElement, item, name, labelText, tagName, value) {
+  const id = `edit-${item.id}-${name}`;
+  const label = document.createElement("label");
+  label.htmlFor = id;
+  label.textContent = labelText;
+  const field = document.createElement(tagName);
+  field.id = id;
+  field.name = name;
+  field.value = value;
+  formElement.append(label, field);
+  return field;
+}
+
+function readBacklogFields(formElement) {
+  const data = new FormData(formElement);
+  const pointText = data.get("provisional_story_points");
+  return {
+    title: data.get("title"),
+    description: data.get("description"),
+    priority: data.get("priority"),
+    provisional_story_points: pointText === "" ? null : Number(pointText),
+    acceptance_criteria: String(data.get("acceptance_criteria"))
+      .split(/\r?\n/)
+      .filter((criterion) => criterion.trim() !== ""),
+  };
 }
 
 form.addEventListener("submit", async (event) => {
@@ -22,13 +179,11 @@ form.addEventListener("submit", async (event) => {
   refreshButton.hidden = true;
 
   try {
-    const response = await fetch("/api/projects", {
+    const result = await requestJSON("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: nameInput.value }),
     });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "No se pudo crear el proyecto.");
     showProject(result);
   } catch (error) {
     message.textContent = error.message;
@@ -38,11 +193,27 @@ form.addEventListener("submit", async (event) => {
 refreshButton.addEventListener("click", async () => {
   message.textContent = "Consultando proyecto…";
   try {
-    const response = await fetch(`/api/projects/${encodeURIComponent(currentProjectID)}`);
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "No se pudo consultar el proyecto.");
-    showProject(result);
+    const project = await requestJSON(`/api/projects/${encodeURIComponent(currentProjectID)}`);
+    showProject(project);
   } catch (error) {
     message.textContent = error.message;
+  }
+});
+
+backlogForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const error = document.querySelector("#backlog-message");
+  error.textContent = "Guardando User Story…";
+  try {
+    await requestJSON(backlogPath(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(readBacklogFields(backlogForm)),
+    });
+    backlogForm.reset();
+    document.querySelector("#backlog-priority-input").value = "Alta";
+    await loadBacklog();
+  } catch (cause) {
+    error.textContent = cause.message;
   }
 });
