@@ -66,13 +66,13 @@ La siguiente estructura fue aprobada por el equipo y creada como base del reposi
 └── go.mod
 ```
 
-El módulo Go es `github.com/Aguscampos04/Carva`. El punto de entrada `cmd/carva/main.go` es mínimo y no inicia todavía un servidor ni implementa funcionalidades. Las carpetas `src/`, `sdd/`, `bdd/` y `tests/` que ya existían se conservan; no se utiliza `src/` para el código Go.
+El módulo Go es `github.com/Aguscampos04/Carva`. US-01 incorpora el primer caso de uso de proyectos, persistencia, API y UI en las ubicaciones aprobadas. Las carpetas `src/`, `sdd/`, `bdd/` y `tests/` que ya existían se conservan; no se utiliza `src/` para el código Go.
 
-Los paquetes iniciales son `presentation/httpapi`, `application/projects`, `application/members`, `application/backlog`, `application/sprints`, `domain/project`, `domain/member`, `domain/backlog`, `domain/sprint` y `persistence/sqlite`. Sus archivos `doc.go` documentan el paquete sin introducir comportamiento. Los directorios aún vacíos se conservan con `.gitkeep`.
+Los paquetes iniciales son `presentation/httpapi`, `application/projects`, `application/members`, `application/backlog`, `application/sprints`, `domain/project`, `domain/member`, `domain/backlog`, `domain/sprint` y `persistence/sqlite`. US-01 implementa los paquetes HTTP, aplicación de proyectos, dominio de proyectos y persistencia SQLite. Los paquetes de las historias restantes continúan como esqueletos.
 
-El paquete `persistence/sqlite` obtiene su ruta desde `CARVA_DB_PATH` y usa `.local/carva.db` si la variable no está definida o está vacía. `Open` valida la conexión y crea el directorio padre del archivo si hace falta. Las migraciones se almacenan como SQL versionado (`NNNNNN_descripcion.sql`) en `internal/persistence/sqlite/migrations/`, se embeben y se aplican en orden; `carva_schema_migrations` registra las versiones aplicadas. La migración `000001_baseline.sql` establece la línea de base sin crear tablas de negocio. La tabla de registro es metadato de infraestructura. `.local/` y los archivos SQLite locales están excluidos de Git.
+El paquete `persistence/sqlite` obtiene su ruta desde `CARVA_DB_PATH` y usa `.local/carva.db` si la variable no está definida o está vacía. `Open` valida la conexión y crea el directorio padre del archivo si hace falta. Las migraciones se almacenan como SQL versionado (`NNNNNN_descripcion.sql`) en `internal/persistence/sqlite/migrations/`, se embeben y se aplican en orden; `carva_schema_migrations` registra las versiones aplicadas. La migración `000001_baseline.sql` establece la línea de base y `000002_projects.sql` crea la tabla de proyectos de US-01. La tabla de registro es metadato de infraestructura. `.local/` y los archivos SQLite locales están excluidos de Git.
 
-`modernc.org/sqlite v1.60.1` declara compatibilidad desde Go 1.26.0. Su módulo incorpora dependencias transitivas, entre ellas `modernc.org/libc`, `modernc.org/mathutil`, `modernc.org/fileutil` y `golang.org/x/sys`; sus versiones quedan fijadas en `go.mod`/`go.sum`.
+`modernc.org/sqlite v1.60.1` declara compatibilidad desde Go 1.26.0. Sus dependencias transitivas quedan fijadas en `go.mod`/`go.sum`.
 
 ## 4. Responsabilidades por capa
 
@@ -80,8 +80,8 @@ El paquete `persistence/sqlite` obtiene su ruta desde `CARVA_DB_PATH` y usa `.lo
 
 - Recibir solicitudes HTTP y exponer la API REST.
 - Traducir solicitudes y respuestas HTTP a los casos de uso de aplicación.
-- Gestionar el transporte, los formatos de entrada y salida y los códigos HTTP cuando se definan sus contratos.
-- Servir o entregar los recursos HTML, CSS y JavaScript según la estrategia que apruebe el equipo.
+- Gestionar el transporte y los contratos HTTP documentados por cada SDD.
+- Servir los recursos HTML, CSS y JavaScript embebidos desde el mismo proceso HTTP.
 - No concentrar reglas centrales de negocio en handlers ni en JavaScript.
 
 ### Aplicación
@@ -101,12 +101,12 @@ El paquete `persistence/sqlite` obtiene su ruta desde `CARVA_DB_PATH` y usa `.lo
 
 - Implementar los puertos de almacenamiento usando SQLite.
 - Traducir entre los datos persistidos y los tipos del dominio o de aplicación.
-- Gestionar apertura de la base, consultas, escrituras, transacciones y migraciones, una vez definidas sus estrategias.
+- Gestionar apertura de la base, consultas, escrituras, transacciones y migraciones.
 - No decidir reglas funcionales ni exponer detalles SQL al dominio.
 
 ### Composición de dependencias
 
-`cmd/carva` funcionaría como punto de composición: carga configuración, inicializa SQLite, construye adaptadores y casos de uso, configura la API HTTP e inicia el servidor. Esta función describe la propuesta de estructura y no implica que esa implementación ya exista.
+`cmd/carva` es el punto de composición: inicializa SQLite, aplica migraciones, construye el repositorio y caso de uso, configura la API HTTP y sirve el frontend.
 
 ## 5. Dependencias permitidas
 
@@ -140,12 +140,9 @@ cmd/carva compone Presentación, Aplicación y Persistencia.
 
 Antes de implementar los aspectos correspondientes, el equipo debe revisar o decidir:
 
-1. Rutas, métodos, versionado, formatos JSON, códigos HTTP, errores y validaciones de la API REST.
-2. Atributos, identificadores, invariantes y relaciones detalladas del modelo de dominio, manteniendo las reglas funcionales aprobadas.
-3. Esquema de negocio SQLite, migraciones funcionales, restricciones, índices y política de concurrencia/transacciones.
-4. Cómo se sirven los recursos estáticos y cómo configuran su URL de API los distintos entornos.
-5. Configuración general, logging, apagado ordenado y despliegue.
-6. Si se requiere autenticación en una etapa posterior. Para la etapa inicial está aprobada la ausencia de autenticación compleja; el modo de identificar miembros dentro de cada proyecto aún debe especificarse.
+1. Contratos HTTP, atributos de dominio, esquema y reglas de validación de historias futuras; el contrato de US-01 está documentado en `sdd/SDD-US-01-crear-proyecto.md`.
+2. Configuración general, logging, apagado ordenado y despliegue.
+3. Si se requiere autenticación en una etapa posterior. Para la etapa inicial está aprobada la ausencia de autenticación compleja; el modo de identificar miembros dentro de cada proyecto aún debe especificarse.
 
 Estas decisiones no deben convertirse en reglas funcionales por inferencia. Deben resolverse mediante SDD y aprobación del equipo cuando afecten el comportamiento o la arquitectura.
 
