@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -48,7 +49,20 @@ func OpenPath(ctx context.Context, path string) (*sql.DB, error) {
 		}
 	}
 
-	db, err := sql.Open(driverName, path)
+	// Driver pragmas run for every new pooled connection, not just the initial one.
+	dsn := ":memory:?_pragma=foreign_keys(1)"
+	if path != ":memory:" {
+		absolute, err := filepath.Abs(path)
+		if err != nil {
+			return nil, fmt.Errorf("resolve SQLite path: %w", err)
+		}
+		uriPath := filepath.ToSlash(absolute)
+		if filepath.VolumeName(absolute) != "" {
+			uriPath = "/" + uriPath
+		}
+		dsn = (&url.URL{Scheme: "file", Path: uriPath, RawQuery: "_pragma=foreign_keys(1)"}).String()
+	}
+	db, err := sql.Open(driverName, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open SQLite database: %w", err)
 	}

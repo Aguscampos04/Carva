@@ -17,7 +17,7 @@ type ProjectService interface {
 }
 
 // NewHandler returns the REST endpoints for project creation and consultation.
-func NewHandler(service ProjectService, backlogService BacklogService, sprintService SprintService) http.Handler {
+func NewHandler(service ProjectService, backlogService BacklogService, sprintService SprintService, memberServices ...MemberService) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/projects", createProject(service))
 	mux.HandleFunc("GET /api/projects/{id}", getProject(service))
@@ -26,6 +26,11 @@ func NewHandler(service ProjectService, backlogService BacklogService, sprintSer
 	}
 	if sprintService != nil {
 		registerSprintRoutes(mux, sprintService)
+	}
+	for _, memberService := range memberServices {
+		if memberService != nil {
+			registerMemberRoutes(mux, memberService)
+		}
 	}
 	return mux
 }
