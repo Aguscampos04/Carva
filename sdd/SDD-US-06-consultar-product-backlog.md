@@ -1,6 +1,6 @@
 # SDD-US-06 — Consultar Product Backlog
 
-**Estado:** Especificación aprobada por DelfiCarribero el 2026-10-15.  
+**Estado:** Especificación aprobada por DelfiCarribero el 2026-10-15.
 **Trazabilidad:** enunciado §2.2 → EP-02 → US-06 → Issue #6 → este SDD → BDD-US-06 → tests y código.
 
 ## 1. Objetivo

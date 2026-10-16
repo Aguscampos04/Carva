@@ -16,6 +16,16 @@ La pantalla inicial permite crear un proyecto y volver a consultarlo. La API de
 US-01 expone `POST /api/projects` con `{"name":"..."}` y
 `GET /api/projects/{id}`. El servidor genera el UUID y establece el estado
 `Planificado`.
+La API también permite crear un Sprint para un proyecto existente y consultar
+su objetivo:
+
+- `POST /api/projects/{projectID}/sprints` — body: `{ "goal": "Entregar el MVP" }`.
+- `GET /api/projects/{projectID}/sprints/{sprintID}` — consulta el Sprint dentro de su proyecto.
+
+`projectID` es el UUID devuelto al crear el proyecto; `sprintID` es un entero
+positivo. Crear el primer Sprint cambia el estado del proyecto de `Planificado`
+a `En progreso`.
+
 ## Integrantes y Roles Scrum
 
 | Nombre y apellido |       GitHub     | Rol Scrum |

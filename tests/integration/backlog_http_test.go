@@ -120,6 +120,7 @@ func TestBacklogHTTPReportsStorageFailure(t *testing.T) {
 	handler := httpapi.NewHandler(
 		projects.NewService(sqlite.NewProjectRepository(db)),
 		appbacklog.NewService(sqlite.NewBacklogRepository(db)),
+		nil,
 	)
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
@@ -138,7 +139,7 @@ func newBacklogHTTPHandler(t *testing.T, db *sql.DB) (http.Handler, string) {
 		t.Fatal(err)
 	}
 	backlogService := appbacklog.NewService(sqlite.NewBacklogRepository(db))
-	return httpapi.NewHandler(projectService, backlogService), created.ID
+	return httpapi.NewHandler(projectService, backlogService, nil), created.ID
 }
 
 func performJSONRequest(handler http.Handler, method, path string, body any) *httptest.ResponseRecorder {

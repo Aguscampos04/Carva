@@ -1,8 +1,8 @@
 # Evidencia de IA — US-01 Crear proyecto
 
-**Issue:** #1 (referenciada por el Developer; su página no fue accesible desde este entorno).  
-**Rama local:** `codex/us-01-crear-proyecto`.  
-**Requisito:** `docs/enunciado.md` §2.1.  
+**Issue:** #1 (referenciada por el Developer; su página no fue accesible desde este entorno).
+**Rama local:** `codex/us-01-crear-proyecto`.
+**Requisito:** `docs/enunciado.md` §2.1.
 **Trazabilidad:** EP-01 → US-01 → SDD-US-01 → AC-01/AC-02 → BDD-US-01 → tests → Go.
 
 ## Instrucción recibida

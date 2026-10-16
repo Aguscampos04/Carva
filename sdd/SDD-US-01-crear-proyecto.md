@@ -1,6 +1,6 @@
 # SDD-US-01 — Crear proyecto
 
-**Estado:** Especificación aprobada para US-01.  
+**Estado:** Especificación aprobada para US-01.
 **Trazabilidad:** requisito §2.1 → EP-01 → US-01 → Issue #1 → este SDD → BDD-US-01 → tests y código.
 
 ## 1. Objetivo

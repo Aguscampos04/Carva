@@ -211,9 +211,9 @@ Estas decisiones definen el comportamiento funcional del producto. Las fórmulas
 
 Todavía deben definirse y documentarse, entre otras:
 
-- Contratos concretos de la API REST: rutas, formatos, versionado, códigos HTTP y formato de errores.
-- Modelo de dominio.
-- Esquema de negocio SQLite, restricciones, índices y configuración de concurrencia/transacciones.
+- Contratos REST generales: versionado, formatos, códigos HTTP, errores y rutas fuera del alcance mínimo descrito en `sdd/SDD-US-01-soporte-proyecto.md` y `sdd/SDD-US-07-crear-sprint.md`.
+- Modelo de dominio más allá de los campos mínimos de proyectos y Sprints especificados en esas SDD.
+- Esquema SQLite y configuración de concurrencia/transacciones más allá de las tablas mínimas descritas en esas SDD.
 - Estrategia para servir los archivos estáticos del frontend y configurar su acceso a la API.
 - Configuración completa de los entornos de desarrollo y pruebas, más allá de la ruta base aprobada.
 - Mecanismo concreto para identificar miembros registrados por proyecto. Para la etapa inicial está aprobada la ausencia de autenticación compleja.

@@ -39,3 +39,10 @@ func New(id, name string) (Project, error) {
 
 	return Project{ID: id, Name: name, Status: Planned}, nil
 }
+
+// StartFirstSprint moves a planned project to in-progress when its first Sprint is created.
+func (p *Project) StartFirstSprint() {
+	if p.Status == Planned {
+		p.Status = InProgress
+	}
+}

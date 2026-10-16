@@ -1,6 +1,6 @@
 # SDD-US-05 — Registrar y mantener elementos del Product Backlog
 
-**Estado:** Especificación aprobada por DelfiCarribero el 2026-10-15.  
+**Estado:** Especificación aprobada por DelfiCarribero el 2026-10-15.
 **Trazabilidad:** enunciado §2.2 → EP-02 → US-05 → Issue #5 → este SDD → BDD-US-05 → tests y código.
 
 ## 1. Objetivo

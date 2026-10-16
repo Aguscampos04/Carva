@@ -38,3 +38,24 @@ func TestNewRejectsEmptyID(t *testing.T) {
 		t.Errorf("New() error = %v, want ErrInvalidID", err)
 	}
 }
+
+func TestStartFirstSprint(t *testing.T) {
+	tests := []struct {
+		name string
+		in   Status
+		want Status
+	}{
+		{name: "planned project starts", in: Planned, want: InProgress},
+		{name: "in progress project remains", in: InProgress, want: InProgress},
+		{name: "finalized project remains", in: Finalized, want: Finalized},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := Project{Status: tt.in}
+			p.StartFirstSprint()
+			if p.Status != tt.want {
+				t.Fatalf("status = %q, want %q", p.Status, tt.want)
+			}
+		})
+	}
+}
