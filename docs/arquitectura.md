@@ -142,7 +142,7 @@ Antes de implementar los aspectos correspondientes, el equipo debe revisar o dec
 
 1. Contratos HTTP, atributos de dominio, esquema y reglas de validación de historias futuras; el contrato de US-01 está documentado en `sdd/SDD-US-01-crear-proyecto.md`.
 2. Configuración general, logging, apagado ordenado y despliegue.
-3. Si se requiere autenticación en una etapa posterior. Para la etapa inicial está aprobada la ausencia de autenticación compleja; el modo de identificar miembros dentro de cada proyecto aún debe especificarse.
+3. Si se requiere autenticación en una etapa posterior. Para US-03 se aprobaron nombre como único dato de alta, UUID automático, homónimos permitidos, registro independiente por proyecto y selección desde su lista en funcionalidades futuras, sin autenticación ni permisos. Véanse D-01 a D-07 en [contexto del proyecto](contexto-proyecto.md#miembros-del-proyecto--us-03--issue-3). Los detalles técnicos están propuestos en [SDD-US-03](../sdd/SDD-US-03-registrar-miembros.md), pendientes de aprobación e implementación; los paquetes de miembros continúan como esqueletos.
 
 Estas decisiones no deben convertirse en reglas funcionales por inferencia. Deben resolverse mediante SDD y aprobación del equipo cuando afecten el comportamiento o la arquitectura.
 
