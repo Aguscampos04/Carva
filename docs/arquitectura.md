@@ -68,7 +68,7 @@ La siguiente estructura fue aprobada por el equipo y creada como base del reposi
 
 El módulo Go es `github.com/Aguscampos04/Carva`. US-01 incorpora el primer caso de uso de proyectos, persistencia, API y UI en las ubicaciones aprobadas. US-07 reutiliza el proyecto identificado por UUID y agrega los Sprints; US-08 agrega la asignación de historias con snapshots de planificación. Las carpetas `src/`, `sdd/`, `bdd/` y `tests/` que ya existían se conservan; no se utiliza `src/` para el código Go.
 
-Los paquetes iniciales son `presentation/httpapi`, `application/projects`, `application/members`, `application/backlog`, `application/sprints`, `domain/project`, `domain/member`, `domain/backlog`, `domain/sprint` y `persistence/sqlite`. US-01 implementa proyectos; US-05/US-06 implementan Product Backlog; US-07 implementa Sprints; US-08 conserva los elementos asignados como snapshots. Los paquetes de las historias restantes continúan como esqueletos.
+Los paquetes iniciales son `presentation/httpapi`, `application/projects`, `application/members`, `application/backlog`, `application/sprints`, `domain/project`, `domain/member`, `domain/backlog`, `domain/sprint` y `persistence/sqlite`. US-01 implementa proyectos; US-03 implementa registro y listado de miembros por proyecto; US-05/US-06 implementan Product Backlog; US-07 implementa Sprints; US-08 conserva los elementos asignados como snapshots. Los paquetes de las historias restantes continúan como esqueletos.
 
 El paquete `persistence/sqlite` obtiene su ruta desde `CARVA_DB_PATH` y usa `.local/carva.db` si la variable no está definida o está vacía. `Open` valida la conexión y crea el directorio padre del archivo si hace falta. Las migraciones se almacenan como SQL versionado (`NNNNNN_descripcion.sql`) en `internal/persistence/sqlite/migrations/`, se embeben y se aplican en orden; `carva_schema_migrations` registra las versiones aplicadas. Las migraciones `000001_baseline.sql`, `000002_projects.sql`, `000003_backlog_items.sql`, `000004_sprints.sql` y `000005_sprint_backlog_items.sql` crean las estructuras para US-01, US-05/US-06, US-07 y US-08. Los Sprints se vinculan por UUID al proyecto y sus historias planificadas mantienen copias de los datos vigentes al asignarlas. La tabla de registro es metadato de infraestructura. `.local/` y los archivos SQLite locales están excluidos de Git.
 
@@ -142,9 +142,11 @@ Antes de implementar los aspectos correspondientes, el equipo debe revisar o dec
 
 1. Contratos HTTP, atributos de dominio, esquema y reglas de validación de historias futuras; el contrato de US-01 está documentado en `sdd/SDD-US-01-crear-proyecto.md`.
 2. Configuración general, logging, apagado ordenado y despliegue.
-3. Si se requiere autenticación en una etapa posterior. Para la etapa inicial está aprobada la ausencia de autenticación compleja; el modo de identificar miembros dentro de cada proyecto aún debe especificarse.
+3. Si se requiere autenticación en una etapa posterior. Para US-03 se aprobaron nombre como único dato de alta, UUID automático, homónimos permitidos, registro independiente por proyecto y selección desde su lista en funcionalidades futuras, sin autenticación ni permisos. Véanse D-01 a D-07 en [contexto del proyecto](contexto-proyecto.md#miembros-del-proyecto--us-03--issue-3). El responsable autorizó implementar la [SDD-US-03](../sdd/SDD-US-03-registrar-miembros.md) con los ajustes de revisión. Los paquetes de miembros implementan alta/listado por proyecto, conectados a REST y a su sección web. La migración `000006_members.sql` agrega `members`; `OpenPath` activa claves foráneas en cada conexión mediante el DSN del driver. La revisión y aprobación final de la historia por el equipo siguen pendientes.
 
-Estas decisiones no deben convertirse en reglas funcionales por inferencia. Deben resolverse mediante SDD y aprobación del equipo cuando afecten el comportamiento o la arquitectura.
+US-03 incorpora además `000007_members_name_storage.sql`: conserva los registros y mide el nombre por bytes para que el CHECK no rechace caracteres admitidos por D-06 (SQLite `length(TEXT)` se detiene en NUL). Las migraciones anteriores se conservan sin modificaciones.
+
+Estas decisiones pendientes no deben convertirse en reglas funcionales por inferencia. Deben resolverse mediante SDD y aprobación del equipo cuando afecten el comportamiento o la arquitectura.
 
 ## 8. Trazabilidad
 

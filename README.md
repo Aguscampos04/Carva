@@ -35,6 +35,37 @@ planificación de un Sprint:
 Cada asignación conserva los datos de la historia al momento de planificarla,
 aunque después cambien en el Backlog.
 
+## Miembros del proyecto (US-03)
+
+Al crear o consultar un proyecto, su sección **Miembros del proyecto** permite
+registrar un miembro ingresando únicamente su nombre y consultar los registrados.
+Se recortan los espacios exteriores. Se permiten homónimos: cada alta recibe un
+UUID independiente, visible como dato secundario debajo del nombre. Los miembros
+de otros proyectos no se incluyen. No hay edición, eliminación ni autenticación.
+
+- `POST /api/projects/{projectID}/members` — cuerpo: `{"name":"Ana Pérez"}`; devuelve `201` con `id`, `project_id` y `name`.
+- `GET /api/projects/{projectID}/members` — devuelve `200` con una lista, o `[]` para un proyecto sin miembros.
+
+El alta exige un único objeto JSON completo: rechaza tipos incorrectos, claves
+duplicadas y contenido posterior. Las propiedades adicionales no controlan UUID
+ni proyecto. Datos inválidos: `400`; proyecto inexistente: `404`; errores internos:
+`500` con mensaje seguro. Si falla una solicitud sin confirmación, consultá la lista
+antes de repetirla: un nuevo envío puede registrar otro homónimo.
+
+Ver [SDD-US-03](sdd/SDD-US-03-registrar-miembros.md) y
+[evidencia TDD / matriz BDD–tests](docs/evidencia-ia-us-03.md). Para verificar:
+
+```powershell
+gofmt -l .
+go test ./...
+go vet ./...
+node --test tests/web/members.test.cjs
+```
+
+Las pruebas web usan el runner incluido en Node.js (verificadas con Node 20),
+sin instalar paquetes. Los selectores para votos y esfuerzo se incorporarán en
+US-12 y US-16; US-03 proporciona sus identidades estables.
+
 ## Integrantes y Roles Scrum
 
 | Nombre y apellido |       GitHub     | Rol Scrum |

@@ -42,8 +42,8 @@ func TestSQLiteConnectionAndMigrationsUseTemporaryDatabase(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM carva_schema_migrations`).Scan(&recordedMigrations); err != nil {
 		t.Fatalf("query applied migrations: %v", err)
 	}
-	if recordedMigrations != 5 {
-		t.Fatalf("expected baseline, project, Backlog, Sprint, and Sprint planning migrations to be recorded once each, got %d", recordedMigrations)
+	if recordedMigrations != 7 {
+		t.Fatalf("expected seven migrations including member name storage recorded once each, got %d", recordedMigrations)
 	}
 
 	var businessTables int
@@ -52,8 +52,8 @@ func TestSQLiteConnectionAndMigrationsUseTemporaryDatabase(t *testing.T) {
 	).Scan(&businessTables); err != nil {
 		t.Fatalf("query application tables: %v", err)
 	}
-	if businessTables != 4 {
-		t.Fatalf("expected project, backlog, Sprint, and Sprint planning tables, got %d tables", businessTables)
+	if businessTables != 5 {
+		t.Fatalf("expected five business tables including members, got %d tables", businessTables)
 	}
 	var projectsTableExists bool
 	if err := db.QueryRowContext(ctx,
@@ -123,5 +123,22 @@ func TestDatabasePathUsesEnvironmentAndLocalDefault(t *testing.T) {
 	t.Setenv(carvasqlite.DatabasePathEnv, customPath)
 	if got := carvasqlite.DatabasePath(); got != customPath {
 		t.Fatalf("DatabasePath() = %q, want %q", got, customPath)
+	}
+}
+
+func TestSQLiteForeignKeysWithMemoryAndEscapedFilePath(t *testing.T) {
+	for _, path := range []string{":memory:", filepath.Join(t.TempDir(), "space # database.db")} {
+		db, err := carvasqlite.OpenPath(context.Background(), path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var enabled int
+		err = db.QueryRow(`PRAGMA foreign_keys`).Scan(&enabled)
+		if err != nil || enabled != 1 {
+			t.Fatalf("path %q: foreign_keys = %d, %v", path, enabled, err)
+		}
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

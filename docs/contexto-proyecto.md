@@ -207,6 +207,24 @@ Estas decisiones definen el comportamiento funcional del producto. Las fórmulas
 17. **Reporte final:** debe poder generarse en PDF e incluir información general del proyecto, Sprints, User Stories, Story Points, horas, métricas, defectos y estado general.
 18. **MVP e identificación:** se identificará a los miembros para Planning Poker y el registro de esfuerzo. No se implementará un sistema complejo de permisos en el MVP.
 
+### Miembros del proyecto — US-03 / Issue #3
+
+Decisiones funcionales **aprobadas explícitamente por el responsable en la solicitud del 2026-10-16**. Los identificadores D-01 a D-07 corresponden a US-03:
+
+| ID | Decisión aprobada |
+| --- | --- |
+| D-01 | El único dato ingresado para registrar un miembro es su nombre. |
+| D-02 | Cada miembro recibe automáticamente un UUID. |
+| D-03 | Se permiten nombres iguales; la identidad depende del UUID. |
+| D-04 | Los miembros se registran independientemente en cada proyecto, aunque representen a la misma persona. |
+| D-05 | En las futuras funcionalidades se identificará al miembro seleccionándolo de la lista del proyecto. |
+| D-06 | Rechazar nombres vacíos o solo con espacios. Eliminar espacios iniciales/finales y conservar el resto del nombre. |
+| D-07 | Incorporar una sección de miembros con formulario de alta y lista de registrados. Sin edición, eliminación, autenticación ni permisos. |
+
+Trazabilidad: enunciado §2.1 → EP-01 → [US-03 / Issue #3](https://github.com/Aguscampos04/Carva/issues/3) → [SDD-US-03](../sdd/SDD-US-03-registrar-miembros.md) → [BDD-US-03](../bdd/BDD-US-03-registrar-miembros.feature). La identificación habilita la futura atribución de votos (§2.4, US-12) y esfuerzo (§2.5, US-16), sin implementar esas historias en US-03.
+
+El responsable autorizó el 2026-10-16 implementar la SDD y los escenarios con los ajustes de revisión: JSON estricto, integridad referencial efectiva en SQLite, claridad de BDD 07/17 y UUID completo presentado como dato secundario. Esta autorización de la etapa no implica aprobación final de la historia por el equipo ni evidencia de tests; la implementación deberá conservar evidencia TDD y entregarse por PR sin merge ni cierre de #3.
+
 ### Decisiones pendientes
 
 Todavía deben definirse y documentarse, entre otras:
@@ -216,7 +234,7 @@ Todavía deben definirse y documentarse, entre otras:
 - Esquema SQLite y configuración de concurrencia/transacciones más allá de las tablas mínimas descritas en esas SDD.
 - Estrategia para servir los archivos estáticos del frontend y configurar su acceso a la API.
 - Configuración completa de los entornos de desarrollo y pruebas, más allá de la ruta base aprobada.
-- Mecanismo concreto para identificar miembros registrados por proyecto. Para la etapa inicial está aprobada la ausencia de autenticación compleja.
+- Integración de la selección de miembros en votos y esfuerzo, a especificar en US-12 y US-16. El mecanismo funcional está aprobado (D-05), sin autenticación ni permisos (D-07); el alta/listado de US-03 está implementado según su SDD autorizada, pendiente de revisión final del equipo.
 - Si se requiere autenticación en una etapa posterior.
 - Estrategia de despliegue, si corresponde.
 - Diseño visual de la interfaz.
