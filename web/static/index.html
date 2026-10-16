@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Carva · Product Backlog</title>
     <link rel="stylesheet" href="/css/app.css">
+    <script src="/js/members.js" defer></script>
     <script src="/js/app.js" defer></script>
   </head>
   <body>
@@ -27,6 +28,18 @@
           <dt>Estado</dt><dd id="project-status-result"></dd>
         </dl>
         <button id="refresh-project" type="button" hidden>Consultar de nuevo</button>
+      </section>
+
+      <section id="members-section" aria-labelledby="members-title" hidden>
+        <h2 id="members-title">Miembros del proyecto</h2>
+        <form id="create-member-form">
+          <label for="member-name">Nombre del miembro</label>
+          <input id="member-name" name="name" autocomplete="off" required>
+          <button id="register-member" type="submit">Registrar miembro</button>
+        </form>
+        <p id="members-message" aria-live="polite"></p>
+        <button id="refresh-members" type="button" class="secondary-button">Consultar miembros</button>
+        <ul id="members-list" aria-label="Miembros registrados"></ul>
       </section>
 
       <section id="backlog-section" aria-labelledby="backlog-title" hidden>

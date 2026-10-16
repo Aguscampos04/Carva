@@ -8,6 +8,16 @@ const backlogForm = document.querySelector("#create-backlog-form");
 const backlogMessage = document.querySelector("#backlog-message");
 const backlogItems = document.querySelector("#backlog-items");
 let currentProjectID = "";
+const membersUI = createMembersSection({
+  section: document.querySelector("#members-section"),
+  form: document.querySelector("#create-member-form"),
+  nameInput: document.querySelector("#member-name"),
+  message: document.querySelector("#members-message"),
+  list: document.querySelector("#members-list"),
+  refresh: document.querySelector("#refresh-members"),
+  submit: document.querySelector("#register-member"),
+  requestJSON,
+});
 
 function showProject(project) {
   currentProjectID = project.id;
@@ -18,6 +28,7 @@ function showProject(project) {
   refreshButton.hidden = false;
   backlogSection.hidden = false;
   message.textContent = "Proyecto disponible.";
+  membersUI.showProject(project.id);
   loadBacklog();
 }
 
@@ -177,6 +188,9 @@ form.addEventListener("submit", async (event) => {
   message.textContent = "Guardando proyecto…";
   details.hidden = true;
   refreshButton.hidden = true;
+  currentProjectID = "";
+  backlogSection.hidden = true;
+  membersUI.showProject("");
 
   try {
     const result = await requestJSON("/api/projects", {

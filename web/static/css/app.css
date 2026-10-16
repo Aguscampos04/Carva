@@ -83,3 +83,10 @@ dd { margin: 0; overflow-wrap: anywhere; }
   color: #18252b;
   background: #e8eeeb;
 }
+
+#members-section { margin-top: 2rem; }
+#members-list { list-style: none; padding: 0; }
+#members-list li { padding: 0.75rem 0; border-bottom: 1px solid #d3ded9; }
+.member-name { display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
+.member-id { display: block; color: #52635c; margin-top: 0.25rem; overflow-wrap: anywhere; }
+button:disabled { opacity: 0.65; cursor: wait; }

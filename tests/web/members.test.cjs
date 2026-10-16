@@ -26,7 +26,7 @@ test("BDD-07/04/15: name-only form submits once and renders homonyms as safe tex
   const records = []; const calls = [];
   const e = setup(async (url, options = {}) => {
     calls.push({ url, options });
-    if (options.method === "POST") { records.push({ id: "b1d168da-325a-40d1-90b7-b5a1ba006389", name: JSON.parse(options.body).name }); return records.at(-1); }
+    if (options.method === "POST") { records.push({ id: records.length === 0 ? "b1d168da-325a-40d1-90b7-b5a1ba006389" : "a20a4fad-e66e-4889-bcaa-65af6a39bdec", name: JSON.parse(options.body).name }); return records.at(-1); }
     return [...records];
   });
   await e.ui.showProject("demo");
@@ -39,8 +39,12 @@ test("BDD-07/04/15: name-only form submits once and renders homonyms as safe tex
   assert.equal(e.list.children[0].children[0].textContent, "<b>Ana</b>");
   assert.equal(e.list.children[0].children[1].tagName, "small");
   assert.equal(e.list.children[0].children[1].textContent, "UUID: b1d168da-325a-40d1-90b7-b5a1ba006389");
-  assert.equal(e.form.resets, 1);
+  assert.equal(e.form.resets, 2); // project context reset, then successful submission reset
   assert.equal(e.submit.disabled, false);
+  await e.form.listeners.submit(submitEvent);
+  assert.equal(e.list.children.length, 2);
+  assert.equal(e.list.children[0].children[0].textContent, e.list.children[1].children[0].textContent);
+  assert.notEqual(e.list.children[0].children[1].textContent, e.list.children[1].children[1].textContent);
   await e.ui.showProject("");
   assert.equal(e.section.hidden, true);
   assert.equal(e.list.children.length, 0);
