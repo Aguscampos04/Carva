@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Carva · Crear proyecto</title>
+    <title>Carva · Product Backlog</title>
     <link rel="stylesheet" href="/css/app.css">
     <script src="/js/app.js" defer></script>
   </head>
@@ -19,7 +19,7 @@
         </form>
       </section>
       <section aria-labelledby="result-title" aria-live="polite">
-        <h2 id="result-title">Resultado</h2>
+        <h2 id="result-title">Proyecto</h2>
         <p id="message">Completá el nombre para registrar un proyecto.</p>
         <dl id="project-details" hidden>
           <dt>Nombre</dt><dd id="project-name-result"></dd>
@@ -27,6 +27,30 @@
           <dt>Estado</dt><dd id="project-status-result"></dd>
         </dl>
         <button id="refresh-project" type="button" hidden>Consultar de nuevo</button>
+      </section>
+
+      <section id="backlog-section" aria-labelledby="backlog-title" hidden>
+        <h2 id="backlog-title">Product Backlog</h2>
+        <p id="backlog-message" aria-live="polite"></p>
+        <form id="create-backlog-form">
+          <h3>Agregar User Story</h3>
+          <label for="backlog-title-input">Título</label>
+          <input id="backlog-title-input" name="title" required>
+          <label for="backlog-description-input">Descripción</label>
+          <textarea id="backlog-description-input" name="description" rows="3" required></textarea>
+          <label for="backlog-priority-input">Prioridad</label>
+          <select id="backlog-priority-input" name="priority" required>
+            <option value="Alta">Alta</option>
+            <option value="Media">Media</option>
+            <option value="Baja">Baja</option>
+          </select>
+          <label for="backlog-points-input">Story Points provisionales (opcional)</label>
+          <input id="backlog-points-input" name="provisional_story_points" type="number" min="0" step="1">
+          <label for="backlog-criteria-input">Criterios de aceptación (uno por línea)</label>
+          <textarea id="backlog-criteria-input" name="acceptance_criteria" rows="4" required></textarea>
+          <button type="submit">Agregar al Backlog</button>
+        </form>
+        <div id="backlog-items" class="backlog-items"></div>
       </section>
     </main>
   </body>

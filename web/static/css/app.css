@@ -11,7 +11,7 @@ body {
 }
 
 main {
-  max-width: 40rem;
+  max-width: 56rem;
   margin: 0 auto;
   padding: 2rem;
   border-radius: 0.75rem;
@@ -24,16 +24,17 @@ h1 { color: #176b4d; }
 form {
   display: grid;
   gap: 0.75rem;
-  max-width: 28rem;
+  max-width: 38rem;
 }
 
-input, button {
+input, textarea, select, button {
   font: inherit;
   padding: 0.65rem 0.8rem;
   border-radius: 0.35rem;
 }
 
-input { border: 1px solid #879691; }
+input, textarea, select { border: 1px solid #879691; }
+textarea { resize: vertical; }
 
 button {
   width: fit-content;
@@ -48,6 +49,37 @@ button:focus-visible, input:focus-visible {
   outline-offset: 2px;
 }
 
+textarea:focus-visible, select:focus-visible {
+  outline: 3px solid #e7a72b;
+  outline-offset: 2px;
+}
+
 dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.5rem 1rem; }
 dt { font-weight: 700; }
 dd { margin: 0; overflow-wrap: anywhere; }
+
+#backlog-section { margin-top: 2rem; }
+
+.backlog-items {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.backlog-card {
+  padding: 1.25rem;
+  border: 1px solid #d3ded9;
+  border-radius: 0.6rem;
+  background: #fbfdfc;
+}
+
+.backlog-card h3 { margin-top: 0; }
+.backlog-card h4 { margin-bottom: 0.5rem; }
+.backlog-card ul { padding-left: 1.5rem; }
+.backlog-edit-form { margin-top: 1rem; }
+.form-error { color: #9b2c2c; }
+
+.secondary-button {
+  color: #18252b;
+  background: #e8eeeb;
+}

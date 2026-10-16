@@ -15,7 +15,7 @@ import (
 
 func TestProjectHTTPCreateReadAndRejectClientControlledIdentityOrStatus(t *testing.T) {
 	_, db := openMigratedProjectDB(t)
-	handler := httpapi.NewHandler(projects.NewService(carvasqlite.NewProjectRepository(db)))
+	handler := httpapi.NewHandler(projects.NewService(carvasqlite.NewProjectRepository(db)), nil, nil)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/projects", strings.NewReader(
 		`{"name":"Carva MVP","id":"client-id","status":"Finalizado"}`,
@@ -57,7 +57,7 @@ func TestProjectHTTPCreateReadAndRejectClientControlledIdentityOrStatus(t *testi
 
 func TestProjectHTTPValidationAndMissingProject(t *testing.T) {
 	_, db := openMigratedProjectDB(t)
-	handler := httpapi.NewHandler(projects.NewService(carvasqlite.NewProjectRepository(db)))
+	handler := httpapi.NewHandler(projects.NewService(carvasqlite.NewProjectRepository(db)), nil, nil)
 
 	invalid := httptest.NewRequest(http.MethodPost, "/api/projects", strings.NewReader(`{"name":" \t "}`))
 	invalid.Header.Set("Content-Type", "application/json")
@@ -80,7 +80,7 @@ func TestProjectHTTPDoesNotReportPersistenceFailureAsSuccess(t *testing.T) {
 	if err := db.Close(); err != nil {
 		t.Fatalf("Close() error = %v", err)
 	}
-	handler := httpapi.NewHandler(projects.NewService(carvasqlite.NewProjectRepository(db)))
+	handler := httpapi.NewHandler(projects.NewService(carvasqlite.NewProjectRepository(db)), nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/projects", strings.NewReader(`{"name":"Carva MVP"}`))
 	request.Header.Set("Content-Type", "application/json")
 	response := httptest.NewRecorder()
