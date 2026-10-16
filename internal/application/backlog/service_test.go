@@ -77,6 +77,43 @@ func TestServiceListsOnlyItemsForExistingProject(t *testing.T) {
 	}
 }
 
+func TestServiceCompletesItemAfterExplicitAcceptanceCriteriaVerification(t *testing.T) {
+	repository := newMemoryRepository()
+	service := NewService(repository)
+	created, err := service.Create(context.Background(), "project-1", validInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	created.Status = domain.InProgress
+	repository.items[created.ID] = created
+
+	completed, err := service.MarkCompleted(context.Background(), "project-1", created.ID, true)
+	if err != nil {
+		t.Fatalf("MarkCompleted() error = %v", err)
+	}
+	if completed.Status != domain.Completed || repository.items[created.ID].Status != domain.Completed {
+		t.Errorf("MarkCompleted() = %+v; persisted = %+v, want both completed", completed, repository.items[created.ID])
+	}
+}
+
+func TestServiceDoesNotCompleteItemWithoutAcceptanceCriteriaVerification(t *testing.T) {
+	repository := newMemoryRepository()
+	service := NewService(repository)
+	created, err := service.Create(context.Background(), "project-1", validInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	created.Status = domain.InProgress
+	repository.items[created.ID] = created
+
+	if _, err := service.MarkCompleted(context.Background(), "project-1", created.ID, false); !errors.Is(err, domain.ErrAcceptanceCriteriaNotVerified) {
+		t.Errorf("MarkCompleted(false) error = %v, want ErrAcceptanceCriteriaNotVerified", err)
+	}
+	if repository.items[created.ID].Status != domain.InProgress {
+		t.Errorf("MarkCompleted(false) persisted status = %q, want %q", repository.items[created.ID].Status, domain.InProgress)
+	}
+}
+
 func validInput() domain.Input {
 	return domain.Input{
 		Title: "Login", Description: "User can sign in", Priority: domain.PriorityMedium,

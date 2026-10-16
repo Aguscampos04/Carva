@@ -32,6 +32,7 @@ var (
 	ErrInvalidPriority               = errors.New("backlog item priority is invalid")
 	ErrInvalidProvisionalStoryPoints = errors.New("provisional Story Points must be a non-negative integer")
 	ErrInvalidAcceptanceCriteria     = errors.New("backlog item must have non-blank acceptance criteria")
+	ErrAcceptanceCriteriaNotVerified = errors.New("all acceptance criteria must be verified before completing the backlog item")
 	ErrEstimateFinalized             = errors.New("provisional Story Points cannot change after a definitive estimate exists")
 	ErrNotFound                      = errors.New("backlog item not found")
 	ErrProjectNotFound               = errors.New("backlog project not found")
@@ -99,6 +100,16 @@ func (item Item) Update(input Input) (Item, error) {
 	item.Priority = input.Priority
 	item.ProvisionalStoryPoints = cloneInt(input.ProvisionalStoryPoints)
 	item.AcceptanceCriteria = append([]string(nil), input.AcceptanceCriteria...)
+	return item, nil
+}
+
+// MarkCompleted returns the item with its status set to Completed only after
+// the caller confirms that all acceptance criteria have been verified.
+func (item Item) MarkCompleted(acceptanceCriteriaVerified bool) (Item, error) {
+	if !acceptanceCriteriaVerified {
+		return Item{}, ErrAcceptanceCriteriaNotVerified
+	}
+	item.Status = Completed
 	return item, nil
 }
 

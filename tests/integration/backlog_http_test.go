@@ -86,6 +86,89 @@ func TestBacklogHTTPEmptyAndMissingProject(t *testing.T) {
 	}
 }
 
+func TestBacklogHTTPCompletesOnlyAfterAcceptanceCriteriaVerification(t *testing.T) {
+	_, db := openMigratedProjectDB(t)
+	handler, projectID := newBacklogHTTPHandler(t, db)
+	createdResponse := performJSONRequest(handler, http.MethodPost, "/api/projects/"+projectID+"/backlog", map[string]any{
+		"title": "Login", "description": "A member can sign in", "priority": "Alta",
+		"acceptance_criteria": []string{"Valid credentials grant access"},
+	})
+	if createdResponse.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, body = %s", createdResponse.Code, createdResponse.Body)
+	}
+	var created domain.Item
+	if err := json.NewDecoder(createdResponse.Body).Decode(&created); err != nil {
+		t.Fatal(err)
+	}
+	created.Status = domain.InProgress
+	if err := sqlite.NewBacklogRepository(db).Update(context.Background(), created); err != nil {
+		t.Fatal(err)
+	}
+	completionPath := "/api/projects/" + projectID + "/backlog/" + created.ID + "/complete"
+
+	rejected := performJSONRequest(handler, http.MethodPost, completionPath, map[string]any{
+		"acceptance_criteria_verified": false,
+	})
+	if rejected.Code != http.StatusBadRequest {
+		t.Fatalf("unverified completion status = %d, body = %s; want %d", rejected.Code, rejected.Body, http.StatusBadRequest)
+	}
+	stillInProgress, err := sqlite.NewBacklogRepository(db).FindByID(context.Background(), projectID, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stillInProgress.Status != domain.InProgress {
+		t.Fatalf("status after rejected completion = %q, want %q", stillInProgress.Status, domain.InProgress)
+	}
+
+	completedResponse := performJSONRequest(handler, http.MethodPost, completionPath, map[string]any{
+		"acceptance_criteria_verified": true,
+	})
+	if completedResponse.Code != http.StatusOK {
+		t.Fatalf("verified completion status = %d, body = %s; want %d", completedResponse.Code, completedResponse.Body, http.StatusOK)
+	}
+	var completed domain.Item
+	if err := json.NewDecoder(completedResponse.Body).Decode(&completed); err != nil {
+		t.Fatal(err)
+	}
+	if completed.Status != domain.Completed {
+		t.Errorf("completion response status = %q, want %q", completed.Status, domain.Completed)
+	}
+
+	listed := performJSONRequest(handler, http.MethodGet, "/api/projects/"+projectID+"/backlog", nil)
+	var items []domain.Item
+	if err := json.NewDecoder(listed.Body).Decode(&items); err != nil {
+		t.Fatal(err)
+	}
+	if listed.Code != http.StatusOK || len(items) != 1 || items[0].Status != domain.Completed {
+		t.Errorf("listed Backlog = (status %d, items %+v), want completed item", listed.Code, items)
+	}
+}
+
+func TestBacklogHTTPCompletionRejectsMissingConfirmationAndUnknownItem(t *testing.T) {
+	_, db := openMigratedProjectDB(t)
+	handler, projectID := newBacklogHTTPHandler(t, db)
+	created := performJSONRequest(handler, http.MethodPost, "/api/projects/"+projectID+"/backlog", map[string]any{
+		"title": "Login", "description": "Description", "priority": "Alta",
+		"acceptance_criteria": []string{"Valid credentials grant access"},
+	})
+	var item domain.Item
+	if err := json.NewDecoder(created.Body).Decode(&item); err != nil {
+		t.Fatal(err)
+	}
+	missingConfirmation := performJSONRequest(handler, http.MethodPost,
+		"/api/projects/"+projectID+"/backlog/"+item.ID+"/complete", map[string]any{},
+	)
+	if missingConfirmation.Code != http.StatusBadRequest {
+		t.Errorf("missing confirmation status = %d, want %d", missingConfirmation.Code, http.StatusBadRequest)
+	}
+	unknownItem := performJSONRequest(handler, http.MethodPost,
+		"/api/projects/"+projectID+"/backlog/missing/complete", map[string]any{"acceptance_criteria_verified": true},
+	)
+	if unknownItem.Code != http.StatusNotFound {
+		t.Errorf("unknown item completion status = %d, want %d", unknownItem.Code, http.StatusNotFound)
+	}
+}
+
 func TestBacklogHTTPValidationAndScopedUpdate(t *testing.T) {
 	_, db := openMigratedProjectDB(t)
 	handler, projectID := newBacklogHTTPHandler(t, db)

@@ -14,7 +14,12 @@ import (
 type BacklogService interface {
 	Create(context.Context, string, domain.Input) (domain.Item, error)
 	Update(context.Context, string, string, domain.Input) (domain.Item, error)
+	MarkCompleted(context.Context, string, string, bool) (domain.Item, error)
 	List(context.Context, string) ([]domain.Item, error)
+}
+
+type completionRequest struct {
+	AcceptanceCriteriaVerified bool `json:"acceptance_criteria_verified"`
 }
 
 type backlogErrorResponse struct {
@@ -24,6 +29,7 @@ type backlogErrorResponse struct {
 func registerBacklogRoutes(mux *http.ServeMux, service BacklogService) {
 	mux.HandleFunc("POST /api/projects/{projectID}/backlog", createBacklogItem(service))
 	mux.HandleFunc("PUT /api/projects/{projectID}/backlog/{itemID}", updateBacklogItem(service))
+	mux.HandleFunc("POST /api/projects/{projectID}/backlog/{itemID}/complete", completeBacklogItem(service))
 	mux.HandleFunc("GET /api/projects/{projectID}/backlog", listBacklogItems(service))
 }
 
@@ -54,6 +60,23 @@ func updateBacklogItem(service BacklogService) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, updated)
+	}
+}
+
+func completeBacklogItem(service BacklogService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var input completionRequest
+		if err := decodeSingleJSON(r, &input); err != nil {
+			writeBacklogError(w, http.StatusBadRequest, "invalid JSON request")
+			return
+		}
+		completed, err := service.MarkCompleted(
+			r.Context(), r.PathValue("projectID"), r.PathValue("itemID"), input.AcceptanceCriteriaVerified,
+		)
+		if writeBacklogServiceError(w, err) {
+			return
+		}
+		writeJSON(w, http.StatusOK, completed)
 	}
 }
 
@@ -88,7 +111,8 @@ func writeBacklogServiceError(w http.ResponseWriter, err error) bool {
 	case errors.Is(err, domain.ErrInvalidID), errors.Is(err, domain.ErrInvalidProjectID),
 		errors.Is(err, domain.ErrInvalidTitle), errors.Is(err, domain.ErrInvalidDescription),
 		errors.Is(err, domain.ErrInvalidPriority), errors.Is(err, domain.ErrInvalidProvisionalStoryPoints),
-		errors.Is(err, domain.ErrInvalidAcceptanceCriteria), errors.Is(err, domain.ErrEstimateFinalized):
+		errors.Is(err, domain.ErrInvalidAcceptanceCriteria), errors.Is(err, domain.ErrEstimateFinalized),
+		errors.Is(err, domain.ErrAcceptanceCriteriaNotVerified):
 		writeBacklogError(w, http.StatusBadRequest, "invalid backlog item")
 	default:
 		writeBacklogError(w, http.StatusInternalServerError, "could not process Product Backlog request")

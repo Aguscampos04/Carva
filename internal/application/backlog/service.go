@@ -72,6 +72,31 @@ func (s *Service) Update(ctx context.Context, projectID, itemID string, input do
 	return updated, nil
 }
 
+// MarkCompleted records completion only when all acceptance criteria have
+// been explicitly verified by the caller.
+func (s *Service) MarkCompleted(ctx context.Context, projectID, itemID string, acceptanceCriteriaVerified bool) (domain.Item, error) {
+	exists, err := s.repository.ProjectExists(ctx, projectID)
+	if err != nil {
+		return domain.Item{}, fmt.Errorf("check backlog project: %w", err)
+	}
+	if !exists {
+		return domain.Item{}, domain.ErrProjectNotFound
+	}
+
+	current, err := s.repository.FindByID(ctx, projectID, itemID)
+	if err != nil {
+		return domain.Item{}, fmt.Errorf("find backlog item: %w", err)
+	}
+	completed, err := current.MarkCompleted(acceptanceCriteriaVerified)
+	if err != nil {
+		return domain.Item{}, err
+	}
+	if err := s.repository.Update(ctx, completed); err != nil {
+		return domain.Item{}, fmt.Errorf("complete backlog item: %w", err)
+	}
+	return completed, nil
+}
+
 // List returns all Backlog items belonging to an existing project.
 func (s *Service) List(ctx context.Context, projectID string) ([]domain.Item, error) {
 	exists, err := s.repository.ProjectExists(ctx, projectID)

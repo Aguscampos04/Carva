@@ -123,6 +123,47 @@ func TestUpdateRejectsProvisionalEditAfterDefinitiveEstimateExists(t *testing.T)
 	}
 }
 
+func TestMarkCompletedRequiresAcceptanceCriteriaVerification(t *testing.T) {
+	item, err := New("item-1", "project-1", validInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	item.Status = InProgress
+
+	completed, err := item.MarkCompleted(false)
+	if !errors.Is(err, ErrAcceptanceCriteriaNotVerified) {
+		t.Fatalf("MarkCompleted(false) error = %v, want ErrAcceptanceCriteriaNotVerified", err)
+	}
+	if completed.Status != "" {
+		t.Errorf("MarkCompleted(false) status = %q, want zero-value item", completed.Status)
+	}
+	if item.Status != InProgress {
+		t.Errorf("MarkCompleted(false) changed original status to %q", item.Status)
+	}
+}
+
+func TestMarkCompletedChangesOnlyStatusAfterVerification(t *testing.T) {
+	item, err := New("item-1", "project-1", validInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	item.Status = InProgress
+
+	completed, err := item.MarkCompleted(true)
+	if err != nil {
+		t.Fatalf("MarkCompleted(true) error = %v", err)
+	}
+	if completed.Status != Completed {
+		t.Errorf("MarkCompleted(true) status = %q, want %q", completed.Status, Completed)
+	}
+	if completed.ID != item.ID || completed.ProjectID != item.ProjectID || completed.Title != item.Title {
+		t.Errorf("MarkCompleted(true) changed unrelated fields: %+v", completed)
+	}
+	if item.Status != InProgress {
+		t.Errorf("MarkCompleted(true) mutated original status to %q", item.Status)
+	}
+}
+
 func validInput() Input {
 	return Input{
 		Title: "Login", Description: "User can sign in", Priority: PriorityMedium,
