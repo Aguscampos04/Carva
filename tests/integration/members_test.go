@@ -286,7 +286,7 @@ func TestMembersSQLiteAbortedWriteLeavesNoRegistration(t *testing.T) {
 func TestMembersMigrationUpgradesExistingDatabase(t *testing.T) {
 	_, db := openMigratedProjectDB(t)
 	// Reconstruct the previous schema using the unchanged applied migrations.
-	if _, err := db.Exec(`DROP TABLE members; DELETE FROM carva_schema_migrations WHERE version = 6`); err != nil {
+	if _, err := db.Exec(`DROP TABLE members; DELETE FROM carva_schema_migrations WHERE version >= 6`); err != nil {
 		t.Fatal(err)
 	}
 	p := createMemberProject(t, db, "Existing project")
@@ -308,5 +308,22 @@ func TestMembersMigrationUpgradesExistingDatabase(t *testing.T) {
 	project, err := projects.NewService(sqlite.NewProjectRepository(db)).Get(context.Background(), p)
 	if err != nil || project.Name != "Existing project" {
 		t.Fatalf("existing project lost: %v %v", project, err)
+	}
+}
+
+func TestMembersNameStorageMigrationPreservesExistingIdentity(t *testing.T) {
+	_, db := openMigratedProjectDB(t)
+	p := createMemberProject(t, db, "Carva Demo")
+	h := memberHandler(db)
+	m := decodeMember(t, memberRequest(h, "POST", p, `{"name":"Ana"}`))
+	// The pre-007 table has the same columns; replaying 007 verifies its data copy.
+	if _, err := db.Exec(`DELETE FROM carva_schema_migrations WHERE version = 7`); err != nil {
+		t.Fatal(err)
+	}
+	if err := sqlite.Migrate(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	if got := listMembers(t, h, p); !reflect.DeepEqual(got, []member.Member{m}) {
+		t.Fatalf("migration changed identity: %v", got)
 	}
 }
