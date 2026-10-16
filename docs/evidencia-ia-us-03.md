@@ -93,4 +93,10 @@ En el navegador se creó **US-03 Demo**, se registraron `  Ana  Pérez  ` y `Ana
 - Revisión y aprobación final del equipo: **pendientes**. No se marca la historia aprobada ni se cierran checks de revisión humana.
 - Sin merge, cierre de Issue ni cambios de Sprint. La publicación es un único PR relacionado con #3, sin palabras de cierre automático; sus datos confirmados se informan al entregar.
 
+## Publicación confirmada
+
+Push realizado y SHA remoto comprobado contra HEAD. PR único [#35](https://github.com/Aguscampos04/Carva/pull/35), de `codex/us-03-especificacion` hacia `main`, creado y verificado abierto, sin merge. La Issue #3 se comprobó abierta. GitHub no reportó checks remotos en esa consulta; los resultados de calidad de este documento son ejecuciones locales reales.
+
+El conector GitHub devolvió 403 al crear el PR; se comprobó que no existía otro para la rama y se creó con GitHub CLI autenticado. El PR quedó adjunto al chat. El servidor temporal de smoke se detuvo verificando su ejecutable; el servicio que ocupaba 8080 se conservó.
+
 La responsabilidad final del producto corresponde al equipo; la asistencia de IA no sustituye su revisión.
