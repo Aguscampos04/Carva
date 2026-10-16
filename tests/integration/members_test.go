@@ -152,6 +152,7 @@ func TestMembersHTTPStrictJSONAndNameValidation(t *testing.T) {
 	for _, tc := range []struct{ body, want string }{
 		{`{"name":"\t\n\u00a0Ana  Pérez\u00a0\n\t"}`, "Ana  Pérez"},
 		{`{"name":"a"}`, "a"}, {`{"name":"<b>Ana</b>"}`, "<b>Ana</b>"},
+		{`{"name":"\u0000Ana"}`, "\x00Ana"},
 	} {
 		got := decodeMember(t, memberRequest(h, "POST", p, tc.body))
 		if got.Name != tc.want {
@@ -263,5 +264,49 @@ func TestMembersSQLiteRejectsDuplicatesAndEmptyNamesWithoutOverwriting(t *testin
 	}
 	if got := listMembers(t, h, p); !reflect.DeepEqual(got, []member.Member{m}) {
 		t.Fatal(got)
+	}
+}
+
+func TestMembersSQLiteAbortedWriteLeavesNoRegistration(t *testing.T) {
+	_, db := openMigratedProjectDB(t)
+	p := createMemberProject(t, db, "Carva Demo")
+	if _, err := db.Exec(`CREATE TRIGGER reject_member BEFORE INSERT ON members BEGIN SELECT RAISE(ABORT, 'controlled failure'); END`); err != nil {
+		t.Fatal(err)
+	}
+	h := memberHandler(db)
+	w := memberRequest(h, "POST", p, `{"name":"Ana"}`)
+	if w.Code != 500 || strings.Contains(w.Body.String(), "controlled failure") {
+		t.Fatalf("failure = %d %s", w.Code, w.Body)
+	}
+	if got := listMembers(t, h, p); len(got) != 0 {
+		t.Fatalf("partial registration: %v", got)
+	}
+}
+
+func TestMembersMigrationUpgradesExistingDatabase(t *testing.T) {
+	_, db := openMigratedProjectDB(t)
+	// Reconstruct the previous schema using the unchanged applied migrations.
+	if _, err := db.Exec(`DROP TABLE members; DELETE FROM carva_schema_migrations WHERE version = 6`); err != nil {
+		t.Fatal(err)
+	}
+	p := createMemberProject(t, db, "Existing project")
+	if err := sqlite.Migrate(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	if err := sqlite.Migrate(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	h := memberHandler(db)
+	got := decodeMember(t, memberRequest(h, "POST", p, `{"name":"Ana"}`))
+	if got.ProjectID != p {
+		t.Fatal(got)
+	}
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM carva_schema_migrations WHERE version = 6`).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("migration ledger: %d, %v", count, err)
+	}
+	project, err := projects.NewService(sqlite.NewProjectRepository(db)).Get(context.Background(), p)
+	if err != nil || project.Name != "Existing project" {
+		t.Fatalf("existing project lost: %v %v", project, err)
 	}
 }

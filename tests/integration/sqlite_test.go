@@ -125,3 +125,20 @@ func TestDatabasePathUsesEnvironmentAndLocalDefault(t *testing.T) {
 		t.Fatalf("DatabasePath() = %q, want %q", got, customPath)
 	}
 }
+
+func TestSQLiteForeignKeysWithMemoryAndEscapedFilePath(t *testing.T) {
+	for _, path := range []string{":memory:", filepath.Join(t.TempDir(), "space # database.db")} {
+		db, err := carvasqlite.OpenPath(context.Background(), path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var enabled int
+		err = db.QueryRow(`PRAGMA foreign_keys`).Scan(&enabled)
+		if err != nil || enabled != 1 {
+			t.Fatalf("path %q: foreign_keys = %d, %v", path, enabled, err)
+		}
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
