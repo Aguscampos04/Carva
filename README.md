@@ -26,6 +26,15 @@ su objetivo:
 positivo. Crear el primer Sprint cambia el estado del proyecto de `Planificado`
 a `En progreso`.
 
+Para US-08, las historias del Backlog pueden asignarse y consultarse en la
+planificación de un Sprint:
+
+- `POST /api/projects/{projectID}/sprints/{sprintID}/backlog-items` — body: `{ "backlog_item_id": "<UUID>" }`.
+- `GET /api/projects/{projectID}/sprints/{sprintID}/backlog-items` — devuelve los snapshots planificados.
+
+Cada asignación conserva los datos de la historia al momento de planificarla,
+aunque después cambien en el Backlog.
+
 ## Integrantes y Roles Scrum
 
 | Nombre y apellido |       GitHub     | Rol Scrum |
