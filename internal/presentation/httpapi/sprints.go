@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Aguscampos04/Carva/internal/domain/backlog"
 	"github.com/Aguscampos04/Carva/internal/domain/project"
 	"github.com/Aguscampos04/Carva/internal/domain/sprint"
 )
@@ -16,10 +17,16 @@ import (
 type SprintService interface {
 	Create(context.Context, string, string) (sprint.Sprint, error)
 	Get(context.Context, string, int64) (sprint.Sprint, error)
+	AssignBacklogItem(context.Context, string, int64, string) (sprint.PlannedBacklogItem, error)
+	ListPlannedBacklogItems(context.Context, string, int64) ([]sprint.PlannedBacklogItem, error)
 }
 
 type createSprintRequest struct {
 	Goal string `json:"goal"`
+}
+
+type assignBacklogItemRequest struct {
+	BacklogItemID string `json:"backlog_item_id"`
 }
 
 func registerSprintRoutes(mux *http.ServeMux, service SprintService) {
@@ -60,14 +67,57 @@ func registerSprintRoutes(mux *http.ServeMux, service SprintService) {
 		}
 		writeJSON(w, http.StatusOK, found)
 	})
+
+	mux.HandleFunc("POST /api/projects/{projectID}/sprints/{sprintID}/backlog-items", func(w http.ResponseWriter, r *http.Request) {
+		sprintID, err := parseSprintID(r.PathValue("sprintID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "Sprint ID must be a positive integer")
+			return
+		}
+		var input assignBacklogItemRequest
+		if err := decodeSingleJSON(r, &input); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON request")
+			return
+		}
+		created, err := service.AssignBacklogItem(r.Context(), r.PathValue("projectID"), sprintID, input.BacklogItemID)
+		if err != nil {
+			writeSprintError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusCreated, created)
+	})
+
+	mux.HandleFunc("GET /api/projects/{projectID}/sprints/{sprintID}/backlog-items", func(w http.ResponseWriter, r *http.Request) {
+		sprintID, err := parseSprintID(r.PathValue("sprintID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "Sprint ID must be a positive integer")
+			return
+		}
+		items, err := service.ListPlannedBacklogItems(r.Context(), r.PathValue("projectID"), sprintID)
+		if err != nil {
+			writeSprintError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, items)
+	})
+}
+
+func parseSprintID(value string) (int64, error) {
+	sprintID, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || sprintID < 1 {
+		return 0, sprint.ErrNotFound
+	}
+	return sprintID, nil
 }
 
 func writeSprintError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, sprint.ErrInvalidProjectID), errors.Is(err, sprint.ErrInvalidGoal):
+	case errors.Is(err, sprint.ErrInvalidProjectID), errors.Is(err, sprint.ErrInvalidGoal), errors.Is(err, sprint.ErrInvalidBacklogItemID):
 		writeError(w, http.StatusBadRequest, err.Error())
-	case errors.Is(err, project.ErrNotFound), errors.Is(err, sprint.ErrNotFound):
+	case errors.Is(err, project.ErrNotFound), errors.Is(err, sprint.ErrNotFound), errors.Is(err, backlog.ErrNotFound):
 		writeError(w, http.StatusNotFound, "resource not found")
+	case errors.Is(err, sprint.ErrBacklogItemAlreadyAssigned):
+		writeError(w, http.StatusConflict, err.Error())
 	default:
 		writeError(w, http.StatusInternalServerError, "could not handle Sprint request")
 	}
