@@ -24,25 +24,25 @@ func TestCreateProjectAndFirstSprintThroughAPI(t *testing.T) {
 		t.Fatalf("create project status = %d, body = %s", projectResponse.Code, projectResponse.Body)
 	}
 	var createdProject struct {
-		ID     int64  `json:"id"`
+		ID     string `json:"id"`
 		Name   string `json:"name"`
 		Status string `json:"status"`
 	}
 	if err := json.Unmarshal(projectResponse.Body.Bytes(), &createdProject); err != nil {
 		t.Fatalf("decode project response: %v", err)
 	}
-	if createdProject.ID < 1 || createdProject.Name != "Carva Demo" || createdProject.Status != "Planificado" {
+	if createdProject.ID == "" || createdProject.Name != "Carva Demo" || createdProject.Status != "Planificado" {
 		t.Fatalf("created project = %+v", createdProject)
 	}
 
-	sprintPath := "/api/projects/" + itoa(createdProject.ID) + "/sprints"
+	sprintPath := "/api/projects/" + createdProject.ID + "/sprints"
 	sprintResponse := performJSON(t, handler, http.MethodPost, sprintPath, `{"goal":"Entregar el MVP"}`)
 	if sprintResponse.Code != http.StatusCreated {
 		t.Fatalf("create sprint status = %d, body = %s", sprintResponse.Code, sprintResponse.Body)
 	}
 	var createdSprint struct {
 		ID        int64  `json:"id"`
-		ProjectID int64  `json:"projectID"`
+		ProjectID string `json:"projectID"`
 		Goal      string `json:"goal"`
 	}
 	if err := json.Unmarshal(sprintResponse.Body.Bytes(), &createdSprint); err != nil {
@@ -52,7 +52,7 @@ func TestCreateProjectAndFirstSprintThroughAPI(t *testing.T) {
 		t.Fatalf("created sprint = %+v", createdSprint)
 	}
 
-	projectGet := performJSON(t, handler, http.MethodGet, "/api/projects/"+itoa(createdProject.ID), "")
+	projectGet := performJSON(t, handler, http.MethodGet, "/api/projects/"+createdProject.ID, "")
 	if projectGet.Code != http.StatusOK {
 		t.Fatalf("get project status = %d, body = %s", projectGet.Code, projectGet.Body)
 	}
@@ -67,7 +67,7 @@ func TestCreateProjectAndFirstSprintThroughAPI(t *testing.T) {
 	}
 
 	sprintGet := performJSON(t, handler, http.MethodGet,
-		"/api/projects/"+itoa(createdProject.ID)+"/sprints/"+itoa(createdSprint.ID), "")
+		"/api/projects/"+createdProject.ID+"/sprints/"+itoa(createdSprint.ID), "")
 	if sprintGet.Code != http.StatusOK {
 		t.Fatalf("get sprint status = %d, body = %s", sprintGet.Code, sprintGet.Body)
 	}
@@ -86,17 +86,17 @@ func TestInvalidSprintCreationDoesNotChangeProject(t *testing.T) {
 	handler := newTestHandler(t)
 	projectResponse := performJSON(t, handler, http.MethodPost, "/api/projects", `{"name":"Carva Demo"}`)
 	var createdProject struct {
-		ID int64 `json:"id"`
+		ID string `json:"id"`
 	}
 	if err := json.Unmarshal(projectResponse.Body.Bytes(), &createdProject); err != nil {
 		t.Fatalf("decode project response: %v", err)
 	}
 
-	response := performJSON(t, handler, http.MethodPost, "/api/projects/"+itoa(createdProject.ID)+"/sprints", `{"goal":"  "}`)
+	response := performJSON(t, handler, http.MethodPost, "/api/projects/"+createdProject.ID+"/sprints", `{"goal":"  "}`)
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("blank goal status = %d, want 400; body = %s", response.Code, response.Body)
 	}
-	projectGet := performJSON(t, handler, http.MethodGet, "/api/projects/"+itoa(createdProject.ID), "")
+	projectGet := performJSON(t, handler, http.MethodGet, "/api/projects/"+createdProject.ID, "")
 	var result struct {
 		Status string `json:"status"`
 	}
@@ -110,7 +110,7 @@ func TestInvalidSprintCreationDoesNotChangeProject(t *testing.T) {
 
 func TestCreateSprintRejectsUnknownProject(t *testing.T) {
 	handler := newTestHandler(t)
-	response := performJSON(t, handler, http.MethodPost, "/api/projects/999/sprints", `{"goal":"Entregar el MVP"}`)
+	response := performJSON(t, handler, http.MethodPost, "/api/projects/unknown-project/sprints", `{"goal":"Entregar el MVP"}`)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("unknown project status = %d, want 404; body = %s", response.Code, response.Body)
 	}
@@ -120,12 +120,12 @@ func TestSecondSprintKeepsProjectInProgress(t *testing.T) {
 	handler := newTestHandler(t)
 	projectID := createProject(t, handler, "Carva Demo")
 	for _, goal := range []string{"First goal", "Second goal"} {
-		response := performJSON(t, handler, http.MethodPost, "/api/projects/"+itoa(projectID)+"/sprints", `{"goal":"`+goal+`"}`)
+		response := performJSON(t, handler, http.MethodPost, "/api/projects/"+projectID+"/sprints", `{"goal":"`+goal+`"}`)
 		if response.Code != http.StatusCreated {
 			t.Fatalf("create Sprint %q status = %d, body = %s", goal, response.Code, response.Body)
 		}
 	}
-	projectResponse := performJSON(t, handler, http.MethodGet, "/api/projects/"+itoa(projectID), "")
+	projectResponse := performJSON(t, handler, http.MethodGet, "/api/projects/"+projectID, "")
 	var value struct {
 		Status string `json:"status"`
 	}
@@ -141,7 +141,7 @@ func TestSprintCannotBeQueriedThroughAnotherProject(t *testing.T) {
 	handler := newTestHandler(t)
 	first := createProject(t, handler, "First")
 	second := createProject(t, handler, "Second")
-	response := performJSON(t, handler, http.MethodPost, "/api/projects/"+itoa(first)+"/sprints", `{"goal":"First goal"}`)
+	response := performJSON(t, handler, http.MethodPost, "/api/projects/"+first+"/sprints", `{"goal":"First goal"}`)
 	var createdSprint struct {
 		ID int64 `json:"id"`
 	}
@@ -149,7 +149,7 @@ func TestSprintCannotBeQueriedThroughAnotherProject(t *testing.T) {
 		t.Fatalf("decode sprint response: %v", err)
 	}
 	get := performJSON(t, handler, http.MethodGet,
-		"/api/projects/"+itoa(second)+"/sprints/"+itoa(createdSprint.ID), "")
+		"/api/projects/"+second+"/sprints/"+itoa(createdSprint.ID), "")
 	if get.Code != http.StatusNotFound {
 		t.Fatalf("cross-project sprint lookup status = %d, want 404", get.Code)
 	}
@@ -178,14 +178,14 @@ func newTestHandler(t *testing.T) http.Handler {
 	return httpapi.NewHandler(projects.NewService(projectRepository), sprints.NewService(sprintRepository))
 }
 
-func createProject(t *testing.T, handler http.Handler, name string) int64 {
+func createProject(t *testing.T, handler http.Handler, name string) string {
 	t.Helper()
 	response := performJSON(t, handler, http.MethodPost, "/api/projects", `{"name":"`+name+`"}`)
 	if response.Code != http.StatusCreated {
 		t.Fatalf("create project status = %d, body = %s", response.Code, response.Body)
 	}
 	var body struct {
-		ID int64 `json:"id"`
+		ID string `json:"id"`
 	}
 	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode project response: %v", err)

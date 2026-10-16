@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log"
 	"net/http"
 
@@ -10,32 +9,28 @@ import (
 	"github.com/Aguscampos04/Carva/internal/application/sprints"
 	"github.com/Aguscampos04/Carva/internal/persistence/sqlite"
 	"github.com/Aguscampos04/Carva/internal/presentation/httpapi"
+	"github.com/Aguscampos04/Carva/web/static"
 )
 
 func main() {
-	if err := run(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func run() error {
 	ctx := context.Background()
 	db, err := sqlite.Open(ctx)
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
-	defer func() { _ = db.Close() }()
+	defer db.Close()
 	if err := sqlite.Migrate(ctx, db); err != nil {
-		return err
+		log.Fatal(err)
 	}
 
-	projectRepository := sqlite.NewProjectRepository(db)
-	sprintRepository := sqlite.NewSprintRepository(db)
-	handler := httpapi.NewHandler(projects.NewService(projectRepository), sprints.NewService(sprintRepository))
-	server := &http.Server{Addr: ":8080", Handler: handler}
-	log.Printf("Carva API listening on %s", server.Addr)
-	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		return err
+	projectService := projects.NewService(sqlite.NewProjectRepository(db))
+	sprintService := sprints.NewService(sqlite.NewSprintRepository(db))
+	mux := http.NewServeMux()
+	mux.Handle("/api/", httpapi.NewHandler(projectService, sprintService))
+	mux.Handle("/", http.FileServer(http.FS(static.Files)))
+
+	log.Print("Carva listening on http://localhost:8080")
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		log.Fatal(err)
 	}
-	return nil
 }

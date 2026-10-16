@@ -8,16 +8,16 @@ import (
 )
 
 type Repository interface {
-	GetProject(context.Context, int64) (project.Project, error)
+	GetProject(context.Context, string) (project.Project, error)
 	Create(context.Context, sprint.Sprint, project.Project) (sprint.Sprint, error)
-	Get(context.Context, int64, int64) (sprint.Sprint, error)
+	Get(context.Context, string, int64) (sprint.Sprint, error)
 }
 
 type Service struct{ repository Repository }
 
 func NewService(repository Repository) Service { return Service{repository: repository} }
 
-func (s Service) Create(ctx context.Context, projectID int64, goal string) (sprint.Sprint, error) {
+func (s Service) Create(ctx context.Context, projectID string, goal string) (sprint.Sprint, error) {
 	value, err := sprint.New(projectID, goal)
 	if err != nil {
 		return sprint.Sprint{}, err
@@ -31,8 +31,8 @@ func (s Service) Create(ctx context.Context, projectID int64, goal string) (spri
 	return s.repository.Create(ctx, value, projectValue)
 }
 
-func (s Service) Get(ctx context.Context, projectID, sprintID int64) (sprint.Sprint, error) {
-	if projectID < 1 || sprintID < 1 {
+func (s Service) Get(ctx context.Context, projectID string, sprintID int64) (sprint.Sprint, error) {
+	if sprintID < 1 || projectID == "" {
 		return sprint.Sprint{}, sprint.ErrNotFound
 	}
 	return s.repository.Get(ctx, projectID, sprintID)

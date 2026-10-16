@@ -10,7 +10,7 @@ Crear un Sprint asociado a un proyecto y permitir consultar su Sprint Goal. Al c
 
 ## Inputs
 
-- `projectID`: entero positivo, obligatorio, identificado en la ruta.
+- `projectID`: UUID no vacío de un proyecto existente, identificado en la ruta.
 - `goal`: string obligatorio, enviado en el cuerpo JSON. Se eliminan espacios iniciales y finales; vacío se rechaza.
 - `sprintID`: entero positivo para consultar un Sprint dentro del proyecto indicado.
 
@@ -31,7 +31,7 @@ Crear un Sprint asociado a un proyecto y permitir consultar su Sprint Goal. Al c
 
 ## Constraints
 
-- Contrato REST propuesto: `POST /api/projects/{projectID}/sprints` con `{ "goal": string }` y `GET /api/projects/{projectID}/sprints/{sprintID}`.
+- Contrato REST propuesto: `POST /api/projects/{projectID}/sprints` con `{ "goal": string }` y `GET /api/projects/{projectID}/sprints/{sprintID}`. `projectID` reutiliza el UUID emitido por US-01; el identificador interno del Sprint es entero.
 - El proyecto y los Sprints se persisten en SQLite; el alta de Sprint y la transición de estado forman una transacción.
 - La API local se sirve en `:8080`.
 - No se incluyen cierre de Sprint, asignación de historias, fechas, nombre/numero de Sprint ni frontend.
@@ -44,7 +44,7 @@ Crear un Sprint asociado a un proyecto y permitir consultar su Sprint Goal. Al c
 
 ## Error Conditions
 
-- JSON inválido, IDs no positivos o Sprint Goal vacío: HTTP 400.
+- JSON inválido, Sprint ID no positivo o Sprint Goal vacío: HTTP 400.
 - Proyecto inexistente o Sprint inexistente/no perteneciente al proyecto: HTTP 404.
 - Error de persistencia inesperado: HTTP 500 sin exponer detalles internos.
 

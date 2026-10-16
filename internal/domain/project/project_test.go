@@ -1,28 +1,41 @@
 package project
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
-func TestNewProject(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    Project
-		wantErr bool
-	}{
-		{name: "trims name and starts planned", input: " Carva ", want: Project{Name: "Carva", Status: Planned}},
-		{name: "rejects blank name", input: "  ", wantErr: true},
+func TestNewCreatesPlannedProjectWithStableID(t *testing.T) {
+	got, err := New("project-123", "Carva MVP")
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
 	}
+	if got.ID != "project-123" {
+		t.Errorf("ID = %q, want %q", got.ID, "project-123")
+	}
+	if got.Name != "Carva MVP" {
+		t.Errorf("Name = %q, want entered name unchanged", got.Name)
+	}
+	if got.Status != Planned {
+		t.Errorf("Status = %q, want %q", got.Status, Planned)
+	}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := New(tt.input)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("New() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if err == nil && (got.Name != tt.want.Name || got.Status != tt.want.Status) {
-				t.Fatalf("New() = %+v, want %+v", got, tt.want)
+func TestNewRejectsNameThatIsEmptyAfterTrimming(t *testing.T) {
+	for _, name := range []string{"", " ", "\t\r\n"} {
+		t.Run(name, func(t *testing.T) {
+			_, err := New("project-123", name)
+			if !errors.Is(err, ErrInvalidName) {
+				t.Errorf("New() error = %v, want ErrInvalidName", err)
 			}
 		})
+	}
+}
+
+func TestNewRejectsEmptyID(t *testing.T) {
+	_, err := New("", "Carva MVP")
+	if !errors.Is(err, ErrInvalidID) {
+		t.Errorf("New() error = %v, want ErrInvalidID", err)
 	}
 }
 

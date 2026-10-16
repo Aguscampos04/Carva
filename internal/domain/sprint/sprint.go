@@ -7,19 +7,19 @@ import (
 )
 
 var (
-	ErrInvalidProjectID = errors.New("project ID must be positive")
+	ErrInvalidProjectID = errors.New("project ID must not be blank")
 	ErrInvalidGoal      = errors.New("sprint goal must not be blank")
 	ErrNotFound         = errors.New("sprint not found")
 )
 
 type Sprint struct {
 	ID        int64  `json:"id"`
-	ProjectID int64  `json:"projectID"`
+	ProjectID string `json:"projectID"`
 	Goal      string `json:"goal"`
 }
 
-func New(projectID int64, goal string) (Sprint, error) {
-	if projectID < 1 {
+func New(projectID string, goal string) (Sprint, error) {
+	if strings.TrimSpace(projectID) == "" {
 		return Sprint{}, ErrInvalidProjectID
 	}
 	goal = strings.TrimSpace(goal)

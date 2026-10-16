@@ -1,31 +1,47 @@
+// Package projects coordinates project creation and consultation use cases.
 package projects
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Aguscampos04/Carva/internal/domain/project"
+	"github.com/google/uuid"
 )
 
+// Repository stores and retrieves the shared project entity.
 type Repository interface {
-	Create(context.Context, project.Project) (project.Project, error)
-	Get(context.Context, int64) (project.Project, error)
+	Save(context.Context, project.Project) error
+	FindByID(context.Context, string) (project.Project, error)
 }
 
-type Service struct{ repository Repository }
+// Service implements project creation and consultation use cases.
+type Service struct {
+	repository Repository
+}
 
-func NewService(repository Repository) Service { return Service{repository: repository} }
+// NewService constructs a project service backed by repository.
+func NewService(repository Repository) *Service {
+	return &Service{repository: repository}
+}
 
-func (s Service) Create(ctx context.Context, name string) (project.Project, error) {
-	value, err := project.New(name)
+// Create validates and persists a project with a server-generated UUID.
+func (s *Service) Create(ctx context.Context, name string) (project.Project, error) {
+	created, err := project.New(uuid.NewString(), name)
 	if err != nil {
 		return project.Project{}, err
 	}
-	return s.repository.Create(ctx, value)
+	if err := s.repository.Save(ctx, created); err != nil {
+		return project.Project{}, fmt.Errorf("save project: %w", err)
+	}
+	return created, nil
 }
 
-func (s Service) Get(ctx context.Context, id int64) (project.Project, error) {
-	if id < 1 {
-		return project.Project{}, project.ErrInvalidID
+// Get retrieves a project by its stable identifier.
+func (s *Service) Get(ctx context.Context, id string) (project.Project, error) {
+	found, err := s.repository.FindByID(ctx, id)
+	if err != nil {
+		return project.Project{}, fmt.Errorf("find project: %w", err)
 	}
-	return s.repository.Get(ctx, id)
+	return found, nil
 }

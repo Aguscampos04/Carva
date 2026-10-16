@@ -18,7 +18,7 @@ Feature: Crear Sprint y definir Sprint Goal (US-07)
     And el proyecto conserva el estado "Planificado"
 
   Scenario: Rechazar un Sprint para un proyecto inexistente
-    Given que no existe el proyecto con identificador 999
+    Given que no existe el proyecto con identificador "00000000-0000-0000-0000-000000000999"
     When se intenta crear un Sprint con un objetivo válido
     Then la operación responde que el proyecto no fue encontrado
     And no se crea ningún Sprint

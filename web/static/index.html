@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Carva · Crear proyecto</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <script src="/js/app.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <h1>Carva</h1>
+      <section aria-labelledby="create-title">
+        <h2 id="create-title">Crear proyecto</h2>
+        <form id="create-project-form">
+          <label for="project-name">Nombre del proyecto</label>
+          <input id="project-name" name="name" autocomplete="off" required>
+          <button type="submit">Crear proyecto</button>
+        </form>
+      </section>
+      <section aria-labelledby="result-title" aria-live="polite">
+        <h2 id="result-title">Resultado</h2>
+        <p id="message">Completá el nombre para registrar un proyecto.</p>
+        <dl id="project-details" hidden>
+          <dt>Nombre</dt><dd id="project-name-result"></dd>
+          <dt>Identificador</dt><dd id="project-id-result"></dd>
+          <dt>Estado</dt><dd id="project-status-result"></dd>
+        </dl>
+        <button id="refresh-project" type="button" hidden>Consultar de nuevo</button>
+      </section>
+    </main>
+  </body>
+</html>

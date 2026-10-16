@@ -16,7 +16,7 @@ func NewSprintRepository(db *sql.DB) *SprintRepository {
 	return &SprintRepository{db: db}
 }
 
-func (r *SprintRepository) GetProject(ctx context.Context, id int64) (project.Project, error) {
+func (r *SprintRepository) GetProject(ctx context.Context, id string) (project.Project, error) {
 	var value project.Project
 	err := r.db.QueryRowContext(ctx,
 		`SELECT id, name, status FROM projects WHERE id = ?`, id,
@@ -68,7 +68,7 @@ func (r *SprintRepository) Create(ctx context.Context, value sprint.Sprint, upda
 	return value, nil
 }
 
-func (r *SprintRepository) Get(ctx context.Context, projectID, sprintID int64) (sprint.Sprint, error) {
+func (r *SprintRepository) Get(ctx context.Context, projectID string, sprintID int64) (sprint.Sprint, error) {
 	var value sprint.Sprint
 	err := r.db.QueryRowContext(ctx,
 		`SELECT id, project_id, goal FROM sprints WHERE project_id = ? AND id = ?`, projectID, sprintID,

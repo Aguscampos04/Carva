@@ -21,11 +21,11 @@ El equipo aprobó las decisiones arquitectónicas de la sección 2 y la estructu
 | Migraciones | Archivos SQL versionados e incluidos mediante `embed`. |
 | Bases de pruebas | Archivos temporales independientes por prueba de integración. |
 
-Estas decisiones no definen un contrato REST general ni un framework web. Para el alcance mínimo de US-01/US-07, las SDD correspondientes proponen rutas, payloads y tablas; el equipo debe revisar esos contratos antes de extenderlos.
+Estas decisiones no definen rutas HTTP, esquemas JSON, tablas de negocio, columnas, reglas de validación no aprobadas ni un framework web.
 
 ## 3. Estructura de carpetas aprobada para Sprint 1
 
-La siguiente estructura fue aprobada por el equipo y creada como base del repositorio. La implementación inicial de proyectos y Sprints se especifica en `sdd/SDD-US-01-soporte-proyecto.md` y `sdd/SDD-US-07-crear-sprint.md`.
+La siguiente estructura fue aprobada por el equipo y creada como base del repositorio. US-01 implementa el alta y consulta de proyectos; US-07 agrega creación y consulta de Sprints vinculados a esos proyectos.
 
 ```text
 .
@@ -66,13 +66,13 @@ La siguiente estructura fue aprobada por el equipo y creada como base del reposi
 └── go.mod
 ```
 
-El módulo Go es `github.com/Aguscampos04/Carva`. `cmd/carva/main.go` compone la API inicial y la persistencia SQLite para proyectos y Sprints. Las carpetas `src/`, `sdd/`, `bdd/` y `tests/` que ya existían se conservan; no se utiliza `src/` para el código Go.
+El módulo Go es `github.com/Aguscampos04/Carva`. US-01 incorpora el primer caso de uso de proyectos, persistencia, API y UI en las ubicaciones aprobadas. US-07 reutiliza el proyecto identificado por UUID y agrega los Sprints en Go, SQLite y la API. Las carpetas `src/`, `sdd/`, `bdd/` y `tests/` que ya existían se conservan; no se utiliza `src/` para el código Go.
 
-Los paquetes iniciales son `presentation/httpapi`, `application/projects`, `application/members`, `application/backlog`, `application/sprints`, `domain/project`, `domain/member`, `domain/backlog`, `domain/sprint` y `persistence/sqlite`. Los paquetes de miembros y Backlog aún no implementan comportamiento; proyectos y Sprints cubren el alcance mínimo descrito en sus SDD. Los directorios aún vacíos se conservan con `.gitkeep`.
+Los paquetes iniciales son `presentation/httpapi`, `application/projects`, `application/members`, `application/backlog`, `application/sprints`, `domain/project`, `domain/member`, `domain/backlog`, `domain/sprint` y `persistence/sqlite`. US-01 implementa proyectos; US-07 implementa Sprints sobre el mismo repositorio de proyectos. Los paquetes de las historias restantes continúan como esqueletos.
 
-El paquete `persistence/sqlite` obtiene su ruta desde `CARVA_DB_PATH` y usa `.local/carva.db` si la variable no está definida o está vacía. `Open` valida la conexión y crea el directorio padre del archivo si hace falta. Las migraciones se almacenan como SQL versionado (`NNNNNN_descripcion.sql`) en `internal/persistence/sqlite/migrations/`, se embeben y se aplican en orden; `carva_schema_migrations` registra las versiones aplicadas. `000001_baseline.sql` conserva la línea de base de infraestructura y `000002_projects_sprints.sql` crea las tablas mínimas de proyectos y Sprints. `.local/` y los archivos SQLite locales están excluidos de Git.
+El paquete `persistence/sqlite` obtiene su ruta desde `CARVA_DB_PATH` y usa `.local/carva.db` si la variable no está definida o está vacía. `Open` valida la conexión y crea el directorio padre del archivo si hace falta. Las migraciones se almacenan como SQL versionado (`NNNNNN_descripcion.sql`) en `internal/persistence/sqlite/migrations/`, se embeben y se aplican en orden; `carva_schema_migrations` registra las versiones aplicadas. La migración `000001_baseline.sql` establece la línea de base, `000002_projects.sql` crea la tabla de proyectos de US-01 y `000003_sprints.sql` crea Sprints vinculados por el UUID del proyecto. La tabla de registro es metadato de infraestructura. `.local/` y los archivos SQLite locales están excluidos de Git.
 
-`modernc.org/sqlite v1.60.1` declara compatibilidad desde Go 1.26.0. Su módulo incorpora dependencias transitivas, entre ellas `modernc.org/libc`, `modernc.org/mathutil`, `modernc.org/fileutil` y `golang.org/x/sys`; sus versiones quedan fijadas en `go.mod`/`go.sum`.
+`modernc.org/sqlite v1.60.1` declara compatibilidad desde Go 1.26.0. Sus dependencias transitivas quedan fijadas en `go.mod`/`go.sum`.
 
 ## 4. Responsabilidades por capa
 
@@ -80,8 +80,8 @@ El paquete `persistence/sqlite` obtiene su ruta desde `CARVA_DB_PATH` y usa `.lo
 
 - Recibir solicitudes HTTP y exponer la API REST.
 - Traducir solicitudes y respuestas HTTP a los casos de uso de aplicación.
-- Gestionar el transporte, los formatos de entrada y salida y los códigos HTTP cuando se definan sus contratos.
-- Servir o entregar los recursos HTML, CSS y JavaScript según la estrategia que apruebe el equipo.
+- Gestionar el transporte y los contratos HTTP documentados por cada SDD.
+- Servir los recursos HTML, CSS y JavaScript embebidos desde el mismo proceso HTTP.
 - No concentrar reglas centrales de negocio en handlers ni en JavaScript.
 
 ### Aplicación
@@ -101,12 +101,12 @@ El paquete `persistence/sqlite` obtiene su ruta desde `CARVA_DB_PATH` y usa `.lo
 
 - Implementar los puertos de almacenamiento usando SQLite.
 - Traducir entre los datos persistidos y los tipos del dominio o de aplicación.
-- Gestionar apertura de la base, consultas, escrituras, transacciones y migraciones, una vez definidas sus estrategias.
+- Gestionar apertura de la base, consultas, escrituras, transacciones y migraciones.
 - No decidir reglas funcionales ni exponer detalles SQL al dominio.
 
 ### Composición de dependencias
 
-`cmd/carva` funcionaría como punto de composición: carga configuración, inicializa SQLite, construye adaptadores y casos de uso, configura la API HTTP e inicia el servidor. Esta función describe la propuesta de estructura y no implica que esa implementación ya exista.
+`cmd/carva` es el punto de composición: inicializa SQLite, aplica migraciones, construye los repositorios y casos de uso de proyectos y Sprints, configura la API HTTP y sirve el frontend.
 
 ## 5. Dependencias permitidas
 
@@ -140,12 +140,9 @@ cmd/carva compone Presentación, Aplicación y Persistencia.
 
 Antes de implementar los aspectos correspondientes, el equipo debe revisar o decidir:
 
-1. Contratos REST adicionales a los endpoints mínimos propuestos en SDD-US-01 y SDD-US-07: versionado, formatos, códigos HTTP, errores y validaciones.
-2. Atributos, identificadores, invariantes y relaciones del modelo de dominio más allá de los mínimos de proyectos y Sprints descritos en esas SDD.
-3. Esquema de negocio SQLite más allá de las tablas mínimas de proyectos y Sprints; restricciones, índices y política general de concurrencia/transacciones.
-4. Cómo se sirven los recursos estáticos y cómo configuran su URL de API los distintos entornos.
-5. Configuración general, logging, apagado ordenado y despliegue.
-6. Si se requiere autenticación en una etapa posterior. Para la etapa inicial está aprobada la ausencia de autenticación compleja; el modo de identificar miembros dentro de cada proyecto aún debe especificarse.
+1. Contratos HTTP, atributos de dominio, esquema y reglas de validación de historias futuras; el contrato de US-01 está documentado en `sdd/SDD-US-01-crear-proyecto.md`.
+2. Configuración general, logging, apagado ordenado y despliegue.
+3. Si se requiere autenticación en una etapa posterior. Para la etapa inicial está aprobada la ausencia de autenticación compleja; el modo de identificar miembros dentro de cada proyecto aún debe especificarse.
 
 Estas decisiones no deben convertirse en reglas funcionales por inferencia. Deben resolverse mediante SDD y aprobación del equipo cuando afecten el comportamiento o la arquitectura.
 
