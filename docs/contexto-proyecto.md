@@ -234,7 +234,7 @@ Todavía deben definirse y documentarse, entre otras:
 - Esquema SQLite y configuración de concurrencia/transacciones más allá de las tablas mínimas descritas en esas SDD.
 - Estrategia para servir los archivos estáticos del frontend y configurar su acceso a la API.
 - Configuración completa de los entornos de desarrollo y pruebas, más allá de la ruta base aprobada.
-- Detalles técnicos de US-03 propuestos en su SDD. El mecanismo funcional ya está aprobado: selección desde la lista del proyecto (D-05), sin autenticación ni permisos (D-07); la integración en votos y esfuerzo se especificará en US-12 y US-16.
+- Integración de la selección de miembros en votos y esfuerzo, a especificar en US-12 y US-16. El mecanismo funcional está aprobado (D-05), sin autenticación ni permisos (D-07); el alta/listado de US-03 está implementado según su SDD autorizada, pendiente de revisión final del equipo.
 - Si se requiere autenticación en una etapa posterior.
 - Estrategia de despliegue, si corresponde.
 - Diseño visual de la interfaz.

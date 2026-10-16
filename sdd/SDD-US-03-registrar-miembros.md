@@ -1,6 +1,6 @@
 # SDD-US-03 — Registrar e identificar miembros del proyecto
 
-**Estado:** especificación autorizada para implementar por el responsable el 2026-10-16, con los ajustes de revisión de esta etapa. La implementación y su aprobación final por el equipo son estados separados; la historia no está aprobada por el equipo.
+**Estado:** especificación autorizada para implementar por el responsable el 2026-10-16, con los ajustes de revisión de esta etapa; implementación realizada y verificación técnica registrada en [evidencia](../docs/evidencia-ia-us-03.md). Revisión y aprobación final de la historia por el equipo pendientes.
 **Fecha:** 2026-10-16.
 **Trazabilidad:** [enunciado](../docs/enunciado.md) §2.1 → EP-01 → US-03 / [Issue #3](https://github.com/Aguscampos04/Carva/issues/3) → esta SDD → AC → [BDD-US-03](../bdd/BDD-US-03-registrar-miembros.feature).
 **Dependencia:** US-01, proyecto existente con UUID. Consumidores futuros: US-12 (§2.4, votos individuales) y US-16 (§2.5, esfuerzo).
@@ -48,7 +48,7 @@ Validación central en Go. El alta no modifica datos ni estado del proyecto ni c
 
 ## Constraints
 
-### Contratos REST propuestos
+### Contratos REST implementados
 
 Se reutilizan `/api/projects`, JSON, nombres de campos `snake_case` para la relación como en Backlog, y el formato de error existente `{"error":"mensaje"}`. No se cambia el contrato de otros recursos.
 
@@ -76,23 +76,23 @@ Ejemplo de objeto devuelto (UUID ilustrativos):
 - No se propone GET individual ni `Location` a un recurso individual inexistente. La identificación se obtiene del objeto creado y del listado. PUT, PATCH y DELETE no se exponen para miembros.
 - Cada POST es una nueva alta: no se agrega idempotencia ni deduplicación. Si se pierde la respuesta después de persistir, debe consultarse la lista antes de decidir repetir; repetir puede crear un homónimo con otro UUID.
 
-### Persistencia propuesta
+### Persistencia implementada
 
-Nueva migración SQL versionada y embebida, tentativamente `000006_members.sql` (confirmar siguiente número libre al implementar). No modificar migraciones aplicadas ni crear archivos SQL en esta etapa.
+Migraciones SQL versionadas y embebidas: `000006_members.sql` crea la tabla y `000007_members_name_storage.sql` ajusta su CHECK para medir bytes (`length(CAST(name AS BLOB)) > 0`). La segunda es aditiva: conserva los registros y evita rechazar nombres que comienzan con NUL, ya que SQLite `length(TEXT)` se detiene en ese carácter. No se modificaron migraciones aplicadas. Se verificó la actualización desde el esquema anterior, la conservación de UUID/datos y la aplicación idempotente de las migraciones.
 
 | Tabla `members`: columna | Definición propuesta |
 | --- | --- |
 | `id` | `TEXT PRIMARY KEY NOT NULL`: UUID generado en aplicación; reutilizar `github.com/google/uuid`, ya presente. |
 | `project_id` | `TEXT NOT NULL REFERENCES projects(id)`: asociación obligatoria. |
-| `name` | `TEXT NOT NULL CHECK (length(name) > 0)`: texto ya normalizado y validado por Go. |
+| `name` | `TEXT NOT NULL CHECK (length(CAST(name AS BLOB)) > 0)`: texto normalizado y validado por Go, sin restricciones adicionales de caracteres. |
 
 Índice no único sobre `project_id` para el listado. Sin unicidad sobre nombre ni sobre `(project_id, name)`. No agregar tabla de personas ni relaciones entre miembros de diferentes proyectos. El CHECK no reemplaza la validación Unicode en Go; SQLite `trim` no debe definir D-06.
 
-Propuesta de integridad: verificar proyecto existente y guardar sin alta parcial. Habilitar/verificar claves foráneas de SQLite en **cada conexión usada para miembros**, pues una cláusula `REFERENCES` por sí sola no garantiza su ejecución y la apertura actual no activa `foreign_keys`. Resolverlo con la configuración de conexión del driver actual al implementar, revisando regresión de los repositorios existentes; no cambiar el driver ni agregar dependencias. Este ajuste técnico requiere revisión junto con el esquema.
+Integridad: verificar proyecto existente y guardar sin alta parcial. `OpenPath` configura `_pragma=foreign_keys(1)` en el DSN del driver actual, ejecutado para cada conexión del pool. Se verificó con tres conexiones simultáneas, rechazo de inserciones huérfanas, una base en memoria y rutas con espacios y `#`. Se ejecutó regresión de los repositorios existentes; no se cambió el driver ni se agregaron dependencias.
 
 Una inserción es atómica; si falla, no queda un miembro incompleto. La lista se filtra siempre por `project_id`. Una colisión extraordinaria de UUID no sobrescribe al registro existente: la PK rechaza la inserción y se informa error interno controlado. Fallos de generación de UUID o persistencia no producen respuesta exitosa. No se introducen cascadas de eliminación ni políticas de borrado.
 
-### Responsabilidades por capa propuestas
+### Responsabilidades por capa
 
 | Capa / ubicación existente | Responsabilidad prevista |
 | --- | --- |
@@ -149,9 +149,9 @@ Los dos criterios originales de la Issue se conservan; los restantes detallan de
 
 ## BDD / Test Traceability
 
-Cada escenario lleva etiqueta `@BDD-US-03-NN` y referencias `@AC-NN` en el archivo BDD. Los escenarios que concretan propuestas técnicas están sujetos a la misma revisión que esta SDD.
+Cada escenario lleva etiqueta `@BDD-US-03-NN` y referencias `@AC-NN` en el archivo BDD. Su automatización concreta y las limitaciones se detallan en la [matriz BDD–tests](../docs/evidencia-ia-us-03.md#trazabilidad-bdd-y-pruebas).
 
-| AC | Escenarios BDD-US-03 | Validación futura (sin tests creados) |
+| AC | Escenarios BDD-US-03 | Comportamiento validado / pendiente |
 | --- | --- | --- |
 | AC-01 | 01, 07, 09 | Alta/listado y estabilidad de identidad. |
 | AC-02 | 04, 05 | Identidades distinguibles en US-03; atribución efectiva pendiente en US-12/US-16. |
@@ -162,11 +162,11 @@ Cada escenario lleva etiqueta `@BDD-US-03-NN` y referencias `@AC-NN` en el archi
 | AC-07 | 08, 10, 11, 12, 13, 14, 19 | Contrato HTTP, fallos y ausencia de cambios parciales. |
 | AC-08 | 01, 09, 14 | Autoridad del servidor y persistencia. |
 
-Cadena actual: §2.1 → EP-01 → US-03 / #3 → SDD → AC → BDD **en revisión**. TDD, código funcional y tests de US-03 **pendientes y fuera de esta tarea**. No se afirma ejecución ni cumplimiento de los criterios por software.
+Cadena actual: §2.1 → EP-01 → US-03 / #3 → SDD → AC → BDD → tests Go/Node → dominio/aplicación/SQLite/HTTP/web → commits RED/GREEN/REFACTOR. Véase la evidencia para resultados reales. AC-02 se valida aquí como disponibilidad de identidades distintas; atribuir votos/esfuerzo efectivamente sigue pendiente en US-12/US-16.
 
 ## Revisión y pendientes
 
-No se detectaron ambigüedades funcionales que bloqueen esta especificación con D-01 a D-07. Para iniciar implementación falta la aprobación de la propuesta técnica: rutas y JSON, errores/precedencia, precisión Unicode del recorte, esquema e integridad SQLite y presentación de UUID para distinguir homónimos.
+No se detectaron ambigüedades funcionales bloqueantes con D-01 a D-07. Rutas y JSON, errores/precedencia, precisión Unicode del recorte, esquema/integridad SQLite y UUID secundario fueron autorizados para implementar en esta etapa y están implementados. Falta revisión y aprobación final de la historia por el equipo.
 
 No se requieren decisiones nuevas de autenticación, datos personales ni de identidad global para US-03. El detalle del selector y la validación de atribución en votos/esfuerzo se tratará en US-12/US-16, sin bloquear alta y listado. Cualquier límite de longitud/cupo o regla por estado del proyecto que se solicite posteriormente será una decisión funcional nueva.
 
