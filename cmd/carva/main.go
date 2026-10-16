@@ -25,8 +25,9 @@ func main() {
 	}
 
 	projectService := projects.NewService(sqlite.NewProjectRepository(db))
-	backlogService := backlog.NewService(sqlite.NewBacklogRepository(db))
-	sprintService := sprints.NewService(sqlite.NewSprintRepository(db))
+	backlogRepository := sqlite.NewBacklogRepository(db)
+	backlogService := backlog.NewService(backlogRepository)
+	sprintService := sprints.NewService(sqlite.NewSprintRepository(db), backlogRepository)
 	mux := http.NewServeMux()
 	mux.Handle("/api/", httpapi.NewHandler(projectService, backlogService, sprintService))
 	mux.Handle("/", http.FileServer(http.FS(static.Files)))

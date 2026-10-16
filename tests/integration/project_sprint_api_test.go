@@ -175,7 +175,8 @@ func newTestHandler(t *testing.T) http.Handler {
 	}
 	projectRepository := sqlite.NewProjectRepository(db)
 	sprintRepository := sqlite.NewSprintRepository(db)
-	return httpapi.NewHandler(projects.NewService(projectRepository), nil, sprints.NewService(sprintRepository))
+	return httpapi.NewHandler(projects.NewService(projectRepository), nil,
+		sprints.NewService(sprintRepository, sqlite.NewBacklogRepository(db)))
 }
 
 func createProject(t *testing.T, handler http.Handler, name string) string {
