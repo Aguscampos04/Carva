@@ -21,12 +21,21 @@ type Member struct {
 
 // New preserves the name's interior and trims only surrounding whitespace.
 func New(id, projectID, name string) (Member, error) {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return Member{}, ErrInvalidName
+	name, err := NormalizeName(name)
+	if err != nil {
+		return Member{}, err
 	}
 	if strings.TrimSpace(id) == "" || strings.TrimSpace(projectID) == "" {
 		return Member{}, ErrInvalidIdentity
 	}
 	return Member{ID: id, ProjectID: projectID, Name: name}, nil
+}
+
+// NormalizeName is the single definition of D-06, also used before project lookup.
+func NormalizeName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "", ErrInvalidName
+	}
+	return name, nil
 }
