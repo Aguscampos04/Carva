@@ -51,6 +51,7 @@ func TestProjectLifecyclePersistenceAndCompatibility(t *testing.T) {
 	p := lifeRequest(t, h, "POST", "/api/projects", `{"name":"Carva Demo"}`, 201)
 	id := p["id"].(string)
 	url := "/api/projects/" + id
+	neighbor := lifeRequest(t, h, "POST", "/api/projects", `{"name":"Proyecto vecino"}`, 201)
 	if p["start_date"] != nil || p["end_date"] != nil {
 		t.Fatal(p)
 	}
@@ -95,6 +96,15 @@ func TestProjectLifecyclePersistenceAndCompatibility(t *testing.T) {
 	p = lifeRequest(t, h, "PATCH", url, `{"start_date":null}`, 200)
 	if p["name"] != "  Carva II  " || p["start_date"] != nil {
 		t.Fatal(p)
+	}
+	for range 2 {
+		got := lifeRequest(t, h, "PATCH", url, `{"name":"  Carva II  ","start_date":null}`, 200)
+		if !reflect.DeepEqual(p, got) {
+			t.Fatal("repeated edit changed representation")
+		}
+	}
+	if got := lifeRequest(t, h, "GET", "/api/projects/"+neighbor["id"].(string), "", 200); !reflect.DeepEqual(neighbor, got) {
+		t.Fatal("neighbor changed")
 	}
 	h = lifecycleHandler(db, "2026-10-22T15:00:00Z")
 	p = lifeRequest(t, h, "POST", url+"/finalize", `{"confirmed":true}`, 200)

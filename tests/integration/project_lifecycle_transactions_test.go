@@ -15,6 +15,7 @@ import (
 
 	"github.com/Aguscampos04/Carva/internal/application/projects"
 	"github.com/Aguscampos04/Carva/internal/domain/project"
+	"github.com/Aguscampos04/Carva/internal/domain/sprint"
 	"github.com/Aguscampos04/Carva/internal/persistence/sqlite"
 	"github.com/Aguscampos04/Carva/internal/persistence/sqlite/migrations"
 )
@@ -112,6 +113,54 @@ func TestProjectFinalizationWinsBeforeSprintCreation(t *testing.T) {
 	}
 	if w := <-response; w.Code != 409 {
 		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+}
+
+func TestProjectSprintCreationWinsBeforeFinalization(t *testing.T) {
+	path, db := openMigratedProjectDB(t)
+	other, err := sqlite.OpenPath(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer other.Close()
+	service := projects.NewService(sqlite.NewProjectRepository(db))
+	p, err := service.Create(context.Background(), "Demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	entered, release := make(chan struct{}), make(chan struct{})
+	created := make(chan error, 1)
+	value, err := sprint.New(p.ID, "First")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		_, err := sqlite.NewSprintRepository(db).Create(context.Background(), value, func(current project.Project) (project.Project, error) {
+			close(entered)
+			<-release
+			if err := current.CanCreateSprint(); err != nil {
+				return project.Project{}, err
+			}
+			current.StartFirstSprint()
+			return current, nil
+		})
+		created <- err
+	}()
+	<-entered
+	response := make(chan *httptest.ResponseRecorder, 1)
+	go func() {
+		response <- performJSON(t, lifecycleHandler(other, "2026-10-20T15:00:00Z"), "POST", "/api/projects/"+p.ID+"/finalize", `{"confirmed":true}`)
+	}()
+	close(release)
+	if err := <-created; err != nil {
+		t.Fatal(err)
+	}
+	if w := <-response; w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	got := lifeRequest(t, lifecycleHandler(db, "2026-10-20T15:00:00Z"), "GET", "/api/projects/"+p.ID+"/sprints/1", "", 200)
+	if got["goal"] != "First" {
+		t.Fatal("created Sprint not preserved")
 	}
 }
 

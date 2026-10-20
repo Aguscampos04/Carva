@@ -63,3 +63,23 @@ func TestLifecycleApplicationDoesNotPersistInvalidChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// BDD-11: recording/passing a calendar day and consulting never changes state.
+func TestProjectDateDoesNotDriveState(t *testing.T) {
+	repo := newMemoryRepository()
+	now := time.Date(2026, 10, 20, 15, 0, 0, 0, time.UTC)
+	clockCalls := 0
+	service := NewServiceWithClock(repo, func() time.Time { clockCalls++; return now })
+	p, err := service.Create(context.Background(), "Demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = service.Update(context.Background(), p.ID, project.Patch{HasStartDate: true, StartDate: project.Date("2026-10-20")}); err != nil {
+		t.Fatal(err)
+	}
+	now = now.AddDate(0, 0, 1)
+	got, err := service.Get(context.Background(), p.ID)
+	if err != nil || got.Status != project.Planned || got.EndDate != "" || clockCalls != 0 {
+		t.Fatalf("%+v %v clock calls %d", got, err, clockCalls)
+	}
+}
