@@ -1,5 +1,5 @@
 // US-02: the server owns dates and lifecycle rules; this controller owns the form.
-function createProjectEditor({ form, nameInput, startInput, endOutput, finalizeButton, saveButton, message, requestJSON, confirmFinalization, onSaved }) {
+function createProjectEditor({ form, nameInput, startInput, endOutput, finalizeButton, saveButton, message, requestJSON, confirmFinalization, onSaved, onMutationStart = () => {}, onBusyChange = () => {} }) {
   let project = null;
   let generation = 0;
   let submitting = false;
@@ -10,12 +10,14 @@ function createProjectEditor({ form, nameInput, startInput, endOutput, finalizeB
     finalizeButton.disabled = value;
     nameInput.disabled = value;
     startInput.disabled = value;
+    onBusyChange(value);
   }
 
   async function mutate(suffix, method, body) {
     if (!project || submitting) return;
     const context = generation;
     const id = project.id;
+    onMutationStart();
     setSubmitting(true);
     message.textContent = "Guardando proyecto…";
     try {

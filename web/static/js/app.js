@@ -20,6 +20,8 @@ const projectEditor = createProjectEditor({
   requestJSON,
   confirmFinalization: text => window.confirm(text),
   onSaved: showProject,
+  onMutationStart: () => { ++projectRequest; },
+  onBusyChange: value => { refreshButton.disabled = value; },
 });
 const membersUI = createMembersSection({
   section: document.querySelector("#members-section"),
@@ -223,6 +225,7 @@ form.addEventListener("submit", async (event) => {
 });
 
 refreshButton.addEventListener("click", async () => {
+  if (refreshButton.disabled || !currentProjectID) return;
   const id = currentProjectID;
   const request = ++projectRequest;
   message.textContent = "Consultando proyecto…";
