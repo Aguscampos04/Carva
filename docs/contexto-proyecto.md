@@ -188,7 +188,7 @@ El responsable del proyecto confirma la aprobación de las **9 Épicas (EP-01 a 
 
 Estas decisiones definen el comportamiento funcional del producto. Las fórmulas concretas de las métricas continúan pendientes y deberán documentarse en sus SDD.
 
-1. **Estado del proyecto:** al crearlo queda **Planificado**; al crear su primer Sprint pasa a **En progreso**; pasa a **Finalizado** cuando se cumple la condición de finalización del proyecto. La condición exacta que determina que el proyecto está terminado sigue pendiente de definición.
+1. **Estado del proyecto:** al crearlo queda **Planificado**; al crear su primer Sprint pasa a **En progreso**; pasa a **Finalizado** mediante la acción manual confirmada «Finalizar proyecto», nunca automáticamente por una fecha. Véanse las decisiones de US-02 / Issue #2.
 2. **Estado de una User Story:** los estados son **Pendiente**, **En progreso** y **Completada**.
 3. **Finalización de una User Story:** se considera completada cuando se verifican sus Acceptance Criteria.
 4. **Cierre de un Sprint:** las User Stories incompletas se trasladan automáticamente al siguiente Sprint. Si existen historias incompletas, no se puede cerrar el Sprint hasta que haya un siguiente Sprint disponible. Las historias completadas no se trasladan. El Sprint cerrado conserva su historial y el conjunto originalmente planificado.
@@ -206,6 +206,29 @@ Estas decisiones definen el comportamiento funcional del producto. Las fórmulas
 16. **Reportes:** habrá un reporte de proyecto completo y un reporte de Sprint individual. Incluirán User Stories, Story Points, horas estimadas y reales, métricas y defectos.
 17. **Reporte final:** debe poder generarse en PDF e incluir información general del proyecto, Sprints, User Stories, Story Points, horas, métricas, defectos y estado general.
 18. **MVP e identificación:** se identificará a los miembros para Planning Poker y el registro de esfuerzo. No se implementará un sistema complejo de permisos en el MVP.
+
+### Modificación y finalización del proyecto — US-02 / Issue #2
+
+Decisiones funcionales **aprobadas explícitamente por el responsable en la solicitud del 2026-10-20**. D-01 a D-10 tienen alcance local a US-02; no reemplazan los identificadores homónimos de US-03.
+
+| ID | Decisión aprobada |
+| --- | --- |
+| D-01 | El proyecto se finaliza manualmente mediante un botón «Finalizar proyecto». Nunca automáticamente por una fecha. |
+| D-02 | La fecha de inicio se registra manualmente, es opcional y puede modificarse. |
+| D-03 | Al finalizar, el sistema registra automáticamente la fecha actual como fecha de finalización. |
+| D-04 | Los proyectos finalizados permiten modificar su nombre y fecha de inicio, pero no su estado ni fecha de finalización. |
+| D-05 | Se pueden finalizar proyectos `Planificado` o `En progreso`, incluso sin Sprints. |
+| D-06 | La fecha de inicio no puede ser posterior a la fecha de finalización. Se permite finalizar sin fecha de inicio. |
+| D-07 | Antes de finalizar, solicitar confirmación. Cancelar no provoca cambios. |
+| D-08 | Un proyecto `Finalizado` no permite crear nuevos Sprints, pero sí consultar los existentes. |
+| D-09 | Finalizar un proyecto no modifica sus Sprints existentes, aunque haya alguno abierto. |
+| D-10 | En proyectos `Finalizados` se pueden seguir registrando miembros y creando/editando historias del Product Backlog. |
+
+Trazabilidad: [enunciado](enunciado.md) §2.1 → EP-01 → [US-02 / Issue #2](https://github.com/Aguscampos04/Carva/issues/2) → D-01…D-10 → [SDD-US-02](../sdd/SDD-US-02-modificar-proyecto.md) → AC → [BDD-US-02](../bdd/BDD-US-02-modificar-proyecto.feature).
+
+Estas decisiones resuelven la condición de finalización antes pendiente. La especificación inicial se preparó en revisión, sin código, migraciones ni tests TDD. El responsable aprobó posteriormente el 2026-10-20 la SDD, el BDD y PT-01 a PT-05 para implementar US-02, con ajustes previos: eliminar de BDD-07 el caso En progreso sin Sprints y hacer BDD-18 independiente de US-11. Formato y zona de fechas, contratos REST, concurrencia, modelo y migración quedan autorizados para esta implementación; no forman parte de D-01 a D-10 ni implican aprobación final de la historia. Se autorizan commits, push y PR hacia main, sin merge ni cierre de Issues.
+
+Implementación realizada y verificación técnica registrada en [evidencia US-02](evidencia-ia-us-02.md), con revisión final del equipo pendiente. US-11 conserva su decisión pendiente de cierre de Sprint con historias incompletas en un proyecto Finalizado; US-02 no agrega reglas sobre ese cierre.
 
 ### Miembros del proyecto — US-03 / Issue #3
 
@@ -238,7 +261,7 @@ Todavía deben definirse y documentarse, entre otras:
 - Si se requiere autenticación en una etapa posterior.
 - Estrategia de despliegue, si corresponde.
 - Diseño visual de la interfaz.
-- Condición exacta que determina cuándo el proyecto está terminado y pasa a **Finalizado**.
+- Revisión final de la implementación de US-02. SDD/BDD y PT-01 a PT-05 están aprobados para implementar; no sigue pendiente la condición funcional de finalización.
 - Fórmulas de las métricas obligatorias, que deberán especificarse en sus SDD antes de implementarlas.
 - Tratamiento de los defectos sin Sprint en los SDD correspondientes.
 

@@ -8,6 +8,21 @@ const backlogForm = document.querySelector("#create-backlog-form");
 const backlogMessage = document.querySelector("#backlog-message");
 const backlogItems = document.querySelector("#backlog-items");
 let currentProjectID = "";
+let projectRequest = 0;
+const projectEditor = createProjectEditor({
+  form: document.querySelector("#edit-project-form"),
+  nameInput: document.querySelector("#edit-project-name"),
+  startInput: document.querySelector("#edit-project-start"),
+  endOutput: document.querySelector("#project-end-result"),
+  finalizeButton: document.querySelector("#finalize-project"),
+  saveButton: document.querySelector("#save-project"),
+  message: document.querySelector("#project-edit-message"),
+  requestJSON,
+  confirmFinalization: text => window.confirm(text),
+  onSaved: showProject,
+  onMutationStart: () => { ++projectRequest; },
+  onBusyChange: value => { refreshButton.disabled = value; },
+});
 const membersUI = createMembersSection({
   section: document.querySelector("#members-section"),
   form: document.querySelector("#create-member-form"),
@@ -20,10 +35,13 @@ const membersUI = createMembersSection({
 });
 
 function showProject(project) {
+  ++projectRequest;
   currentProjectID = project.id;
   document.querySelector("#project-name-result").textContent = project.name;
   document.querySelector("#project-id-result").textContent = project.id;
   document.querySelector("#project-status-result").textContent = project.status;
+  document.querySelector("#project-start-result").textContent = project.start_date ?? "Sin registrar";
+  projectEditor.showProject(project);
   details.hidden = false;
   refreshButton.hidden = false;
   backlogSection.hidden = false;
@@ -189,6 +207,8 @@ form.addEventListener("submit", async (event) => {
   details.hidden = true;
   refreshButton.hidden = true;
   currentProjectID = "";
+  const request = ++projectRequest;
+  projectEditor.showProject(null);
   backlogSection.hidden = true;
   membersUI.showProject("");
 
@@ -198,19 +218,22 @@ form.addEventListener("submit", async (event) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: nameInput.value }),
     });
-    showProject(result);
+    if (request === projectRequest) showProject(result);
   } catch (error) {
-    message.textContent = error.message;
+    if (request === projectRequest) message.textContent = error.message;
   }
 });
 
 refreshButton.addEventListener("click", async () => {
+  if (refreshButton.disabled || !currentProjectID) return;
+  const id = currentProjectID;
+  const request = ++projectRequest;
   message.textContent = "Consultando proyecto…";
   try {
-    const project = await requestJSON(`/api/projects/${encodeURIComponent(currentProjectID)}`);
-    showProject(project);
+    const project = await requestJSON(`/api/projects/${encodeURIComponent(id)}`);
+    if (request === projectRequest && id === currentProjectID) showProject(project);
   } catch (error) {
-    message.textContent = error.message;
+    if (request === projectRequest && id === currentProjectID) message.textContent = error.message;
   }
 });
 

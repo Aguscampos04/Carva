@@ -10,7 +10,7 @@ import (
 
 type Repository interface {
 	GetProject(context.Context, string) (project.Project, error)
-	Create(context.Context, sprint.Sprint, project.Project) (sprint.Sprint, error)
+	Create(context.Context, sprint.Sprint, func(project.Project) (project.Project, error)) (sprint.Sprint, error)
 	Get(context.Context, string, int64) (sprint.Sprint, error)
 	AssignBacklogItem(context.Context, string, int64, sprint.PlannedBacklogItem) error
 	ListPlannedBacklogItems(context.Context, string, int64) ([]sprint.PlannedBacklogItem, error)
@@ -36,12 +36,13 @@ func (s Service) Create(ctx context.Context, projectID string, goal string) (spr
 		return sprint.Sprint{}, err
 	}
 
-	projectValue, err := s.repository.GetProject(ctx, projectID)
-	if err != nil {
-		return sprint.Sprint{}, err
-	}
-	projectValue.StartFirstSprint()
-	return s.repository.Create(ctx, value, projectValue)
+	return s.repository.Create(ctx, value, func(current project.Project) (project.Project, error) {
+		if err := current.CanCreateSprint(); err != nil {
+			return project.Project{}, err
+		}
+		current.StartFirstSprint()
+		return current, nil
+	})
 }
 
 func (s Service) Get(ctx context.Context, projectID string, sprintID int64) (sprint.Sprint, error) {

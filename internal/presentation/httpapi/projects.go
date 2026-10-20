@@ -14,6 +14,8 @@ import (
 type ProjectService interface {
 	Create(ctx context.Context, name string) (project.Project, error)
 	Get(ctx context.Context, id string) (project.Project, error)
+	Update(context.Context, string, project.Patch) (project.Project, error)
+	Finalize(context.Context, string) (project.Project, error)
 }
 
 // NewHandler returns the REST endpoints for project creation and consultation.
@@ -21,6 +23,7 @@ func NewHandler(service ProjectService, backlogService BacklogService, sprintSer
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/projects", createProject(service))
 	mux.HandleFunc("GET /api/projects/{id}", getProject(service))
+	registerProjectMutationRoutes(mux, service)
 	if backlogService != nil {
 		registerBacklogRoutes(mux, backlogService)
 	}

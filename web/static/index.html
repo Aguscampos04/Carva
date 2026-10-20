@@ -6,6 +6,7 @@
     <title>Carva · Product Backlog</title>
     <link rel="stylesheet" href="/css/app.css">
     <script src="/js/members.js" defer></script>
+    <script src="/js/projects.js" defer></script>
     <script src="/js/app.js" defer></script>
   </head>
   <body>
@@ -26,8 +27,22 @@
           <dt>Nombre</dt><dd id="project-name-result"></dd>
           <dt>Identificador</dt><dd id="project-id-result"></dd>
           <dt>Estado</dt><dd id="project-status-result"></dd>
+          <dt>Fecha de inicio</dt><dd id="project-start-result"></dd>
+          <dt>Fecha de finalización</dt><dd id="project-end-result"></dd>
         </dl>
         <button id="refresh-project" type="button" hidden>Consultar de nuevo</button>
+        <form id="edit-project-form" hidden>
+          <h3>Editar proyecto</h3>
+          <label for="edit-project-name">Nombre del proyecto</label>
+          <input id="edit-project-name" name="name" required>
+          <label for="edit-project-start">Fecha de inicio (opcional)</label>
+          <input id="edit-project-start" name="start_date" type="date" min="0001-01-01" max="9999-12-31">
+          <div class="project-form-actions">
+            <button id="save-project" type="submit">Guardar cambios</button>
+            <button id="finalize-project" type="button" hidden>Finalizar proyecto</button>
+          </div>
+        </form>
+        <p id="project-edit-message" aria-live="polite"></p>
       </section>
 
       <section id="members-section" aria-labelledby="members-title" hidden>

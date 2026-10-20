@@ -23,9 +23,11 @@ var (
 
 // Project is the shared project model used by project management features.
 type Project struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Status Status `json:"status"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Status    Status `json:"status"`
+	StartDate Date   `json:"start_date"`
+	EndDate   Date   `json:"end_date"`
 }
 
 // New creates a project with the initial state required by US-01.
