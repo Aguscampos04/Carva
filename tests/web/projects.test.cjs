@@ -64,3 +64,39 @@ test("late mutations from another project cannot replace selection or reset draf
   assert.equal(e.saved.length, 0); assert.equal(e.nameInput.value, "New draft");
   assert.equal(e.finalizeButton.hidden, false);
 });
+
+test("app wiring: a refresh started before finalization cannot discard its result", async () => {
+  const elements = new Map();
+  function element(id) {
+    if (!elements.has(id)) elements.set(id, {
+      value: "", textContent: "", hidden: true, disabled: false, listeners: {},
+      addEventListener(event, callback) { this.listeners[event] = callback; },
+      replaceChildren() {},
+    });
+    return elements.get(id);
+  }
+  const project = { id: "demo", name: "Demo", status: "Planificado", start_date: null, end_date: null };
+  let resolveRefresh, resolveFinalize;
+  const response = data => ({ ok: true, json: async () => data });
+  const context = vm.createContext({
+    document: { querySelector: element }, encodeURIComponent,
+    window: { confirm: () => true },
+    createMembersSection: () => ({ showProject() {} }),
+    fetch: async (url, options = {}) => {
+      if (url === "/api/projects") return response(project);
+      if (url.endsWith("/backlog")) return response([]);
+      if (url.endsWith("/finalize")) return new Promise(resolve => { resolveFinalize = data => resolve(response(data)); });
+      return new Promise(resolve => { resolveRefresh = data => resolve(response(data)); });
+    },
+  });
+  for (const file of ["projects.js", "app.js"]) vm.runInContext(fs.readFileSync(path.join(__dirname, "../../web/static/js", file), "utf8"), context);
+  await element("#create-project-form").listeners.submit(event);
+  const refresh = element("#refresh-project").listeners.click();
+  const finish = element("#finalize-project").listeners.click();
+  resolveRefresh(project); await refresh;
+  resolveFinalize({ ...project, status: "Finalizado", end_date: "2026-10-20" }); await finish;
+  assert.equal(element("#project-status-result").textContent, "Finalizado");
+  assert.equal(element("#finalize-project").hidden, true);
+  assert.equal(element("#members-section").hidden, true); // stub does not render members
+  assert.equal(element("#backlog-section").hidden, false);
+});
