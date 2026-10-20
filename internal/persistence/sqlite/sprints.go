@@ -18,22 +18,12 @@ func NewSprintRepository(db *sql.DB) *SprintRepository {
 }
 
 func (r *SprintRepository) GetProject(ctx context.Context, id string) (project.Project, error) {
-	var value project.Project
-	err := r.db.QueryRowContext(ctx,
-		`SELECT id, name, status FROM projects WHERE id = ?`, id,
-	).Scan(&value.ID, &value.Name, &value.Status)
-	if errors.Is(err, sql.ErrNoRows) {
-		return project.Project{}, project.ErrNotFound
-	}
-	if err != nil {
-		return project.Project{}, fmt.Errorf("get Sprint project: %w", err)
-	}
-	return value, nil
+	return findProject(ctx, r.db, id)
 }
 
 func (r *SprintRepository) Create(ctx context.Context, value sprint.Sprint, transition func(project.Project) (project.Project, error)) (sprint.Sprint, error) {
 	err := withImmediate(ctx, r.db, func(conn *sql.Conn) error {
-		current, err := readProject(conn.QueryRowContext(ctx, `SELECT id,name,status,start_date,end_date FROM projects WHERE id=?`, value.ProjectID))
+		current, err := findProject(ctx, conn, value.ProjectID)
 		if err != nil {
 			return err
 		}

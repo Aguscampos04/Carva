@@ -16,6 +16,8 @@ import (
 type Repository interface {
 	Save(context.Context, project.Project) error
 	FindByID(context.Context, string) (project.Project, error)
+	// Mutate calls a repeatable, side-effect-free domain transformation after
+	// locking and reading the current record; a confirmed rollback may retry it.
 	Mutate(context.Context, string, func(project.Project) (project.Project, error)) (project.Project, error)
 }
 

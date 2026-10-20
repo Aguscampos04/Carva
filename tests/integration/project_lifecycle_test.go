@@ -60,6 +60,7 @@ func TestProjectLifecyclePersistenceAndCompatibility(t *testing.T) {
 		t.Fatal(p)
 	}
 	sprint := lifeRequest(t, h, "POST", url+"/sprints", `{"goal":"MVP"}`, 201)
+	sprint2 := lifeRequest(t, h, "POST", url+"/sprints", `{"goal":"UI"}`, 201)
 	itemBody := `{"title":"PDF","description":"Informe","priority":"Alta","acceptance_criteria":["Descargable"]}`
 	item := lifeRequest(t, h, "POST", url+"/backlog", itemBody, 201)
 	sprintURL := url + "/sprints/1"
@@ -73,13 +74,22 @@ func TestProjectLifecyclePersistenceAndCompatibility(t *testing.T) {
 	if !reflect.DeepEqual(sprint, after) {
 		t.Fatalf("changed sprint: %v %v", sprint, after)
 	}
+	if got := lifeRequest(t, h, "GET", url+"/sprints/2", "", 200); !reflect.DeepEqual(sprint2, got) {
+		t.Fatal("changed second Sprint")
+	}
 	if got := performJSON(t, h, "GET", sprintURL+"/backlog-items", "").Body.String(); got != before {
 		t.Fatal("changed snapshot")
 	}
 	lifeRequest(t, h, "POST", url+"/sprints", `{"goal":"Forbidden"}`, 409)
 	lifeRequest(t, h, "POST", url+"/members", `{"name":"Ana"}`, 201)
+	if got := performJSON(t, h, "GET", url+"/members", ""); got.Code != 200 || !strings.Contains(got.Body.String(), "Ana") {
+		t.Fatal("members not consultable")
+	}
 	next := lifeRequest(t, h, "POST", url+"/backlog", itemBody, 201)
 	lifeRequest(t, h, "PUT", url+"/backlog/"+next["id"].(string), strings.Replace(itemBody, "PDF", "PDF II", 1), 200)
+	if got := performJSON(t, h, "GET", url+"/backlog", ""); got.Code != 200 || !strings.Contains(got.Body.String(), "PDF II") {
+		t.Fatal("Backlog not consultable")
+	}
 	lifeRequest(t, h, "PATCH", url, `{"start_date":"2026-10-21","name":"Not saved"}`, 400)
 	p = lifeRequest(t, h, "PATCH", url, `{"start_date":"2026-10-20"}`, 200)
 	p = lifeRequest(t, h, "PATCH", url, `{"start_date":null}`, 200)

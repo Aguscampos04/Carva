@@ -32,7 +32,16 @@ func (r *ProjectRepository) Save(ctx context.Context, p project.Project) error {
 
 // FindByID retrieves a project by its stable identifier.
 func (r *ProjectRepository) FindByID(ctx context.Context, id string) (project.Project, error) {
-	return readProject(r.db.QueryRowContext(ctx, `SELECT id, name, status, start_date, end_date FROM projects WHERE id = ?`, id))
+	return findProject(ctx, r.db, id)
+}
+
+// Both a pool and a reserved transactional connection support this read port.
+type projectReader interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+func findProject(ctx context.Context, reader projectReader, id string) (project.Project, error) {
+	return readProject(reader.QueryRowContext(ctx, `SELECT id,name,status,start_date,end_date FROM projects WHERE id=?`, id))
 }
 
 func readProject(row *sql.Row) (project.Project, error) {
@@ -66,7 +75,7 @@ func readProject(row *sql.Row) (project.Project, error) {
 func (r *ProjectRepository) Mutate(ctx context.Context, id string, change func(project.Project) (project.Project, error)) (project.Project, error) {
 	var next project.Project
 	err := withImmediate(ctx, r.db, func(conn *sql.Conn) error {
-		current, err := readProject(conn.QueryRowContext(ctx, `SELECT id,name,status,start_date,end_date FROM projects WHERE id = ?`, id))
+		current, err := findProject(ctx, conn, id)
 		if err != nil {
 			return err
 		}
