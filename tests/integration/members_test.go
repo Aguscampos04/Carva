@@ -285,8 +285,8 @@ func TestMembersSQLiteAbortedWriteLeavesNoRegistration(t *testing.T) {
 
 func TestMembersMigrationUpgradesExistingDatabase(t *testing.T) {
 	_, db := openMigratedProjectDB(t)
-	// Reconstruct the previous schema using the unchanged applied migrations.
-	if _, err := db.Exec(`DROP TABLE members; DELETE FROM carva_schema_migrations WHERE version >= 6`); err != nil {
+	// Reconstruct only the members schema; preserve later unrelated migrations.
+	if _, err := db.Exec(`DROP TABLE members; DELETE FROM carva_schema_migrations WHERE version IN (6, 7)`); err != nil {
 		t.Fatal(err)
 	}
 	p := createMemberProject(t, db, "Existing project")

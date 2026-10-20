@@ -32,11 +32,14 @@ func (r *ProjectRepository) Save(ctx context.Context, p project.Project) error {
 
 // FindByID retrieves a project by its stable identifier.
 func (r *ProjectRepository) FindByID(ctx context.Context, id string) (project.Project, error) {
+	return readProject(r.db.QueryRowContext(ctx, `SELECT id, name, status, start_date, end_date FROM projects WHERE id = ?`, id))
+}
+
+func readProject(row *sql.Row) (project.Project, error) {
 	var found project.Project
 	var status string
-	err := r.db.QueryRowContext(ctx,
-		`SELECT id, name, status FROM projects WHERE id = ?`, id,
-	).Scan(&found.ID, &found.Name, &status)
+	var start, end sql.NullString
+	err := row.Scan(&found.ID, &found.Name, &status, &start, &end)
 	if errors.Is(err, sql.ErrNoRows) {
 		return project.Project{}, project.ErrNotFound
 	}
@@ -44,5 +47,48 @@ func (r *ProjectRepository) FindByID(ctx context.Context, id string) (project.Pr
 		return project.Project{}, fmt.Errorf("select project: %w", err)
 	}
 	found.Status = project.Status(status)
+	if start.Valid {
+		found.StartDate, err = project.ParseDate(start.String)
+		if err != nil {
+			return project.Project{}, err
+		}
+	}
+	if end.Valid {
+		found.EndDate, err = project.ParseDate(end.String)
+		if err != nil {
+			return project.Project{}, err
+		}
+	}
 	return found, nil
+}
+
+// Mutate reads and validates the latest state under the same write transaction.
+func (r *ProjectRepository) Mutate(ctx context.Context, id string, change func(project.Project) (project.Project, error)) (project.Project, error) {
+	var next project.Project
+	err := withImmediate(ctx, r.db, func(conn *sql.Conn) error {
+		current, err := readProject(conn.QueryRowContext(ctx, `SELECT id,name,status,start_date,end_date FROM projects WHERE id = ?`, id))
+		if err != nil {
+			return err
+		}
+		next, err = change(current)
+		if err != nil {
+			return err
+		}
+		if next == current {
+			return nil
+		}
+		_, err = conn.ExecContext(ctx, `UPDATE projects SET name=?,status=?,start_date=?,end_date=? WHERE id=?`, next.Name, next.Status, nullableDate(next.StartDate), nullableDate(next.EndDate), id)
+		return err
+	})
+	if err != nil {
+		return project.Project{}, fmt.Errorf("mutate project: %w", err)
+	}
+	return next, nil
+}
+
+func nullableDate(date project.Date) any {
+	if date == "" {
+		return nil
+	}
+	return string(date)
 }

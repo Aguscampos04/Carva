@@ -31,40 +31,30 @@ func (r *SprintRepository) GetProject(ctx context.Context, id string) (project.P
 	return value, nil
 }
 
-func (r *SprintRepository) Create(ctx context.Context, value sprint.Sprint, updatedProject project.Project) (sprint.Sprint, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return sprint.Sprint{}, fmt.Errorf("begin create Sprint transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	var currentStatus project.Status
-	if err := tx.QueryRowContext(ctx,
-		`SELECT status FROM projects WHERE id = ?`, value.ProjectID,
-	).Scan(&currentStatus); errors.Is(err, sql.ErrNoRows) {
-		return sprint.Sprint{}, project.ErrNotFound
-	} else if err != nil {
-		return sprint.Sprint{}, fmt.Errorf("read Sprint project: %w", err)
-	}
-	if currentStatus == project.Planned && updatedProject.Status != currentStatus {
-		if _, err := tx.ExecContext(ctx,
-			`UPDATE projects SET status = ? WHERE id = ?`, updatedProject.Status, value.ProjectID,
-		); err != nil {
-			return sprint.Sprint{}, fmt.Errorf("start project with first Sprint: %w", err)
+func (r *SprintRepository) Create(ctx context.Context, value sprint.Sprint, transition func(project.Project) (project.Project, error)) (sprint.Sprint, error) {
+	err := withImmediate(ctx, r.db, func(conn *sql.Conn) error {
+		current, err := readProject(conn.QueryRowContext(ctx, `SELECT id,name,status,start_date,end_date FROM projects WHERE id=?`, value.ProjectID))
+		if err != nil {
+			return err
 		}
-	}
-
-	result, err := tx.ExecContext(ctx,
-		`INSERT INTO sprints (project_id, goal) VALUES (?, ?)`, value.ProjectID, value.Goal)
+		next, err := transition(current)
+		if err != nil {
+			return err
+		}
+		if next.Status != current.Status {
+			if _, err = conn.ExecContext(ctx, `UPDATE projects SET status=? WHERE id=?`, next.Status, value.ProjectID); err != nil {
+				return err
+			}
+		}
+		result, err := conn.ExecContext(ctx, `INSERT INTO sprints (project_id,goal) VALUES (?,?)`, value.ProjectID, value.Goal)
+		if err != nil {
+			return err
+		}
+		value.ID, err = result.LastInsertId()
+		return err
+	})
 	if err != nil {
-		return sprint.Sprint{}, fmt.Errorf("insert Sprint: %w", err)
-	}
-	value.ID, err = result.LastInsertId()
-	if err != nil {
-		return sprint.Sprint{}, fmt.Errorf("read created Sprint ID: %w", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return sprint.Sprint{}, fmt.Errorf("commit Sprint creation: %w", err)
+		return sprint.Sprint{}, fmt.Errorf("create Sprint: %w", err)
 	}
 	return value, nil
 }

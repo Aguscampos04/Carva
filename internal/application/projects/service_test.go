@@ -89,3 +89,19 @@ func (r *memoryRepository) FindByID(_ context.Context, id string) (project.Proje
 	}
 	return p, nil
 }
+
+func (r *memoryRepository) Mutate(ctx context.Context, id string, change func(project.Project) (project.Project, error)) (project.Project, error) {
+	p, err := r.FindByID(ctx, id)
+	if err != nil {
+		return project.Project{}, err
+	}
+	next, err := change(p)
+	if err != nil {
+		return project.Project{}, err
+	}
+	if r.saveErr != nil {
+		return project.Project{}, r.saveErr
+	}
+	r.projects[id] = next
+	return next, nil
+}

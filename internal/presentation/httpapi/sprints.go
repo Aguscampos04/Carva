@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/Aguscampos04/Carva/internal/application/projects"
 	"io"
 	"net/http"
 	"strconv"
@@ -112,6 +113,10 @@ func parseSprintID(value string) (int64, error) {
 
 func writeSprintError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, project.ErrFinalized):
+		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, projects.ErrBusy):
+		writeError(w, http.StatusServiceUnavailable, projects.ErrBusy.Error())
 	case errors.Is(err, sprint.ErrInvalidProjectID), errors.Is(err, sprint.ErrInvalidGoal), errors.Is(err, sprint.ErrInvalidBacklogItemID):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, project.ErrNotFound), errors.Is(err, sprint.ErrNotFound), errors.Is(err, backlog.ErrNotFound):
