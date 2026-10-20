@@ -22,11 +22,11 @@ func withImmediate(ctx context.Context, db *sql.DB, change func(*sql.Conn) error
 	}
 	defer conn.Close()
 	for {
-		_, err = conn.ExecContext(waitCtx, "BEGIN IMMEDIATE")
+		retry, err := immediateAttempt(waitCtx, conn, change)
 		if err == nil {
-			break
+			return nil
 		}
-		if !sqliteBusy(err) {
+		if !retry {
 			return contentionError(waitCtx, err)
 		}
 		timer := time.NewTimer(10 * time.Millisecond)
@@ -37,25 +37,36 @@ func withImmediate(ctx context.Context, db *sql.DB, change func(*sql.Conn) error
 		case <-timer.C:
 		}
 	}
+}
+
+// immediateAttempt permits retry only after a definite BUSY/LOCKED failure and
+// confirmed rollback. Arbitrary commit errors have an uncertain outcome and
+// must be returned to the client, never replayed automatically.
+func immediateAttempt(ctx context.Context, conn *sql.Conn, change func(*sql.Conn) error) (retry bool, err error) {
+	if _, err = conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+		return sqliteBusy(err), err
+	}
 	committed := false
 	defer func() {
 		if !committed {
 			cleanup, stop := context.WithTimeout(context.Background(), time.Second)
 			defer stop()
-			if _, err := conn.ExecContext(cleanup, "ROLLBACK"); err != nil {
+			if _, rollbackErr := conn.ExecContext(cleanup, "ROLLBACK"); rollbackErr != nil {
 				// Never return a connection with a live manual transaction to the pool.
 				_ = conn.Raw(func(any) error { return driver.ErrBadConn })
+				retry = false
+				err = errors.Join(err, rollbackErr)
 			}
 		}
 	}()
 	if err := change(conn); err != nil {
-		return err
+		return sqliteBusy(err), err
 	}
 	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
-		return err
+		return sqliteBusy(err), err
 	}
 	committed = true
-	return nil
+	return false, nil
 }
 
 func sqliteBusy(err error) bool {
