@@ -7,3 +7,8 @@ shared project table used by US-01 and dependent stories. `000003_backlog_items.
 creates Product Backlog items. `000004_sprints.sql` creates Sprint records for
 US-07, linked to existing projects by their UUID. `000005_sprint_backlog_items.sql`
 stores immutable planning-time snapshots for US-08.
+
+`000006_members.sql` and `000007_members_name_storage.sql` add project members
+and preserve exact accepted names. `000008_projects_dates.sql` adds nullable
+calendar-day start/end columns for US-02 without changing existing rows or
+relations. Dates are not inferred or filled with the migration date.

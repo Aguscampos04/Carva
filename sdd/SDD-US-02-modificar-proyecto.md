@@ -1,7 +1,7 @@
 # SDD-US-02 — Modificar proyecto y registrar fechas
 
 **Estado:** SDD/BDD y PT-01 a PT-05 aprobados para implementar por el responsable en la solicitud del 2026-10-20, con ajustes previos de BDD-07/18. Revisión final de la implementación por el equipo pendiente.
-**Aprobación de esta etapa:** Las secciones que conservan la denominación «propuesta técnica en revisión» documentan su origen; PT-01 a PT-05 quedan autorizadas por esta solicitud. La evidencia posterior se registra en `docs/evidencia-ia-us-02.md`, sin atribuir pruebas a la etapa de especificación. BDD-07 no incluye En progreso sin Sprints y BDD-18 comprueba conservación de datos actuales sin depender de US-11.
+**Aprobación de esta etapa:** PT-01 a PT-05 quedan autorizadas por esta solicitud. Implementación realizada y verificación técnica registrada en [evidencia](../docs/evidencia-ia-us-02.md), sin atribuir pruebas a la etapa de especificación. BDD-07 no incluye En progreso sin Sprints y BDD-18 comprueba conservación de datos actuales sin depender de US-11.
 **Fecha:** 2026-10-20.
 **User Story:** Como integrante del equipo, quiero modificar un proyecto y registrar sus fechas de inicio y finalización para mantener sus datos.
 **Trazabilidad:** [enunciado §2.1](../docs/enunciado.md) → EP-01 → [US-02 / Issue #2](https://github.com/Aguscampos04/Carva/issues/2) → [decisiones D-01…D-10](../docs/contexto-proyecto.md#modificación-y-finalización-del-proyecto--us-02--issue-2) → esta SDD → AC → [BDD-US-02](../bdd/BDD-US-02-modificar-proyecto.feature).
@@ -67,16 +67,16 @@ No se introduce una prohibición de fecha de inicio futura para proyectos sin fe
 
 ## Constraints
 
-### PT-01 — Fechas y reloj (propuesta técnica en revisión)
+### PT-01 — Fechas y reloj (aprobada para implementar)
 
 - Ambas fechas son días de calendario gregoriano, sin hora ni offset; string canónico `YYYY-MM-DD`, años `0001` a `9999`, mes/día reales y validación de años bisiestos. No aceptar espacios, formatos locales, timestamps ni normalizar fechas imposibles.
 - Ausencia: JSON `null`, SQL `NULL`, valor opcional de fecha en Go. No usar cadena vacía, fecha cero ni el instante Unix como sustitutos.
-- Proponer la zona IANA **`America/Argentina/Buenos_Aires`** para interpretar «fecha actual», común a todos los proyectos en este alcance. Requiere aprobación técnica; no está incluida en D-03. No depende de zona del navegador ni zona local del host ni de `CURRENT_DATE` de SQLite (UTC).
+- Zona IANA **`America/Argentina/Buenos_Aires`** para interpretar «fecha actual», común a todos los proyectos en este alcance. Aprobada como precisión técnica PT-01; no está incluida en D-03. No depende de zona del navegador ni zona local del host ni de `CURRENT_DATE` de SQLite (UTC).
 - Aplicación obtiene un instante de un reloj inyectable del servidor, lo convierte a esa zona y extrae el día. Se toma después de adquirir el acceso de escritura de la operación exitosa y antes de validar/mutar; esa es la fecha del acto de finalizar, aunque el commit termine después de medianoche. Un intento abortado sin commit puede tomar un nuevo instante al reintentarse.
 - El dominio recibe el día ya determinado: sin acceso a reloj del sistema o configuración de infraestructura. Composición asegura disponibilidad de la zona, incluso en despliegues sin base de zonas (por ejemplo con `time/tzdata` estándar); un fallo de configuración no habilita fallback silencioso.
 - Ejemplo determinista: instante `2026-10-21T02:30:00Z` → fin `2026-10-20` en la zona propuesta. `2026-10-21T03:00:00Z` → `2026-10-21`. La UI muestra días sin convertirlos a instantes JavaScript que puedan desplazar la fecha.
 
-### PT-02 — REST y semántica de edición (propuesta técnica en revisión)
+### PT-02 — REST y semántica de edición (aprobada para implementar)
 
 Se conservan prefijo `/api/projects`, JSON y errores `{"error":"mensaje"}` con `Content-Type: application/json; charset=utf-8`. Nuevas fechas en `snake_case`, como Backlog/miembros; no renombrar `projectID` del Sprint existente.
 
@@ -96,7 +96,7 @@ Proponer validación estricta solo para las nuevas escrituras: exactamente un ob
 
 Finalizar no acepta nombre, inicio, estado ni fecha de fin. `confirmed` ausente, `null`, no booleano o `false` responde `400`, sin cambios. Esto expresa intención del cliente; no prueba que se mostró un diálogo, por lo que D-07 también requiere validación de UI. Métodos no expuestos conservan la respuesta del router (`405` para método no permitido).
 
-### PT-03 — Repetición y concurrencia (propuesta técnica en revisión)
+### PT-03 — Repetición y concurrencia (aprobada para implementar)
 
 - Repetir un PATCH con los mismos valores devuelve `200` sin diferencias de datos. No hay alta, nueva identidad ni eventos adicionales. En ediciones concurrentes se aplican solo los campos presentes sobre el registro vigente: campos distintos se conservan; para un mismo campo prevalece la última escritura serializada válida. No se propone historial, ETag ni versionado en esta historia.
 - Repetir finalización confirmada sobre un proyecto ya Finalizado devuelve `200` con su representación vigente y **conserva el primer fin**, aunque sea otro día. No vuelve a evaluar inicio contra el nuevo día ni produce efectos sobre Sprints. Ediciones válidas posteriores se reflejan en esa representación; no se promete respuesta byte a byte idéntica. Cuerpo inválido sigue siendo `400` incluso si ya finalizó.
@@ -108,9 +108,9 @@ Finalizar no acepta nombre, inicio, estado ni fecha de fin. `confirmed` ausente,
 - Edición y finalización también se serializan: si se guarda primero un inicio posterior al día actual, finalizar se rechaza; si finaliza primero, esa edición se rechaza al comparar con el fin persistido. Nunca confirmar ambos cambios dejando inicio > fin. Una edición de nombre no sobrescribe la transición ni la fecha de fin.
 - Proponer espera de bloqueo acotada de hasta 5 segundos por operación, respetando cancelación del contexto; agotada la espera, `503` sin cambios de esa operación. Si el driver exige reintento por BUSY/LOCKED, repetir la transacción completa solo tras rollback confirmado y dentro del mismo límite. No reintentar a ciegas después de un commit de resultado incierto. Verificar esta coordinación con conexiones independientes en la etapa futura de integración.
 
-### PT-04 — Dominio, capas y SQLite (propuesta técnica en revisión)
+### PT-04 — Dominio, capas y SQLite (aprobada para implementar)
 
-| Capa / ubicación | Cambio previsto, sin implementar |
+| Capa / ubicación | Responsabilidad implementada según el diseño aprobado |
 | --- | --- |
 | `internal/domain/project` | Añadir `StartDate` y `EndDate` opcionales con tipo fecha de calendario validado; operaciones de edición, finalización e invariantes; elegibilidad para crear Sprint; mantener estados y `StartFirstSprint`. Errores de fecha, rango y proyecto finalizado tipados, sin HTTP/SQL. |
 | `internal/application/projects` | Coordinar Update/Finalize mediante puertos, reloj y transacción; aplicar PATCH al proyecto vigente; no sobrescribir campos omitidos. |
@@ -119,13 +119,13 @@ Finalizar no acepta nombre, inicio, estado ni fecha de fin. `confirmed` ausente,
 | `internal/presentation/httpapi`, `web/static` | Nuevas rutas/DTO, traducción de errores y formulario/confirmación; validación central sigue en Go. |
 | `cmd/carva` | Componer reloj/zona y puertos con repositorios/servicios actuales; sin nueva tecnología o framework. |
 
-Migración **aditiva propuesta**, no archivo ejecutable en esta etapa: agregar a `projects` columnas `start_date TEXT NULL` y `end_date TEXT NULL`, sin DEFAULT de fecha actual. Nueva versión siguiente a la última disponible al implementar (hoy `000007`; candidato `000008_projects_dates.sql`, sin reservarlo frente a trabajo ajeno). Mantener migraciones aplicadas intactas y registro versionado/embebido existente. No recrear IDs, tablas de miembros, Sprints, Backlog ni snapshots.
+Migración **aditiva aprobada e implementada**: `000008_projects_dates.sql` agrega a `projects` columnas `start_date TEXT NULL` y `end_date TEXT NULL`, sin DEFAULT de fecha actual. Al especificarla se propuso la siguiente versión libre; se comprobó que `000007` seguía siendo la última antes de crearla. Se mantienen migraciones aplicadas intactas y registro versionado/embebido existente. No se recrean IDs, tablas de miembros, Sprints, Backlog ni snapshots.
 
 Los registros previos conservan UUID, nombre, estado y relaciones y reciben fechas NULL: no inferirlas de Sprints, archivos ni fecha de migración. El CHECK de estados actual ya admite Finalizado. Las invariantes de calendario, rango e inmutabilidad se validan en Go dentro de la unidad transaccional; no depender de funciones de fecha SQLite que normalicen entradas. No se propone reconstruir la tabla ni añadir triggers en esta etapa.
 
-La ruta actual no permite finalizar, por lo que no hay evidencia de finales históricos con fecha faltante. Si se encuentran registros Finalizado previos por cargas externas, conservar fin NULL como dato desconocido (y mostrarlo como «Sin registrar»), nunca inventar una fecha o permitir que un reintento la reescriba; relevar esos datos antes de implementar. Para **nuevas** finalizaciones, fin no nulo es obligatorio. Esta compatibilidad no autoriza nuevas finalizaciones sin fecha.
+La ruta anterior a US-02 no permitía finalizar, por lo que no había evidencia de finales históricos con fecha faltante. Si existen registros Finalizado previos por cargas externas, conservar fin NULL como dato desconocido (y mostrarlo como «Sin registrar»), nunca inventar una fecha o permitir que un reintento la reescriba. La compatibilidad se comprobó con una base temporal de esquema previo; no se inspecciona ni modifica la base de desarrollo. Para **nuevas** finalizaciones, fin no nulo es obligatorio. Esta compatibilidad no autoriza nuevas finalizaciones sin fecha.
 
-### PT-05 — Interfaz (propuesta técnica en revisión)
+### PT-05 — Interfaz (aprobada para implementar)
 
 - Ampliar el detalle actual con fechas (ausentes: «Sin registrar»), formulario de nombre/inicio y acción «Guardar cambios». Inicio como control de día, opcional, borrable; al guardar vacío enviar `null`. No alterar el formulario de alta de US-01.
 - «Finalizar proyecto» solo disponible en Planificado/En progreso. Abrir confirmación identificando proyecto e indicando que fin/estado quedan fijos y que no se cierran Sprints. Confirmar envía `confirmed:true`; cancelar o cerrar el diálogo no envía escritura ni guarda el formulario. Restaurar foco y permitir teclado.
@@ -164,7 +164,7 @@ Precedencia propuesta: validar estructura/tipos/fechas/nombre del cuerpo antes d
 
 ## Acceptance Criteria
 
-Todos se encuentran en revisión como parte de esta especificación. Los que detallan PT no implican aprobación técnica por el equipo.
+Los criterios y PT fueron aprobados para implementar por el responsable. Su verificación técnica se documenta en la evidencia; la revisión y aprobación final de la historia por el equipo siguen pendientes.
 
 | ID | Criterio verificable | Fuente | Escenarios BDD-US-02 |
 | --- | --- | --- | --- |
@@ -193,6 +193,6 @@ Todos se encuentran en revisión como parte de esta especificación. Los que det
 - **US-04/23/24:** consumir el mismo estado y las fechas del proyecto; no calcular finalización por fechas o métricas. No implementar dashboard/reportes aquí.
 - **US-11 (cierre de Sprint):** existe una ambigüedad funcional transversal real: la regla vigente exige un siguiente Sprint para cerrar uno con historias incompletas, mientras D-08 impide crearlo después de finalizar y D-09 conserva el abierto. El equipo deberá decidir en US-11 si ese Sprint queda abierto o qué tratamiento reciben las incompletas al cerrarlo en un proyecto Finalizado. Esta SDD permite finalizar y conserva todo; no añade cierre, traslado, excepción a D-08 ni una condición previa para finalizar. No bloquea la especificación de US-02.
 
-No se detectan otras ambigüedades funcionales que impidan definir US-02 con D-01…D-10. La aprobación de PT-01…PT-05 (zona, fechas, PATCH/null, confirmación API, repetición, política concurrente y migración) es revisión técnica pendiente, no reapertura de esas diez decisiones.
+No se detectan otras ambigüedades funcionales que impidan definir US-02 con D-01…D-10. PT-01…PT-05 (zona, fechas, PATCH/null, confirmación API, repetición, política concurrente y migración) fueron aprobadas para implementar; no reabren esas diez decisiones.
 
-**Validación de esta etapa:** revisión documental y trazabilidad AC/BDD; no escenarios ejecutados, tests implementados, migraciones aplicadas ni evidencia TDD. Después de aprobar SDD/BDD, planificar TDD con unitarias de dominio/aplicación, integración SQLite/API (incluidas conexiones concurrentes) y confirmación/cancelación en UI. Los tests existentes son referencias de regresión, no evidencia de US-02. No se hace merge ni se cierra #2.
+**Validación de la etapa inicial de especificación:** solo revisión documental y trazabilidad, sin pruebas ni código. **Etapa posterior autorizada:** implementación y pruebas Go/Node realizadas, incluida concurrencia real, migración y conservación de relaciones; resultados y matriz BDD → tests en la [evidencia](../docs/evidencia-ia-us-02.md). El `.feature` no utiliza un runner Gherkin: sus comportamientos se verifican mediante los tests vinculados. No se hace merge ni se cierra #2; revisión final del equipo pendiente.

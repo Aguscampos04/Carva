@@ -35,6 +35,32 @@ planificación de un Sprint:
 Cada asignación conserva los datos de la historia al momento de planificarla,
 aunque después cambien en el Backlog.
 
+## Edición y finalización del proyecto (US-02)
+
+El detalle del proyecto permite guardar su nombre y fecha de inicio opcional.
+Vaciar el inicio lo elimina. «Finalizar proyecto» solicita confirmación y usa los
+datos ya guardados: cancelar no guarda el borrador. El servidor registra el día
+actual en `America/Argentina/Buenos_Aires`, con formato `YYYY-MM-DD`.
+
+- `PATCH /api/projects/{id}` — objeto parcial con `name` y/o `start_date`. Omitir conserva; `start_date: null` elimina. No se aceptan campos adicionales ni un objeto vacío.
+- `POST /api/projects/{id}/finalize` — `{"confirmed":true}`. Repetir conserva la primera fecha de fin.
+- `GET /api/projects/{id}` devuelve también `start_date` y `end_date`, con `null` cuando no hay registro.
+
+Un proyecto Finalizado permite editar nombre/inicio y seguir registrando miembros
+y creando/editando Product Backlog. No permite nuevos Sprints (`409`); conserva
+los existentes y sus snapshots. No se implementan cierre ni traslado de Sprints.
+Inicio posterior al fin se rechaza. La migración aditiva `000008` conserva datos
+anteriores sin inventar fechas. Contención de escritura superior a cinco segundos
+devuelve `503`; ante pérdida de respuesta, consultar antes de reintentar.
+
+Ver [SDD-US-02](sdd/SDD-US-02-modificar-proyecto.md),
+[BDD-US-02](bdd/BDD-US-02-modificar-proyecto.feature) y
+[evidencia TDD y validación](docs/evidencia-ia-us-02.md). Pruebas web sin dependencias:
+
+```powershell
+node --test tests/web/members.test.cjs tests/web/projects.test.cjs
+```
+
 ## Miembros del proyecto (US-03)
 
 Al crear o consultar un proyecto, su sección **Miembros del proyecto** permite

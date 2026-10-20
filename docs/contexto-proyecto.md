@@ -228,6 +228,8 @@ Trazabilidad: [enunciado](enunciado.md) §2.1 → EP-01 → [US-02 / Issue #2](h
 
 Estas decisiones resuelven la condición de finalización antes pendiente. La especificación inicial se preparó en revisión, sin código, migraciones ni tests TDD. El responsable aprobó posteriormente el 2026-10-20 la SDD, el BDD y PT-01 a PT-05 para implementar US-02, con ajustes previos: eliminar de BDD-07 el caso En progreso sin Sprints y hacer BDD-18 independiente de US-11. Formato y zona de fechas, contratos REST, concurrencia, modelo y migración quedan autorizados para esta implementación; no forman parte de D-01 a D-10 ni implican aprobación final de la historia. Se autorizan commits, push y PR hacia main, sin merge ni cierre de Issues.
 
+Implementación realizada y verificación técnica registrada en [evidencia US-02](evidencia-ia-us-02.md), con revisión final del equipo pendiente. US-11 conserva su decisión pendiente de cierre de Sprint con historias incompletas en un proyecto Finalizado; US-02 no agrega reglas sobre ese cierre.
+
 ### Miembros del proyecto — US-03 / Issue #3
 
 Decisiones funcionales **aprobadas explícitamente por el responsable en la solicitud del 2026-10-16**. Los identificadores D-01 a D-07 corresponden a US-03:

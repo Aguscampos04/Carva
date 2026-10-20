@@ -150,6 +150,28 @@ Estas decisiones pendientes no deben convertirse en reglas funcionales por infer
 
 ## 8. Trazabilidad
 
+### Incremento US-02 autorizado el 2026-10-20
+
+La [SDD-US-02](../sdd/SDD-US-02-modificar-proyecto.md) y PT-01 a PT-05 fueron
+aprobadas para implementar. `Project` incorpora fechas de calendario opcionales;
+Go mantiene las reglas, y aplicación obtiene el día del reloj del servidor en
+`America/Argentina/Buenos_Aires`. PATCH y finalización se exponen en la misma API
+y el frontend embebido incorpora edición y confirmación manual.
+
+El puerto `projects.Repository.Mutate` ejecuta una transformación de dominio
+repetible sobre el registro vigente. La creación de Sprint recibe igualmente una
+transición de aplicación para ejecutarla después de leer el proyecto vigente.
+SQLite coordina ambas operaciones con `BEGIN IMMEDIATE` en una conexión reservada;
+reintenta BUSY/LOCKED solo tras rollback confirmado, con espera total acotada a
+cinco segundos. No reintenta errores de commit de resultado incierto. No hay
+dependencia de SQLite desde dominio o aplicación.
+
+La migración `000008_projects_dates.sql` añade `start_date` y `end_date` anulables,
+sin cambiar las migraciones anteriores ni inferir fechas históricas. Finalizar
+solo actualiza el proyecto: los Sprints y snapshots se conservan; su nueva
+creación se rechaza en Finalizado. Miembros y Backlog conservan sus operaciones.
+La revisión final del equipo permanece pendiente; véase la [evidencia](evidencia-ia-us-02.md).
+
 La arquitectura soporta, pero no reemplaza, la cadena exigida por el proyecto:
 
 ```text
