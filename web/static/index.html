@@ -37,9 +37,11 @@
           <input id="edit-project-name" name="name" required>
           <label for="edit-project-start">Fecha de inicio (opcional)</label>
           <input id="edit-project-start" name="start_date" type="date" min="0001-01-01" max="9999-12-31">
-          <button id="save-project" type="submit">Guardar cambios</button>
+          <div class="project-form-actions">
+            <button id="save-project" type="submit">Guardar cambios</button>
+            <button id="finalize-project" type="button" hidden>Finalizar proyecto</button>
+          </div>
         </form>
-        <button id="finalize-project" type="button" hidden>Finalizar proyecto</button>
         <p id="project-edit-message" aria-live="polite"></p>
       </section>
 
