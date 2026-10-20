@@ -92,3 +92,12 @@ AC-01 a AC-15: comportamientos automatizados según matriz, sin evidencia de rev
 Revisión técnica: reglas en Go y separación de capas, SQL parametrizado, migración anterior intacta, conservación de datos y errores sin detalles internos. La política de campos concurrentes sigue la SDD aprobada: campos distintos se conservan; para el mismo campo prevalece la última escritura serializada válida, sin ETag ni historial nuevo.
 
 US-11 conserva la decisión pendiente sobre cierre con historias incompletas cuando no se pueden crear más Sprints. No bloquea finalizar y no se resuelve aquí. Sin merge, cierre de Issues ni aprobación final atribuida al equipo. Publicación y PR se informan únicamente después de confirmarse.
+
+## Publicación confirmada
+
+Push de `codex/us-02-sdd-bdd` confirmado comparando HEAD con la referencia remota.
+PR [#36 — editar y finalizar proyectos con fechas](https://github.com/Aguscampos04/Carva/pull/36)
+creado hacia `main` y adjunto al chat. Se verificó estado OPEN, `mergedAt: null`
+y referencia a #2 sin cierre automático; la Issue #2 se comprobó OPEN.
+GitHub no reportó checks remotos en esa consulta (`statusCheckRollup: []`): los
+resultados de pruebas, cobertura y build de este informe son ejecuciones locales.
