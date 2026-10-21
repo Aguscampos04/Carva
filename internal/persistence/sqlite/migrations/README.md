@@ -12,3 +12,6 @@ stores immutable planning-time snapshots for US-08.
 and preserve exact accepted names. `000008_projects_dates.sql` adds nullable
 calendar-day start/end columns for US-02 without changing existing rows or
 relations. Dates are not inferred or filled with the migration date.
+
+`000009_sprint_completion.sql` records verified completion separately from the
+immutable US-08 planning status.

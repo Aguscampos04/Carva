@@ -123,6 +123,29 @@ func TestUpdateRejectsProvisionalEditAfterDefinitiveEstimateExists(t *testing.T)
 	}
 }
 
+func TestCompleteRequiresExplicitAcceptanceCriteriaVerification(t *testing.T) {
+	item, err := New("item-1", "project-1", validInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	item.Status = InProgress
+
+	if _, err := item.Complete(false); !errors.Is(err, ErrAcceptanceCriteriaUnverified) {
+		t.Fatalf("Complete(false) error = %v, want ErrAcceptanceCriteriaUnverified", err)
+	}
+	if item.Status != InProgress {
+		t.Fatalf("item status after rejected completion = %q, want %q", item.Status, InProgress)
+	}
+
+	completed, err := item.Complete(true)
+	if err != nil {
+		t.Fatalf("Complete(true) error = %v", err)
+	}
+	if completed.Status != Completed || item.Status != InProgress {
+		t.Fatalf("Complete(true) status = %q and original = %q; want completed copy and unchanged original", completed.Status, item.Status)
+	}
+}
+
 func validInput() Input {
 	return Input{
 		Title: "Login", Description: "User can sign in", Priority: PriorityMedium,

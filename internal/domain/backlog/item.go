@@ -35,6 +35,7 @@ var (
 	ErrEstimateFinalized             = errors.New("provisional Story Points cannot change after a definitive estimate exists")
 	ErrNotFound                      = errors.New("backlog item not found")
 	ErrProjectNotFound               = errors.New("backlog project not found")
+	ErrAcceptanceCriteriaUnverified  = errors.New("all acceptance criteria must be verified before completion")
 )
 
 // Input contains the fields users can edit through US-05.
@@ -99,6 +100,15 @@ func (item Item) Update(input Input) (Item, error) {
 	item.Priority = input.Priority
 	item.ProvisionalStoryPoints = cloneInt(input.ProvisionalStoryPoints)
 	item.AcceptanceCriteria = append([]string(nil), input.AcceptanceCriteria...)
+	return item, nil
+}
+
+// Complete returns a completed copy only after an explicit verification.
+func (item Item) Complete(acceptanceCriteriaVerified bool) (Item, error) {
+	if !acceptanceCriteriaVerified {
+		return Item{}, ErrAcceptanceCriteriaUnverified
+	}
+	item.Status = Completed
 	return item, nil
 }
 

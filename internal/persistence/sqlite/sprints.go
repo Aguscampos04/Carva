@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Aguscampos04/Carva/internal/domain/backlog"
 	"github.com/Aguscampos04/Carva/internal/domain/project"
 	"github.com/Aguscampos04/Carva/internal/domain/sprint"
 )
@@ -112,7 +113,7 @@ func (r *SprintRepository) AssignBacklogItem(ctx context.Context, projectID stri
 func (r *SprintRepository) ListPlannedBacklogItems(ctx context.Context, projectID string, sprintID int64) ([]sprint.PlannedBacklogItem, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT planned.sprint_id, planned.backlog_item_id, planned.title, planned.description,
-			planned.priority, planned.status, planned.provisional_story_points,
+			planned.priority, planned.status, planned.completion_verified, planned.provisional_story_points,
 			planned.story_points, planned.acceptance_criteria
 		FROM sprint_backlog_items AS planned
 		JOIN sprints ON sprints.id = planned.sprint_id
@@ -127,15 +128,21 @@ func (r *SprintRepository) ListPlannedBacklogItems(ctx context.Context, projectI
 	for rows.Next() {
 		var value sprint.PlannedBacklogItem
 		var provisional, definitive sql.NullInt64
+		var completionVerified bool
 		var criteria string
 		if err := rows.Scan(
 			&value.SprintID, &value.BacklogItemID, &value.Title, &value.Description,
-			&value.Priority, &value.Status, &provisional, &definitive, &criteria,
+			&value.Priority, &value.PlannedStatus, &completionVerified, &provisional, &definitive, &criteria,
 		); err != nil {
 			return nil, fmt.Errorf("scan Sprint Backlog snapshot: %w", err)
 		}
 		value.ProvisionalStoryPoints = nullInt(provisional)
 		value.StoryPoints = nullInt(definitive)
+		value.Status = value.PlannedStatus
+		value.AcceptanceCriteriaVerified = completionVerified
+		if completionVerified {
+			value.Status = string(backlog.Completed)
+		}
 		if err := json.Unmarshal([]byte(criteria), &value.AcceptanceCriteria); err != nil {
 			return nil, fmt.Errorf("decode planned acceptance criteria: %w", err)
 		}
@@ -145,4 +152,75 @@ func (r *SprintRepository) ListPlannedBacklogItems(ctx context.Context, projectI
 		return nil, fmt.Errorf("iterate Sprint Backlog snapshots: %w", err)
 	}
 	return plannedItems, nil
+}
+
+// CompleteBacklogItem updates the Backlog and its Sprint execution state atomically.
+func (r *SprintRepository) CompleteBacklogItem(ctx context.Context, projectID string, sprintID int64, itemID string, verified bool) (sprint.PlannedBacklogItem, error) {
+	var completed sprint.PlannedBacklogItem
+	if !verified {
+		return completed, backlog.ErrAcceptanceCriteriaUnverified
+	}
+	err := withImmediate(ctx, r.db, func(conn *sql.Conn) error {
+		var exists int
+		err := conn.QueryRowContext(ctx,
+			`SELECT 1 FROM sprints WHERE project_id = ? AND id = ?`, projectID, sprintID,
+		).Scan(&exists)
+		if errors.Is(err, sql.ErrNoRows) {
+			return sprint.ErrNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("check Sprint for story completion: %w", err)
+		}
+
+		if err := conn.QueryRowContext(ctx,
+			`SELECT 1 FROM backlog_items WHERE project_id = ? AND id = ?`, projectID, itemID,
+		).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+			return backlog.ErrNotFound
+		} else if err != nil {
+			return fmt.Errorf("check Backlog story for completion: %w", err)
+		}
+
+		var provisional, definitive sql.NullInt64
+		var criteria string
+		err = conn.QueryRowContext(ctx, `
+			SELECT planned.title, planned.description, planned.priority, planned.status,
+				planned.provisional_story_points, planned.story_points, planned.acceptance_criteria
+			FROM sprint_backlog_items AS planned
+			JOIN sprints ON sprints.id = planned.sprint_id
+			WHERE sprints.project_id = ? AND planned.sprint_id = ? AND planned.backlog_item_id = ?`,
+			projectID, sprintID, itemID,
+		).Scan(&completed.Title, &completed.Description, &completed.Priority, &completed.PlannedStatus,
+			&provisional, &definitive, &criteria)
+		if errors.Is(err, sql.ErrNoRows) {
+			return sprint.ErrBacklogItemNotAssigned
+		}
+		if err != nil {
+			return fmt.Errorf("find Sprint story for completion: %w", err)
+		}
+		if err := json.Unmarshal([]byte(criteria), &completed.AcceptanceCriteria); err != nil {
+			return fmt.Errorf("decode Sprint story acceptance criteria: %w", err)
+		}
+		completed.SprintID = sprintID
+		completed.BacklogItemID = itemID
+		completed.ProvisionalStoryPoints = nullInt(provisional)
+		completed.StoryPoints = nullInt(definitive)
+
+		if _, err := conn.ExecContext(ctx,
+			`UPDATE backlog_items SET status = ? WHERE project_id = ? AND id = ?`, backlog.Completed, projectID, itemID,
+		); err != nil {
+			return fmt.Errorf("complete Backlog story: %w", err)
+		}
+		if _, err := conn.ExecContext(ctx,
+			`UPDATE sprint_backlog_items SET completion_verified = 1 WHERE sprint_id = ? AND backlog_item_id = ?`, sprintID, itemID,
+		); err != nil {
+			return fmt.Errorf("record Sprint story completion: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return sprint.PlannedBacklogItem{}, fmt.Errorf("complete Sprint story: %w", err)
+	}
+	completed.Status = string(backlog.Completed)
+	completed.AcceptanceCriteriaVerified = true
+	return completed, nil
 }

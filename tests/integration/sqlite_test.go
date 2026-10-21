@@ -42,8 +42,8 @@ func TestSQLiteConnectionAndMigrationsUseTemporaryDatabase(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM carva_schema_migrations`).Scan(&recordedMigrations); err != nil {
 		t.Fatalf("query applied migrations: %v", err)
 	}
-	if recordedMigrations != 8 {
-		t.Fatalf("expected eight migrations including project dates recorded once each, got %d", recordedMigrations)
+	if recordedMigrations != 9 {
+		t.Fatalf("expected nine migrations including Sprint completion recorded once each, got %d", recordedMigrations)
 	}
 
 	var businessTables int
