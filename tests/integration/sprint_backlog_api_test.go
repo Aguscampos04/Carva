@@ -139,3 +139,146 @@ func TestSprintBacklogAssignmentRejectsForeignAndDuplicateStories(t *testing.T) 
 		t.Fatalf("planned snapshots = %d, want exactly one", len(snapshots))
 	}
 }
+
+func TestCompleteStoryRequiresVerificationAndUpdatesSprintAndBacklog(t *testing.T) {
+	_, db := openMigratedProjectDB(t)
+	projectService := projects.NewService(sqlite.NewProjectRepository(db))
+	projectValue, err := projectService.Create(context.Background(), "Carva")
+	if err != nil {
+		t.Fatal(err)
+	}
+	backlogRepository := sqlite.NewBacklogRepository(db)
+	backlogService := appbacklog.NewService(backlogRepository)
+	item, err := backlogService.Create(context.Background(), projectValue.ID, backlogdomain.Input{
+		Title: "Historia", Description: "Descripción", Priority: backlogdomain.PriorityHigh,
+		AcceptanceCriteria: []string{"Criterio verificado"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sprintService := sprints.NewService(sqlite.NewSprintRepository(db), backlogRepository)
+	sprintValue, err := sprintService.Create(context.Background(), projectValue.ID, "Objetivo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := httpapi.NewHandler(projectService, backlogService, sprintService)
+	basePath := "/api/projects/" + projectValue.ID + "/sprints/" + strconv.FormatInt(sprintValue.ID, 10) + "/backlog-items"
+	if got := performJSONRequest(handler, http.MethodPost, basePath, map[string]any{"backlog_item_id": item.ID}); got.Code != http.StatusCreated {
+		t.Fatalf("assign story status = %d, body = %s", got.Code, got.Body)
+	}
+	completionPath := basePath + "/" + item.ID + "/completion"
+
+	missing := performJSONRequest(handler, http.MethodPost, completionPath, map[string]any{})
+	if missing.Code != http.StatusBadRequest {
+		t.Fatalf("missing verification status = %d, want %d", missing.Code, http.StatusBadRequest)
+	}
+	unknown := performJSONRequest(handler, http.MethodPost, completionPath, map[string]any{"acceptance_criteria_verified": true, "verified": true})
+	if unknown.Code != http.StatusBadRequest {
+		t.Fatalf("unknown completion field status = %d, want %d", unknown.Code, http.StatusBadRequest)
+	}
+	unverified := performJSONRequest(handler, http.MethodPost, completionPath, map[string]any{"acceptance_criteria_verified": false})
+	if unverified.Code != http.StatusConflict {
+		t.Fatalf("unverified completion status = %d, want %d", unverified.Code, http.StatusConflict)
+	}
+	backlogBefore := performJSONRequest(handler, http.MethodGet, "/api/projects/"+projectValue.ID+"/backlog", nil)
+	var backlogBeforeItems []backlogdomain.Item
+	if err := json.NewDecoder(backlogBefore.Body).Decode(&backlogBeforeItems); err != nil {
+		t.Fatal(err)
+	}
+	if backlogBeforeItems[0].Status != backlogdomain.Pending {
+		t.Fatalf("Backlog status after rejected completion = %q, want %q", backlogBeforeItems[0].Status, backlogdomain.Pending)
+	}
+
+	completed := performJSONRequest(handler, http.MethodPost, completionPath, map[string]any{"acceptance_criteria_verified": true})
+	if completed.Code != http.StatusOK {
+		t.Fatalf("complete story status = %d, body = %s", completed.Code, completed.Body)
+	}
+	retried := performJSONRequest(handler, http.MethodPost, completionPath, map[string]any{"acceptance_criteria_verified": true})
+	if retried.Code != http.StatusOK {
+		t.Fatalf("retry completed story status = %d, body = %s", retried.Code, retried.Body)
+	}
+	var sprintStory struct {
+		Status        string `json:"status"`
+		PlannedStatus string `json:"planned_status"`
+		Verified      bool   `json:"acceptance_criteria_verified"`
+		Title         string `json:"title"`
+	}
+	if err := json.NewDecoder(completed.Body).Decode(&sprintStory); err != nil {
+		t.Fatal(err)
+	}
+	if sprintStory.Status != string(backlogdomain.Completed) || sprintStory.PlannedStatus != string(backlogdomain.Pending) || !sprintStory.Verified || sprintStory.Title != "Historia" {
+		t.Fatalf("completion response = %+v, want current completed status and original plan", sprintStory)
+	}
+
+	planned := performJSONRequest(handler, http.MethodGet, basePath, nil)
+	var plannedItems []struct {
+		Status        string `json:"status"`
+		PlannedStatus string `json:"planned_status"`
+		Verified      bool   `json:"acceptance_criteria_verified"`
+		Title         string `json:"title"`
+	}
+	if err := json.NewDecoder(planned.Body).Decode(&plannedItems); err != nil {
+		t.Fatal(err)
+	}
+	if len(plannedItems) != 1 || plannedItems[0].Status != string(backlogdomain.Completed) || plannedItems[0].PlannedStatus != string(backlogdomain.Pending) || !plannedItems[0].Verified || plannedItems[0].Title != "Historia" {
+		t.Fatalf("Sprint planning query = %+v, want completed execution status with original plan", plannedItems)
+	}
+	backlogAfter := performJSONRequest(handler, http.MethodGet, "/api/projects/"+projectValue.ID+"/backlog", nil)
+	var backlogItems []backlogdomain.Item
+	if err := json.NewDecoder(backlogAfter.Body).Decode(&backlogItems); err != nil {
+		t.Fatal(err)
+	}
+	if backlogItems[0].Status != backlogdomain.Completed {
+		t.Fatalf("Backlog status = %q, want %q", backlogItems[0].Status, backlogdomain.Completed)
+	}
+}
+
+func TestCompleteStoryRequiresSprintAssignmentAndRollsBackOnFailure(t *testing.T) {
+	_, db := openMigratedProjectDB(t)
+	projectService := projects.NewService(sqlite.NewProjectRepository(db))
+	projectValue, err := projectService.Create(context.Background(), "Carva")
+	if err != nil {
+		t.Fatal(err)
+	}
+	backlogRepository := sqlite.NewBacklogRepository(db)
+	backlogService := appbacklog.NewService(backlogRepository)
+	item, err := backlogService.Create(context.Background(), projectValue.ID, backlogdomain.Input{
+		Title: "Historia", Description: "Descripción", Priority: backlogdomain.PriorityHigh,
+		AcceptanceCriteria: []string{"Criterio"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sprintService := sprints.NewService(sqlite.NewSprintRepository(db), backlogRepository)
+	sprintValue, err := sprintService.Create(context.Background(), projectValue.ID, "Objetivo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := httpapi.NewHandler(projectService, backlogService, sprintService)
+	basePath := "/api/projects/" + projectValue.ID + "/sprints/" + strconv.FormatInt(sprintValue.ID, 10) + "/backlog-items/" + item.ID + "/completion"
+
+	unassigned := performJSONRequest(handler, http.MethodPost, basePath, map[string]any{"acceptance_criteria_verified": true})
+	if unassigned.Code != http.StatusNotFound {
+		t.Fatalf("unassigned story completion status = %d, want %d", unassigned.Code, http.StatusNotFound)
+	}
+	backlogItems, err := backlogRepository.ListByProject(context.Background(), projectValue.ID)
+	if err != nil || backlogItems[0].Status != backlogdomain.Pending {
+		t.Fatalf("Backlog after unassigned completion = %+v, error = %v", backlogItems, err)
+	}
+
+	assignmentPath := "/api/projects/" + projectValue.ID + "/sprints/" + strconv.FormatInt(sprintValue.ID, 10) + "/backlog-items"
+	if assigned := performJSONRequest(handler, http.MethodPost, assignmentPath, map[string]any{"backlog_item_id": item.ID}); assigned.Code != http.StatusCreated {
+		t.Fatalf("assign story status = %d, body = %s", assigned.Code, assigned.Body)
+	}
+	if _, err := db.Exec(`CREATE TRIGGER reject_sprint_completion BEFORE UPDATE OF completion_verified ON sprint_backlog_items BEGIN SELECT RAISE(ABORT, 'forced failure'); END`); err != nil {
+		t.Fatal(err)
+	}
+	failed := performJSONRequest(handler, http.MethodPost, basePath, map[string]any{"acceptance_criteria_verified": true})
+	if failed.Code != http.StatusInternalServerError {
+		t.Fatalf("forced persistence failure status = %d, body = %s", failed.Code, failed.Body)
+	}
+	backlogItems, err = backlogRepository.ListByProject(context.Background(), projectValue.ID)
+	if err != nil || backlogItems[0].Status != backlogdomain.Pending {
+		t.Fatalf("Backlog after transaction rollback = %+v, error = %v", backlogItems, err)
+	}
+}

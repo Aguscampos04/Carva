@@ -14,6 +14,7 @@ type Repository interface {
 	Get(context.Context, string, int64) (sprint.Sprint, error)
 	AssignBacklogItem(context.Context, string, int64, sprint.PlannedBacklogItem) error
 	ListPlannedBacklogItems(context.Context, string, int64) ([]sprint.PlannedBacklogItem, error)
+	CompleteBacklogItem(context.Context, string, int64, string, bool) (sprint.PlannedBacklogItem, error)
 }
 
 // BacklogRepository supplies the current item values to snapshot at assignment time.
@@ -84,4 +85,27 @@ func (s Service) ListPlannedBacklogItems(ctx context.Context, projectID string, 
 		return nil, err
 	}
 	return s.repository.ListPlannedBacklogItems(ctx, projectID, sprintID)
+}
+
+func (s Service) CompleteBacklogItem(ctx context.Context, projectID string, sprintID int64, itemID string, verified bool) (sprint.PlannedBacklogItem, error) {
+	if projectID == "" || sprintID < 1 {
+		return sprint.PlannedBacklogItem{}, sprint.ErrNotFound
+	}
+	if itemID == "" {
+		return sprint.PlannedBacklogItem{}, sprint.ErrInvalidBacklogItemID
+	}
+	if !verified {
+		return sprint.PlannedBacklogItem{}, backlog.ErrAcceptanceCriteriaUnverified
+	}
+	if _, err := s.repository.Get(ctx, projectID, sprintID); err != nil {
+		return sprint.PlannedBacklogItem{}, err
+	}
+	item, err := s.backlogRepository.FindByID(ctx, projectID, itemID)
+	if err != nil {
+		return sprint.PlannedBacklogItem{}, err
+	}
+	if _, err := item.Complete(verified); err != nil {
+		return sprint.PlannedBacklogItem{}, err
+	}
+	return s.repository.CompleteBacklogItem(ctx, projectID, sprintID, itemID, verified)
 }

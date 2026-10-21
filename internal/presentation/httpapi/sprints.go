@@ -20,6 +20,7 @@ type SprintService interface {
 	Get(context.Context, string, int64) (sprint.Sprint, error)
 	AssignBacklogItem(context.Context, string, int64, string) (sprint.PlannedBacklogItem, error)
 	ListPlannedBacklogItems(context.Context, string, int64) ([]sprint.PlannedBacklogItem, error)
+	CompleteBacklogItem(context.Context, string, int64, string, bool) (sprint.PlannedBacklogItem, error)
 }
 
 type createSprintRequest struct {
@@ -28,6 +29,10 @@ type createSprintRequest struct {
 
 type assignBacklogItemRequest struct {
 	BacklogItemID string `json:"backlog_item_id"`
+}
+
+type completeBacklogItemRequest struct {
+	AcceptanceCriteriaVerified *bool `json:"acceptance_criteria_verified"`
 }
 
 func registerSprintRoutes(mux *http.ServeMux, service SprintService) {
@@ -101,6 +106,32 @@ func registerSprintRoutes(mux *http.ServeMux, service SprintService) {
 		}
 		writeJSON(w, http.StatusOK, items)
 	})
+
+	mux.HandleFunc("POST /api/projects/{projectID}/sprints/{sprintID}/backlog-items/{backlogItemID}/completion", func(w http.ResponseWriter, r *http.Request) {
+		sprintID, err := parseSprintID(r.PathValue("sprintID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "Sprint ID must be a positive integer")
+			return
+		}
+		var input completeBacklogItemRequest
+		decoder := json.NewDecoder(r.Body)
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&input); err != nil || input.AcceptanceCriteriaVerified == nil {
+			writeError(w, http.StatusBadRequest, "acceptance_criteria_verified is required")
+			return
+		}
+		var trailing any
+		if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+			writeError(w, http.StatusBadRequest, "request must contain one JSON value")
+			return
+		}
+		completed, err := service.CompleteBacklogItem(r.Context(), r.PathValue("projectID"), sprintID, r.PathValue("backlogItemID"), *input.AcceptanceCriteriaVerified)
+		if err != nil {
+			writeSprintError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, completed)
+	})
 }
 
 func parseSprintID(value string) (int64, error) {
@@ -123,6 +154,10 @@ func writeSprintError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "resource not found")
 	case errors.Is(err, sprint.ErrBacklogItemAlreadyAssigned):
 		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, backlog.ErrAcceptanceCriteriaUnverified):
+		writeError(w, http.StatusConflict, "acceptance criteria must be verified before completing the story")
+	case errors.Is(err, sprint.ErrBacklogItemNotAssigned):
+		writeError(w, http.StatusNotFound, "resource not found")
 	default:
 		writeError(w, http.StatusInternalServerError, "could not handle Sprint request")
 	}

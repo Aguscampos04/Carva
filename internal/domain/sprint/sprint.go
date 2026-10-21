@@ -13,6 +13,7 @@ var (
 	ErrInvalidGoal                = errors.New("sprint goal must not be blank")
 	ErrInvalidBacklogItemID       = errors.New("backlog item ID must not be blank")
 	ErrBacklogItemAlreadyAssigned = errors.New("backlog item is already assigned to this sprint")
+	ErrBacklogItemNotAssigned     = errors.New("backlog item is not assigned to this sprint")
 	ErrNotFound                   = errors.New("sprint not found")
 )
 
@@ -24,15 +25,17 @@ type Sprint struct {
 
 // PlannedBacklogItem is the immutable planning-time copy of a Backlog item.
 type PlannedBacklogItem struct {
-	SprintID               int64    `json:"sprint_id"`
-	BacklogItemID          string   `json:"backlog_item_id"`
-	Title                  string   `json:"title"`
-	Description            string   `json:"description"`
-	Priority               string   `json:"priority"`
-	Status                 string   `json:"status"`
-	ProvisionalStoryPoints *int     `json:"provisional_story_points"`
-	StoryPoints            *int     `json:"story_points"`
-	AcceptanceCriteria     []string `json:"acceptance_criteria"`
+	SprintID                   int64    `json:"sprint_id"`
+	BacklogItemID              string   `json:"backlog_item_id"`
+	Title                      string   `json:"title"`
+	Description                string   `json:"description"`
+	Priority                   string   `json:"priority"`
+	Status                     string   `json:"status"`
+	PlannedStatus              string   `json:"planned_status"`
+	AcceptanceCriteriaVerified bool     `json:"acceptance_criteria_verified"`
+	ProvisionalStoryPoints     *int     `json:"provisional_story_points"`
+	StoryPoints                *int     `json:"story_points"`
+	AcceptanceCriteria         []string `json:"acceptance_criteria"`
 }
 
 // Snapshot captures a Backlog item's planning fields for a Sprint.
@@ -50,6 +53,7 @@ func Snapshot(sprintID int64, item backlog.Item) (PlannedBacklogItem, error) {
 		Description:            item.Description,
 		Priority:               string(item.Priority),
 		Status:                 string(item.Status),
+		PlannedStatus:          string(item.Status),
 		ProvisionalStoryPoints: cloneInt(item.ProvisionalStoryPoints),
 		StoryPoints:            cloneInt(item.StoryPoints),
 		AcceptanceCriteria:     append([]string(nil), item.AcceptanceCriteria...),
