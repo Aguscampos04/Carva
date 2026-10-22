@@ -84,6 +84,33 @@ func TestCloseSprintRequiresDestinationOnlyForIncompleteStories(t *testing.T) {
 	})
 }
 
+func TestCloseSprintSelectsEarliestLaterOpenSprint(t *testing.T) {
+	fixture := newSprintClosureFixture(t)
+	item := fixture.createStory(t, "Incomplete")
+	fixture.assign(t, fixture.current, item.ID)
+	if _, err := fixture.repo.Close(context.Background(), fixture.projectID, fixture.next.ID); err != nil {
+		t.Fatalf("close empty intermediate Sprint: %v", err)
+	}
+	future, err := fixture.service.Create(context.Background(), fixture.projectID, "Future Sprint")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.repo.Close(context.Background(), fixture.projectID, fixture.current.ID); err != nil {
+		t.Fatalf("close current Sprint: %v", err)
+	}
+	closedIntermediate, err := fixture.repo.ListPlannedBacklogItems(context.Background(), fixture.projectID, fixture.next.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	futureItems, err := fixture.repo.ListPlannedBacklogItems(context.Background(), fixture.projectID, future.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(closedIntermediate) != 0 || len(futureItems) != 1 || futureItems[0].BacklogItemID != item.ID {
+		t.Fatalf("closed intermediate = %+v, future Sprint = %+v; want transfer to earliest open Sprint", closedIntermediate, futureItems)
+	}
+}
+
 func TestCloseSprintRollsBackTransferWhenPersistenceFails(t *testing.T) {
 	fixture := newSprintClosureFixture(t)
 	item := fixture.createStory(t, "Incomplete")
