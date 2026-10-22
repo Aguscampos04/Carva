@@ -1,7 +1,7 @@
 # SDD-US-10 — Cerrar Sprint y trasladar historias incompletas
 
-**Issue:** [#10](https://github.com/Aguscampos04/Carva/issues/10)  
-**Estado:** criterios de la Issue y decisión funcional de traslado aprobados; contrato de cierre acordado con la responsable el 2026-10-22.  
+**Issue:** [#10](https://github.com/Aguscampos04/Carva/issues/10)
+**Estado:** criterios de la Issue y decisión funcional de traslado aprobados; contrato de cierre acordado con la responsable el 2026-10-22.
 **Trazabilidad:** enunciado §2.3 → EP-03 → US-10 / Issue #10 → decisiones funcionales aprobadas en `docs/contexto-proyecto.md` → esta SDD → [BDD-US-10](../bdd/BDD-US-10-cerrar-sprint.feature) → tests de dominio e integración.
 **Dependencias:** US-07 (Sprint) y US-08 (asignación e historial), ambas integradas en `main`; US-09 provee el registro de finalización verificada.
 
