@@ -1,0 +1,3 @@
+ALTER TABLE sprints
+    ADD COLUMN closed INTEGER NOT NULL DEFAULT 0
+    CHECK (closed IN (0, 1));

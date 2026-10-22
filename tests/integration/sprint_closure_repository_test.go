@@ -59,6 +59,9 @@ func TestCloseSprintRequiresDestinationOnlyForIncompleteStories(t *testing.T) {
 		fixture := newSprintClosureFixture(t)
 		item := fixture.createStory(t, "Incomplete")
 		fixture.assign(t, fixture.current, item.ID)
+		if _, err := fixture.db.Exec(`DELETE FROM sprints WHERE id = ?`, fixture.next.ID); err != nil {
+			t.Fatal(err)
+		}
 		if _, err := fixture.repo.Close(context.Background(), fixture.projectID, fixture.current.ID); !errors.Is(err, sprintdomain.ErrNextSprintRequired) {
 			t.Fatalf("Close() error = %v, want ErrNextSprintRequired", err)
 		}
