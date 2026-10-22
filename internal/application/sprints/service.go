@@ -12,6 +12,7 @@ type Repository interface {
 	GetProject(context.Context, string) (project.Project, error)
 	Create(context.Context, sprint.Sprint, func(project.Project) (project.Project, error)) (sprint.Sprint, error)
 	Get(context.Context, string, int64) (sprint.Sprint, error)
+	Close(context.Context, string, int64) (sprint.Sprint, error)
 	AssignBacklogItem(context.Context, string, int64, sprint.PlannedBacklogItem) error
 	ListPlannedBacklogItems(context.Context, string, int64) ([]sprint.PlannedBacklogItem, error)
 	CompleteBacklogItem(context.Context, string, int64, string, bool) (sprint.PlannedBacklogItem, error)
@@ -51,6 +52,14 @@ func (s Service) Get(ctx context.Context, projectID string, sprintID int64) (spr
 		return sprint.Sprint{}, sprint.ErrNotFound
 	}
 	return s.repository.Get(ctx, projectID, sprintID)
+}
+
+// Close closes a Sprint and rolls its incomplete stories into the next available Sprint.
+func (s Service) Close(ctx context.Context, projectID string, sprintID int64) (sprint.Sprint, error) {
+	if projectID == "" || sprintID < 1 {
+		return sprint.Sprint{}, sprint.ErrNotFound
+	}
+	return s.repository.Close(ctx, projectID, sprintID)
 }
 
 func (s Service) AssignBacklogItem(ctx context.Context, projectID string, sprintID int64, itemID string) (sprint.PlannedBacklogItem, error) {

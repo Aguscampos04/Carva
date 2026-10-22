@@ -18,6 +18,7 @@ import (
 type SprintService interface {
 	Create(context.Context, string, string) (sprint.Sprint, error)
 	Get(context.Context, string, int64) (sprint.Sprint, error)
+	Close(context.Context, string, int64) (sprint.Sprint, error)
 	AssignBacklogItem(context.Context, string, int64, string) (sprint.PlannedBacklogItem, error)
 	ListPlannedBacklogItems(context.Context, string, int64) ([]sprint.PlannedBacklogItem, error)
 	CompleteBacklogItem(context.Context, string, int64, string, bool) (sprint.PlannedBacklogItem, error)
@@ -58,6 +59,20 @@ func registerSprintRoutes(mux *http.ServeMux, service SprintService) {
 		}
 		w.Header().Set("Location", "/api/projects/"+projectID+"/sprints/"+strconv.FormatInt(created.ID, 10))
 		writeJSON(w, http.StatusCreated, created)
+	})
+
+	mux.HandleFunc("POST /api/projects/{projectID}/sprints/{sprintID}/close", func(w http.ResponseWriter, r *http.Request) {
+		sprintID, err := parseSprintID(r.PathValue("sprintID"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "Sprint ID must be a positive integer")
+			return
+		}
+		closed, err := service.Close(r.Context(), r.PathValue("projectID"), sprintID)
+		if err != nil {
+			writeSprintError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, closed)
 	})
 
 	mux.HandleFunc("GET /api/projects/{projectID}/sprints/{sprintID}", func(w http.ResponseWriter, r *http.Request) {
@@ -145,6 +160,8 @@ func parseSprintID(value string) (int64, error) {
 func writeSprintError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, project.ErrFinalized):
+		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, sprint.ErrNextSprintRequired), errors.Is(err, sprint.ErrAlreadyClosed), errors.Is(err, sprint.ErrClosed):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, projects.ErrBusy):
 		writeError(w, http.StatusServiceUnavailable, projects.ErrBusy.Error())

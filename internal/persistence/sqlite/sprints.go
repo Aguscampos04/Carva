@@ -53,8 +53,8 @@ func (r *SprintRepository) Create(ctx context.Context, value sprint.Sprint, tran
 func (r *SprintRepository) Get(ctx context.Context, projectID string, sprintID int64) (sprint.Sprint, error) {
 	var value sprint.Sprint
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, project_id, goal FROM sprints WHERE project_id = ? AND id = ?`, projectID, sprintID,
-	).Scan(&value.ID, &value.ProjectID, &value.Goal)
+		`SELECT id, project_id, goal, closed FROM sprints WHERE project_id = ? AND id = ?`, projectID, sprintID,
+	).Scan(&value.ID, &value.ProjectID, &value.Goal, &value.Closed)
 	if errors.Is(err, sql.ErrNoRows) {
 		return sprint.Sprint{}, sprint.ErrNotFound
 	}
@@ -64,6 +64,81 @@ func (r *SprintRepository) Get(ctx context.Context, projectID string, sprintID i
 	return value, nil
 }
 
+// Close atomically transfers every incomplete planning snapshot and closes its Sprint.
+func (r *SprintRepository) Close(ctx context.Context, projectID string, sprintID int64) (sprint.Sprint, error) {
+	var closed sprint.Sprint
+	err := withImmediate(ctx, r.db, func(conn *sql.Conn) error {
+		if err := conn.QueryRowContext(ctx, `
+			SELECT id, project_id, goal, closed
+			FROM sprints WHERE project_id = ? AND id = ?`, projectID, sprintID,
+		).Scan(&closed.ID, &closed.ProjectID, &closed.Goal, &closed.Closed); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return sprint.ErrNotFound
+			}
+			return fmt.Errorf("get Sprint to close: %w", err)
+		}
+		closedState, err := closed.Close()
+		if err != nil {
+			return err
+		}
+		closed = closedState
+
+		var incompleteCount int
+		if err := conn.QueryRowContext(ctx, `
+			SELECT COUNT(*) FROM sprint_backlog_items
+			WHERE sprint_id = ? AND completion_verified = 0`, sprintID,
+		).Scan(&incompleteCount); err != nil {
+			return fmt.Errorf("count incomplete Sprint stories: %w", err)
+		}
+
+		if incompleteCount > 0 {
+			var nextSprintID int64
+			err := conn.QueryRowContext(ctx, `
+				SELECT id FROM sprints
+				WHERE project_id = ? AND id > ? AND closed = 0
+				ORDER BY id LIMIT 1`, projectID, sprintID,
+			).Scan(&nextSprintID)
+			if errors.Is(err, sql.ErrNoRows) {
+				return sprint.ErrNextSprintRequired
+			}
+			if err != nil {
+				return fmt.Errorf("find next open Sprint: %w", err)
+			}
+
+			_, err = conn.ExecContext(ctx, `
+				INSERT OR IGNORE INTO sprint_backlog_items (
+					sprint_id, backlog_item_id, title, description, priority, status,
+					provisional_story_points, story_points, acceptance_criteria
+				)
+				SELECT ?, backlog_item_id, title, description, priority, status,
+					provisional_story_points, story_points, acceptance_criteria
+				FROM sprint_backlog_items
+				WHERE sprint_id = ? AND completion_verified = 0`, nextSprintID, sprintID)
+			if err != nil {
+				return fmt.Errorf("transfer incomplete Sprint stories: %w", err)
+			}
+		}
+
+		updated, err := conn.ExecContext(ctx,
+			`UPDATE sprints SET closed = 1 WHERE project_id = ? AND id = ? AND closed = 0`, projectID, sprintID)
+		if err != nil {
+			return fmt.Errorf("close Sprint: %w", err)
+		}
+		rows, err := updated.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("count closed Sprints: %w", err)
+		}
+		if rows != 1 {
+			return sprint.ErrAlreadyClosed
+		}
+		return nil
+	})
+	if err != nil {
+		return sprint.Sprint{}, fmt.Errorf("close Sprint: %w", err)
+	}
+	return closed, nil
+}
+
 func (r *SprintRepository) AssignBacklogItem(ctx context.Context, projectID string, sprintID int64, value sprint.PlannedBacklogItem) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -71,15 +146,18 @@ func (r *SprintRepository) AssignBacklogItem(ctx context.Context, projectID stri
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	var exists int
+	var closed bool
 	err = tx.QueryRowContext(ctx,
-		`SELECT 1 FROM sprints WHERE project_id = ? AND id = ?`, projectID, sprintID,
-	).Scan(&exists)
+		`SELECT closed FROM sprints WHERE project_id = ? AND id = ?`, projectID, sprintID,
+	).Scan(&closed)
 	if errors.Is(err, sql.ErrNoRows) {
 		return sprint.ErrNotFound
 	}
 	if err != nil {
 		return fmt.Errorf("check Sprint for Backlog assignment: %w", err)
+	}
+	if closed {
+		return sprint.ErrClosed
 	}
 
 	criteria, err := json.Marshal(value.AcceptanceCriteria)
@@ -161,16 +239,20 @@ func (r *SprintRepository) CompleteBacklogItem(ctx context.Context, projectID st
 		return completed, backlog.ErrAcceptanceCriteriaUnverified
 	}
 	err := withImmediate(ctx, r.db, func(conn *sql.Conn) error {
-		var exists int
+		var closed bool
 		err := conn.QueryRowContext(ctx,
-			`SELECT 1 FROM sprints WHERE project_id = ? AND id = ?`, projectID, sprintID,
-		).Scan(&exists)
+			`SELECT closed FROM sprints WHERE project_id = ? AND id = ?`, projectID, sprintID,
+		).Scan(&closed)
 		if errors.Is(err, sql.ErrNoRows) {
 			return sprint.ErrNotFound
 		}
 		if err != nil {
 			return fmt.Errorf("check Sprint for story completion: %w", err)
 		}
+		if closed {
+			return sprint.ErrClosed
+		}
+		var exists int
 
 		if err := conn.QueryRowContext(ctx,
 			`SELECT 1 FROM backlog_items WHERE project_id = ? AND id = ?`, projectID, itemID,

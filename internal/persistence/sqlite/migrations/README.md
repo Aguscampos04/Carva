@@ -15,3 +15,5 @@ relations. Dates are not inferred or filled with the migration date.
 
 `000009_sprint_completion.sql` records verified completion separately from the
 immutable US-08 planning status.
+
+`000010_sprint_closure.sql` persists whether a Sprint is closed for US-10.
