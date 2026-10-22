@@ -77,9 +77,11 @@ func (r *SprintRepository) Close(ctx context.Context, projectID string, sprintID
 			}
 			return fmt.Errorf("get Sprint to close: %w", err)
 		}
-		if closed.Closed {
-			return sprint.ErrAlreadyClosed
+		closedState, err := closed.Close()
+		if err != nil {
+			return err
 		}
+		closed = closedState
 
 		var incompleteCount int
 		if err := conn.QueryRowContext(ctx, `
@@ -129,7 +131,6 @@ func (r *SprintRepository) Close(ctx context.Context, projectID string, sprintID
 		if rows != 1 {
 			return sprint.ErrAlreadyClosed
 		}
-		closed.Closed = true
 		return nil
 	})
 	if err != nil {

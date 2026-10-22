@@ -51,11 +51,6 @@ type PlannedBacklogItem struct {
 	AcceptanceCriteria         []string `json:"acceptance_criteria"`
 }
 
-// IsIncomplete reports whether US-09 has not verified the item's acceptance criteria.
-func (item PlannedBacklogItem) IsIncomplete() bool {
-	return !item.AcceptanceCriteriaVerified
-}
-
 // Snapshot captures a Backlog item's planning fields for a Sprint.
 func Snapshot(sprintID int64, item backlog.Item) (PlannedBacklogItem, error) {
 	if sprintID < 1 {

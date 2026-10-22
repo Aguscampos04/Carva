@@ -43,14 +43,3 @@ func TestSprintCanBeClosedOnlyOnce(t *testing.T) {
 		t.Fatalf("Close() on closed Sprint error = %v, want ErrAlreadyClosed", err)
 	}
 }
-
-func TestPlannedBacklogItemIsIncompleteUntilVerified(t *testing.T) {
-	item := PlannedBacklogItem{AcceptanceCriteriaVerified: false}
-	if !item.IsIncomplete() {
-		t.Fatal("unverified planned story should be incomplete")
-	}
-	item.AcceptanceCriteriaVerified = true
-	if item.IsIncomplete() {
-		t.Fatal("verified planned story should be complete")
-	}
-}
