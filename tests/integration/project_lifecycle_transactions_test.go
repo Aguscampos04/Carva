@@ -80,7 +80,8 @@ func TestProjectLifecycleConcurrentWriters(t *testing.T) {
 	}
 }
 
-// BDD-22: force finalization to own the lock before creating the first Sprint.
+// BDD-22: enforce the finalization-first serialization order. Acquiring a lock
+// alone does not establish that order: a BUSY COMMIT can roll back and retry.
 func TestProjectFinalizationWinsBeforeSprintCreation(t *testing.T) {
 	path, db := openMigratedProjectDB(t)
 	other, err := sqlite.OpenPath(context.Background(), path)
@@ -103,13 +104,17 @@ func TestProjectFinalizationWinsBeforeSprintCreation(t *testing.T) {
 		t.Fatal("finalization did not acquire lock")
 	}
 	response := make(chan *httptest.ResponseRecorder, 1)
+	finalized := make(chan struct{})
 	go func() {
+		<-finalized
 		w := performJSON(t, lifecycleHandler(other, "2026-10-20T15:00:00Z"), "POST", "/api/projects/"+p.ID+"/sprints", `{"goal":"Too late"}`)
 		response <- w
 	}()
 	close(release)
-	if err := <-done; err != nil {
-		t.Fatal(err)
+	finalizationErr := <-done
+	close(finalized)
+	if finalizationErr != nil {
+		t.Fatal(finalizationErr)
 	}
 	if w := <-response; w.Code != 409 {
 		t.Fatalf("%d %s", w.Code, w.Body)
