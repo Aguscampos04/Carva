@@ -9,6 +9,15 @@ const backlogMessage = document.querySelector("#backlog-message");
 const backlogItems = document.querySelector("#backlog-items");
 let currentProjectID = "";
 let projectRequest = 0;
+const sprintHistory = createSprintHistory({
+  form: document.querySelector("#sprint-history-form"),
+  projectInput: document.querySelector("#history-project-id"),
+  select: document.querySelector("#closed-sprint-select"),
+  message: document.querySelector("#sprint-history-message"),
+  goal: document.querySelector("#historical-sprint-goal"),
+  details: document.querySelector("#historical-sprint-items"),
+  requestJSON,
+});
 const projectEditor = createProjectEditor({
   form: document.querySelector("#edit-project-form"),
   nameInput: document.querySelector("#edit-project-name"),
@@ -47,6 +56,7 @@ function showProject(project) {
   backlogSection.hidden = false;
   message.textContent = "Proyecto disponible.";
   membersUI.showProject(project.id);
+  sprintHistory.showProject(project.id);
   loadBacklog();
 }
 
@@ -211,6 +221,7 @@ form.addEventListener("submit", async (event) => {
   projectEditor.showProject(null);
   backlogSection.hidden = true;
   membersUI.showProject("");
+  sprintHistory.showProject("");
 
   try {
     const result = await requestJSON("/api/projects", {

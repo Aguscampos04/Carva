@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/css/app.css">
     <script src="/js/members.js" defer></script>
     <script src="/js/projects.js" defer></script>
+    <script src="/js/sprint-history.js" defer></script>
     <script src="/js/app.js" defer></script>
   </head>
   <body>
@@ -55,6 +56,20 @@
         <p id="members-message" aria-live="polite"></p>
         <button id="refresh-members" type="button" class="secondary-button">Consultar miembros</button>
         <ul id="members-list" aria-label="Miembros registrados"></ul>
+      </section>
+
+      <section id="sprint-history-section" aria-labelledby="sprint-history-title">
+        <h2 id="sprint-history-title">Sprints anteriores</h2>
+        <form id="sprint-history-form">
+          <label for="history-project-id">Identificador del proyecto</label>
+          <input id="history-project-id" name="projectID" required autocomplete="off">
+          <button type="submit">Consultar Sprints cerrados</button>
+        </form>
+        <p id="sprint-history-message" aria-live="polite">Ingresá el identificador de un proyecto.</p>
+        <label for="closed-sprint-select">Sprint cerrado</label>
+        <select id="closed-sprint-select" disabled></select>
+        <h3 id="historical-sprint-goal"></h3>
+        <div id="historical-sprint-items" class="backlog-items"></div>
       </section>
 
       <section id="backlog-section" aria-labelledby="backlog-title" hidden>
