@@ -1,5 +1,12 @@
 # US-11 — Evidencia de implementación, IA y validación
 
+**Actualización de PR #40:** los problemas de coordinación del test y finales de
+línea descritos abajo corresponden a la validación inicial. Se investigaron y
+corrigieron posteriormente por autorización del responsable. Véase el informe
+actual [validacion-pr-40.md](validacion-pr-40.md): regresión completa y 50
+repeticiones por caso pasan; `gofmt -l .` queda vacío. `-race` no pudo ejecutarse
+por ausencia de compilador C. La revisión humana y el merge siguen pendientes.
+
 ## Contexto y autorización
 
 Solicitud: implementar Issue #11 de extremo a extremo con SDD, BDD, TDD,
@@ -46,7 +53,7 @@ aislamiento de proyectos, recursos inexistentes y almacenamiento cerrado.
 de errores en aplicación. Los tests web cubren BDD-01/04/05/06: datos originales,
 texto seguro, solo GET, errores/vacíos/reintentos y descarte de respuestas tardías.
 
-## Resultados ejecutados
+## Resultados ejecutados en la validación inicial (histórico)
 
 Entorno: Go 1.27.1, Windows amd64. No se modificaron las versiones del módulo.
 
@@ -86,7 +93,7 @@ y seleccionó el Sprint 1. Se observaron el Goal «Conservar el historial origin
 «Incompleta»/estado «Pendiente», pese a estar completada en el Sprint posterior.
 Esta prueba fue ejecutada por el agente; no se presenta como revisión humana.
 
-## Estado de entrega
+## Estado de entrega inicial (histórico; actualizado en validacion-pr-40.md)
 
 AC-01/02 comprobados técnicamente. SDD/BDD/tests/UI implementados y trazables.
 Revisión humana de US-11 y merge manual pendientes. La inestabilidad preexistente
