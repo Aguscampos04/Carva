@@ -13,6 +13,10 @@ function createSprintHistory({ form, projectInput, select, message, details, goa
     return `/api/projects/${encodeURIComponent(id)}/sprints`;
   }
 
+  function isCurrentSelection(request, context) {
+    return request === selection && context === generation;
+  }
+
   async function loadProject(id) {
     projectID = id;
     projectInput.value = id;
@@ -86,12 +90,12 @@ function createSprintHistory({ form, projectInput, select, message, details, goa
     const base = `${path()}/${encodeURIComponent(id)}`;
     try {
       const [sprint, items] = await Promise.all([requestJSON(base), requestJSON(`${base}/backlog-items`)]);
-      if (request !== selection || context !== generation) return;
+      if (!isCurrentSelection(request, context)) return;
       goal.textContent = `Sprint ${sprint.id} — ${sprint.goal}`;
       renderSnapshots(items);
       message.textContent = "Historial registrado al cierre. Consulta de solo lectura.";
     } catch (error) {
-      if (request === selection && context === generation) message.textContent = error.message;
+      if (isCurrentSelection(request, context)) message.textContent = error.message;
     }
   });
 

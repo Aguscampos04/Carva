@@ -26,10 +26,12 @@ func TestUS11ClosedSprintListing(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	foreign := newSprintClosureFixture(t) // independent database cannot contaminate this result
-	_ = foreign
 	otherProject := createProject(t, f.handler(), "Other project")
-	if _, err := f.service.Create(context.Background(), otherProject, "Foreign goal"); err != nil {
+	foreign, err := f.service.Create(context.Background(), otherProject, "Foreign goal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.service.Close(context.Background(), otherProject, foreign.ID); err != nil {
 		t.Fatal(err)
 	}
 	listed := performJSONRequest(f.handler(), http.MethodGet, path, nil)
