@@ -118,8 +118,11 @@ func TestProjectFinalizationWinsBeforeSprintCreation(t *testing.T) {
 
 // This clock is called inside a transformation that may be replayed after BUSY.
 func gatedProjectClock(entered, release chan struct{}) func() time.Time {
+	var enteredOnce sync.Once
 	return func() time.Time {
-		close(entered)
+		// Signal the first lock acquisition only. A confirmed SQLite rollback
+		// may replay Finalize's callback; later calls still use the same gate/day.
+		enteredOnce.Do(func() { close(entered) })
 		<-release
 		return time.Date(2026, 10, 20, 15, 0, 0, 0, time.UTC)
 	}
