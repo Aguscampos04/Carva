@@ -1,0 +1,2 @@
+# Keep Go source compatible with gofmt on every checkout, including Windows.
+*.go text eol=lf
