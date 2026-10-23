@@ -80,7 +80,8 @@ func TestProjectLifecycleConcurrentWriters(t *testing.T) {
 	}
 }
 
-// BDD-22: force finalization to own the lock before creating the first Sprint.
+// BDD-22: enforce the finalization-first serialization order. Acquiring a lock
+// alone does not establish that order: a BUSY COMMIT can roll back and retry.
 func TestProjectFinalizationWinsBeforeSprintCreation(t *testing.T) {
 	path, db := openMigratedProjectDB(t)
 	other, err := sqlite.OpenPath(context.Background(), path)
@@ -89,7 +90,7 @@ func TestProjectFinalizationWinsBeforeSprintCreation(t *testing.T) {
 	}
 	defer other.Close()
 	entered, release := make(chan struct{}), make(chan struct{})
-	service := projects.NewServiceWithClock(sqlite.NewProjectRepository(db), func() time.Time { close(entered); <-release; return time.Date(2026, 10, 20, 15, 0, 0, 0, time.UTC) })
+	service := projects.NewServiceWithClock(sqlite.NewProjectRepository(db), gatedProjectClock(entered, release))
 	p, err := service.Create(context.Background(), "Demo")
 	if err != nil {
 		t.Fatal(err)
@@ -103,16 +104,102 @@ func TestProjectFinalizationWinsBeforeSprintCreation(t *testing.T) {
 		t.Fatal("finalization did not acquire lock")
 	}
 	response := make(chan *httptest.ResponseRecorder, 1)
+	finalized := make(chan struct{})
 	go func() {
+		<-finalized
 		w := performJSON(t, lifecycleHandler(other, "2026-10-20T15:00:00Z"), "POST", "/api/projects/"+p.ID+"/sprints", `{"goal":"Too late"}`)
 		response <- w
 	}()
 	close(release)
-	if err := <-done; err != nil {
-		t.Fatal(err)
+	finalizationErr := <-done
+	close(finalized)
+	if finalizationErr != nil {
+		t.Fatal(finalizationErr)
 	}
 	if w := <-response; w.Code != 409 {
 		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+}
+
+// This clock is called inside a transformation that may be replayed after BUSY.
+func gatedProjectClock(entered, release chan struct{}) func() time.Time {
+	var enteredOnce sync.Once
+	return func() time.Time {
+		// Signal the first lock acquisition only. A confirmed SQLite rollback
+		// may replay Finalize's callback; later calls still use the same gate/day.
+		enteredOnce.Do(func() { close(entered) })
+		<-release
+		return time.Date(2026, 10, 20, 15, 0, 0, 0, time.UTC)
+	}
+}
+
+// A read transaction deterministically prevents the first writer COMMIT. The
+// second callback invocation proves rollback/retry, rather than relying on timing.
+func TestProjectFinalizationClockSurvivesCommitRetry(t *testing.T) {
+	path, db := openMigratedProjectDB(t)
+	other, err := sqlite.OpenPath(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer other.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	entered, release := make(chan struct{}), make(chan struct{})
+	retried, allowCommit := make(chan struct{}), make(chan struct{})
+	var releaseOnce, commitOnce sync.Once
+	defer releaseOnce.Do(func() { close(release) })
+	defer commitOnce.Do(func() { close(allowCommit) })
+	gate := gatedProjectClock(entered, release)
+	calls := 0 // Finalize invokes its transformation sequentially, including retries.
+	service := projects.NewServiceWithClock(sqlite.NewProjectRepository(db), func() time.Time {
+		calls++
+		if calls == 2 {
+			close(retried)
+			<-allowCommit
+		}
+		return gate()
+	})
+	p, err := service.Create(ctx, "Commit retry")
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader, err := other.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Rollback()
+	var name string
+	if err := reader.QueryRowContext(ctx, `SELECT name FROM projects WHERE id=?`, p.ID).Scan(&name); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { _, err := service.Finalize(ctx, p.ID); done <- err }()
+	select {
+	case <-entered:
+	case <-ctx.Done():
+		t.Fatal("finalization did not acquire writer lock")
+	}
+	releaseOnce.Do(func() { close(release) })
+	select {
+	case <-retried:
+	case <-ctx.Done():
+		t.Fatal("reader did not force a COMMIT retry")
+	}
+	if err := reader.Rollback(); err != nil {
+		t.Fatal(err)
+	}
+	commitOnce.Do(func() { close(allowCommit) })
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-ctx.Done():
+		t.Fatal("finalization did not finish after releasing reader")
+	}
+	got, err := service.Get(ctx, p.ID)
+	if err != nil || got.Status != project.Finalized || got.EndDate != project.Date("2026-10-20") {
+		t.Fatalf("finalized project = %+v, %v", got, err)
 	}
 }
 

@@ -92,6 +92,29 @@ Las pruebas web usan el runner incluido en Node.js (verificadas con Node 20),
 sin instalar paquetes. Los selectores para votos y esfuerzo se incorporarán en
 US-12 y US-16; US-03 proporciona sus identidades estables.
 
+## Consultar Sprints anteriores (US-11)
+
+En **Sprints anteriores**, ingresá el UUID de un proyecto existente y pulsá
+**Consultar Sprints cerrados**. Elegí un Sprint de la lista para ver su Goal,
+planificación y resultados registrados al cierre. La sección también toma el
+proyecto creado/consultado en la pantalla actual. No hay que crear otro proyecto
+para consultar un UUID conocido.
+
+- `GET /api/projects/{projectID}/sprints/closed`: lista solo cerrados, ordenados por ID; `[]` si no hay ninguno y `404` si el proyecto no existe.
+- El detalle y los snapshots se leen con las rutas existentes de Sprint y `/backlog-items`.
+- Una historia trasladada y completada después conserva el resultado anterior en
+  el Sprint cerrado. La consulta no modifica datos ni reconstruye snapshots desde
+  el Backlog vigente. Los Sprints se crean/cierran mediante la API existente.
+
+Ver [SDD-US-11](sdd/SDD-US-11-consultar-sprints-anteriores.md),
+[BDD-US-11](bdd/BDD-US-11-consultar-sprints-anteriores.feature) y
+[evidencia y limitaciones de validación](docs/evidencia-ia-us-11.md).
+
+```powershell
+go test ./internal/application/sprints ./tests/integration -run 'TestListClosed|TestUS11|TestCloseSprint|TestUS10' -count=1
+node --test tests/web/*.test.cjs
+```
+
 ## Integrantes y Roles Scrum
 
 | Nombre y apellido |       GitHub     | Rol Scrum |

@@ -12,6 +12,7 @@ type Repository interface {
 	GetProject(context.Context, string) (project.Project, error)
 	Create(context.Context, sprint.Sprint, func(project.Project) (project.Project, error)) (sprint.Sprint, error)
 	Get(context.Context, string, int64) (sprint.Sprint, error)
+	ListClosed(context.Context, string) ([]sprint.Sprint, error)
 	Close(context.Context, string, int64) (sprint.Sprint, error)
 	AssignBacklogItem(context.Context, string, int64, sprint.PlannedBacklogItem) error
 	ListPlannedBacklogItems(context.Context, string, int64) ([]sprint.PlannedBacklogItem, error)
@@ -52,6 +53,17 @@ func (s Service) Get(ctx context.Context, projectID string, sprintID int64) (spr
 		return sprint.Sprint{}, sprint.ErrNotFound
 	}
 	return s.repository.Get(ctx, projectID, sprintID)
+}
+
+// ListClosed returns only the persisted closed Sprints of an existing project.
+func (s Service) ListClosed(ctx context.Context, projectID string) ([]sprint.Sprint, error) {
+	if projectID == "" {
+		return nil, project.ErrNotFound
+	}
+	if _, err := s.repository.GetProject(ctx, projectID); err != nil {
+		return nil, err
+	}
+	return s.repository.ListClosed(ctx, projectID)
 }
 
 // Close closes a Sprint and rolls its incomplete stories into the next available Sprint.

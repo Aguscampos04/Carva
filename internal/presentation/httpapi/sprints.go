@@ -18,6 +18,7 @@ import (
 type SprintService interface {
 	Create(context.Context, string, string) (sprint.Sprint, error)
 	Get(context.Context, string, int64) (sprint.Sprint, error)
+	ListClosed(context.Context, string) ([]sprint.Sprint, error)
 	Close(context.Context, string, int64) (sprint.Sprint, error)
 	AssignBacklogItem(context.Context, string, int64, string) (sprint.PlannedBacklogItem, error)
 	ListPlannedBacklogItems(context.Context, string, int64) ([]sprint.PlannedBacklogItem, error)
@@ -37,6 +38,15 @@ type completeBacklogItemRequest struct {
 }
 
 func registerSprintRoutes(mux *http.ServeMux, service SprintService) {
+	mux.HandleFunc("GET /api/projects/{projectID}/sprints/closed", func(w http.ResponseWriter, r *http.Request) {
+		values, err := service.ListClosed(r.Context(), r.PathValue("projectID"))
+		if err != nil {
+			writeSprintError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, values)
+	})
+
 	mux.HandleFunc("POST /api/projects/{projectID}/sprints", func(w http.ResponseWriter, r *http.Request) {
 		var input createSprintRequest
 		decoder := json.NewDecoder(r.Body)
