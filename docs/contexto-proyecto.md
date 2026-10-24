@@ -206,6 +206,10 @@ Estas decisiones definen el comportamiento funcional del producto. Las fórmulas
 16. **Reportes:** habrá un reporte de proyecto completo y un reporte de Sprint individual. Incluirán User Stories, Story Points, horas estimadas y reales, métricas y defectos.
 17. **Reporte final:** debe poder generarse en PDF e incluir información general del proyecto, Sprints, User Stories, Story Points, horas, métricas, defectos y estado general.
 18. **MVP e identificación:** se identificará a los miembros para Planning Poker y el registro de esfuerzo. No se implementará un sistema complejo de permisos en el MVP.
+19. **Participantes de Planning Poker:** todos los miembros registrados del proyecto participan en cada ronda; la ronda conserva la lista de participantes que tenía al abrirse.
+20. **Corrección de voto:** un miembro puede reemplazar su propio voto mientras la ronda permanezca abierta; una ronda finalizada no admite cambios.
+
+La especificación de US-12 aplica estas decisiones y usa la identidad seleccionada de la lista del proyecto, como define D-05 de US-03.
 
 ### Modificación y finalización del proyecto — US-02 / Issue #2
 

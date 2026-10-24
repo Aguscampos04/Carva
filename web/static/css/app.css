@@ -90,6 +90,10 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .backlog-card h4 { margin-bottom: 0.5rem; }
 .backlog-card ul { padding-left: 1.5rem; }
 .backlog-edit-form { margin-top: 1rem; }
+.planning-poker { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #d3ded9; }
+.planning-poker form { margin-top: 0.75rem; }
+.planning-poker h4 { margin-top: 0; }
+.planning-poker p { min-height: 1.5em; }
 .form-error { color: #9b2c2c; }
 
 .secondary-button {

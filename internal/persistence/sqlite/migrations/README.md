@@ -17,3 +17,6 @@ relations. Dates are not inferred or filled with the migration date.
 immutable US-08 planning status.
 
 `000010_sprint_closure.sql` persists whether a Sprint is closed for US-10.
+
+`000011_planning_poker.sql` adds the initial estimation round, its participant
+snapshot, and one replaceable vote per participant for US-12.
