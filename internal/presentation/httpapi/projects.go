@@ -20,6 +20,15 @@ type ProjectService interface {
 
 // NewHandler returns the REST endpoints for project creation and consultation.
 func NewHandler(service ProjectService, backlogService BacklogService, sprintService SprintService, memberServices ...MemberService) http.Handler {
+	return newHandler(service, backlogService, sprintService, nil, memberServices...)
+}
+
+// NewHandlerWithPlanningPoker composes the API with Planning Poker operations.
+func NewHandlerWithPlanningPoker(service ProjectService, backlogService BacklogService, sprintService SprintService, planningPokerService PlanningPokerService, memberServices ...MemberService) http.Handler {
+	return newHandler(service, backlogService, sprintService, planningPokerService, memberServices...)
+}
+
+func newHandler(service ProjectService, backlogService BacklogService, sprintService SprintService, planningPokerService PlanningPokerService, memberServices ...MemberService) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/projects", createProject(service))
 	mux.HandleFunc("GET /api/projects/{id}", getProject(service))
@@ -29,6 +38,9 @@ func NewHandler(service ProjectService, backlogService BacklogService, sprintSer
 	}
 	if sprintService != nil {
 		registerSprintRoutes(mux, sprintService)
+	}
+	if planningPokerService != nil {
+		registerPlanningPokerRoutes(mux, planningPokerService)
 	}
 	for _, memberService := range memberServices {
 		if memberService != nil {

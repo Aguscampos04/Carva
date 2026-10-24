@@ -42,6 +42,7 @@ const membersUI = createMembersSection({
   submit: document.querySelector("#register-member"),
   requestJSON,
 });
+const planningPokerUI = createPlanningPoker({ requestJSON });
 
 function showProject(project) {
   ++projectRequest;
@@ -123,7 +124,7 @@ function createBacklogCard(item) {
   editButton.addEventListener("click", () => {
     card.replaceChildren(title, description, detailsList, criteriaTitle, criteria, createEditForm(item));
   });
-  card.append(title, description, detailsList, criteriaTitle, criteria, editButton);
+  card.append(title, description, detailsList, criteriaTitle, criteria, editButton, planningPokerUI.createWidget(currentProjectID, item));
   return card;
 }
 

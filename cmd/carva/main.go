@@ -7,6 +7,7 @@ import (
 
 	"github.com/Aguscampos04/Carva/internal/application/backlog"
 	"github.com/Aguscampos04/Carva/internal/application/members"
+	"github.com/Aguscampos04/Carva/internal/application/planningpoker"
 	"github.com/Aguscampos04/Carva/internal/application/projects"
 	"github.com/Aguscampos04/Carva/internal/application/sprints"
 	"github.com/Aguscampos04/Carva/internal/persistence/sqlite"
@@ -31,7 +32,8 @@ func main() {
 	sprintService := sprints.NewService(sqlite.NewSprintRepository(db), backlogRepository)
 	mux := http.NewServeMux()
 	memberService := members.NewService(sqlite.NewMemberRepository(db))
-	mux.Handle("/api/", httpapi.NewHandler(projectService, backlogService, sprintService, memberService))
+	planningPokerService := planningpoker.NewService(sqlite.NewPlanningPokerRepository(db), backlogRepository, memberService)
+	mux.Handle("/api/", httpapi.NewHandlerWithPlanningPoker(projectService, backlogService, sprintService, planningPokerService, memberService))
 	mux.Handle("/", http.FileServer(http.FS(static.Files)))
 
 	log.Print("Carva listening on http://localhost:8080")
