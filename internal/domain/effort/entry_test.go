@@ -2,6 +2,7 @@ package effort
 
 import (
 	"errors"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"github.com/Aguscampos04/Carva/internal/domain/project"
 	"testing"
 )
@@ -32,5 +33,27 @@ func TestUS16EffortRules(t *testing.T) {
 	in.Activity = " \t "
 	if !errors.Is(in.Validate(), ErrInvalid) {
 		t.Fatal("blank accepted")
+	}
+}
+
+func TestUS16RequiredFieldsAndDailyBoundary(t *testing.T) {
+	for _, in := range []Input{
+		{MemberID: "", StoryID: "a", Activity: "ok", Hours: 1, WorkDate: "2026-10-01"},
+		{MemberID: "m", StoryID: "", Activity: "ok", Hours: 1, WorkDate: "2026-10-01"},
+		{MemberID: "m", StoryID: "a", Activity: "ok", Hours: 0, WorkDate: "2026-10-01"},
+		{MemberID: "m", StoryID: "a", Activity: "ok", Hours: 1, WorkDate: "2026-02-30"},
+		{MemberID: "m", StoryID: "a", Activity: "ok", Hours: 1, WorkDate: "2026-10-01", SprintID: new(int64)},
+	} {
+		if in.Validate() == nil {
+			t.Fatal("accepted invalid input", in)
+		}
+	}
+	for _, tc := range []struct {
+		other, added int64
+		valid        bool
+	}{{0, 2400, true}, {2399, 1, true}, {2400, 1, false}, {0, 2401, false}, {0, 0, false}} {
+		if (ValidateDaily(hours.Value(tc.other), hours.Value(tc.added)) == nil) != tc.valid {
+			t.Fatal(tc)
+		}
 	}
 }

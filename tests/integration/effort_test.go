@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -212,5 +211,4 @@ func TestUS16SnapshotsSprintAndStart(t *testing.T) {
 	}
 	expectCode(t, effortRequest(h, "GET", "/api/projects/p/backlog/a/effort-context", ""), 200)
 	expectCode(t, effortRequest(h, "POST", effortPath, effortBody("1")), 409)
-	_ = fmt.Sprint(estimate)
 }
