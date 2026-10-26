@@ -96,6 +96,8 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .planning-poker p { min-height: 1.5em; }
 .planning-poker-result { margin-top: 0.75rem; padding: 0.75rem; border-radius: 0.5rem; background: #f3f7f5; }
 .planning-poker-result ul { margin-bottom: 0; padding-left: 1.5rem; }
+.planning-poker-history article { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #d3ded9; }
+.planning-poker-result h5, .planning-poker-history h5 { margin: 0; }
 .form-error { color: #9b2c2c; }
 
 .secondary-button {

@@ -157,6 +157,53 @@ func TestPlanningPokerVotesAreAttributedAndHiddenUntilFinalization(t *testing.T)
 	if response := performJSONRequest(handler, http.MethodPost, finalizePath, nil); response.Code != http.StatusConflict {
 		t.Fatalf("finalize already-finalized round = %d %s, want conflict", response.Code, response.Body)
 	}
+
+	startedNext := performJSONRequest(handler, http.MethodPost, base, nil)
+	if startedNext.Code != http.StatusCreated {
+		t.Fatalf("start next round after finalization = %d %s, want created", startedNext.Code, startedNext.Body)
+	}
+	var nextRound domainpoker.Round
+	if err := json.Unmarshal(startedNext.Body.Bytes(), &nextRound); err != nil {
+		t.Fatal(err)
+	}
+	if nextRound.Number != 2 || nextRound.Status != domainpoker.RoundOpen || len(nextRound.Participants) != 2 {
+		t.Fatalf("next round = %+v, want round 2 open with both participants", nextRound)
+	}
+	listResponse := performJSONRequest(handler, http.MethodGet, base, nil)
+	var rounds []domainpoker.Round
+	if err := json.Unmarshal(listResponse.Body.Bytes(), &rounds); err != nil {
+		t.Fatal(err)
+	}
+	if listResponse.Code != http.StatusOK || len(rounds) != 2 || rounds[0].Number != 1 || rounds[1].Number != 2 {
+		t.Fatalf("round history = %d %+v, want rounds 1 and 2", listResponse.Code, rounds)
+	}
+	if previous := performJSONRequest(handler, http.MethodGet, resultPath, nil); previous.Code != http.StatusOK {
+		t.Fatalf("previous round result after starting another = %d %s, want OK", previous.Code, previous.Body)
+	}
+	secondRoundVotesPath := base + "/" + nextRound.ID + "/votes?member_id=" + url.QueryEscape(first.ID)
+	if votesResponse := performJSONRequest(handler, http.MethodGet, secondRoundVotesPath, nil); votesResponse.Code != http.StatusOK || votesResponse.Body.String() != "[]\n" {
+		t.Fatalf("new round's votes = %d %s, want empty list", votesResponse.Code, votesResponse.Body)
+	}
+	secondRoundVotePath := base + "/" + nextRound.ID + "/votes/" + first.ID
+	if voteResponse := performJSONRequest(handler, http.MethodPut, secondRoundVotePath, map[string]any{"story_points": 5}); voteResponse.Code != http.StatusOK {
+		t.Fatalf("first vote in new round = %d %s, want OK", voteResponse.Code, voteResponse.Body)
+	}
+	visibleNextVotes := performJSONRequest(handler, http.MethodGet, secondRoundVotesPath, nil)
+	var visibleNext []domainpoker.Vote
+	if err := json.Unmarshal(visibleNextVotes.Body.Bytes(), &visibleNext); err != nil {
+		t.Fatal(err)
+	}
+	if visibleNextVotes.Code != http.StatusOK || len(visibleNext) != 1 || visibleNext[0].MemberID != first.ID {
+		t.Fatalf("new round visible votes = %d %+v, want only the first participant's vote", visibleNextVotes.Code, visibleNext)
+	}
+	secondMemberVotesPath := base + "/" + nextRound.ID + "/votes?member_id=" + url.QueryEscape(second.ID)
+	secondMemberVisible := performJSONRequest(handler, http.MethodGet, secondMemberVotesPath, nil)
+	if secondMemberVisible.Code != http.StatusOK || secondMemberVisible.Body.String() != "[]\n" {
+		t.Fatalf("second participant saw another member's new-round vote: %d %s, want empty list", secondMemberVisible.Code, secondMemberVisible.Body)
+	}
+	if duplicate := performJSONRequest(handler, http.MethodPost, base, nil); duplicate.Code != http.StatusConflict {
+		t.Fatalf("start another round while round 2 is open = %d %s, want conflict", duplicate.Code, duplicate.Body)
+	}
 }
 
 func TestPlanningPokerCannotStartWithoutProjectMembers(t *testing.T) {

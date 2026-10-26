@@ -83,7 +83,7 @@ test("BDD-US-13-02/04: finalizing reveals every vote and displays differences", 
   const widget = context.createPlanningPoker({
     async requestJSON(url, options = {}) {
       if (url.endsWith("/rounds")) {
-        return [{ id: "round-1", status: finalized ? "finalized" : "open", participants: members.map(item => item.id) }];
+        return [{ id: "round-1", number: 1, status: finalized ? "finalized" : "open", participants: members.map(item => item.id) }];
       }
       if (url.endsWith("/members")) return members;
       if (url.includes("/finalize?")) {
@@ -107,8 +107,66 @@ test("BDD-US-13-02/04: finalizing reveals every vote and displays differences", 
   await finalize.listeners.click();
   assert.equal(finalize.hidden, true);
   assert.equal(result.hidden, false);
-  assert.match(result.children[0].textContent, /Hay diferencias/);
-  assert.deepEqual(result.children[1].children.map(item => item.textContent), [
+  assert.equal(result.children[0].textContent, "Ronda 1");
+  assert.match(result.children[1].textContent, /Hay diferencias/);
+  assert.deepEqual(result.children[2].children.map(item => item.textContent), [
+    "Ana: 3 Story Points",
+    "Bea: 8 Story Points",
+  ]);
+});
+
+test("BDD-US-14-01/02: previous results stay visible when a new round starts", async () => {
+  const members = [{ id: "member-1", name: "Ana" }, { id: "member-2", name: "Bea" }];
+  const previousResult = {
+    round: { id: "round-1", number: 1, status: "finalized", participants: members.map(item => item.id) },
+    votes: [
+      { member_id: "member-1", story_points: 3 },
+      { member_id: "member-2", story_points: 8 },
+    ],
+    has_differences: true,
+  };
+  let started = false;
+  const context = vm.createContext({
+    document: { createElement: tag => new Element(tag) },
+    encodeURIComponent,
+    URL,
+  });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../../web/static/js/planning-poker.js"), "utf8"), context);
+  const widget = context.createPlanningPoker({
+    async requestJSON(url, options = {}) {
+      if (url.endsWith("/rounds") && options.method === "POST") {
+        started = true;
+        return { id: "round-2", number: 2, status: "open", participants: members.map(item => item.id) };
+      }
+      if (url.endsWith("/rounds")) {
+        return started
+          ? [previousResult.round, { id: "round-2", number: 2, status: "open", participants: members.map(item => item.id) }]
+          : [{ ...previousResult.round, participants: members.map(item => item.id) }];
+      }
+      if (url.endsWith("/members")) return members;
+      if (url.includes("/round-1/result?")) return previousResult;
+      if (url.includes("/round-2/votes?")) return [];
+      throw new Error(`Unexpected request ${url}`);
+    },
+  });
+
+  const section = widget.createWidget("project-1", { id: "story-1" });
+  await new Promise(resolve => setImmediate(resolve));
+  const [, message, start, form, , result] = section.children;
+  assert.equal(start.hidden, false);
+  assert.equal(start.textContent, "Iniciar nueva ronda");
+  assert.equal(result.hidden, false);
+  assert.equal(result.children[0].textContent, "Ronda 1");
+  assert.match(result.children[1].textContent, /Hay diferencias/);
+
+  await start.listeners.click();
+  assert.equal(start.hidden, true);
+  assert.equal(form.hidden, false);
+  assert.match(message.textContent, /ocultos/);
+  assert.equal(result.hidden, false);
+  const previousRoundCard = result.children[3].children[0];
+  assert.equal(previousRoundCard.children[0].textContent, "Ronda 1");
+  assert.deepEqual(previousRoundCard.children[2].children.map(item => item.textContent), [
     "Ana: 3 Story Points",
     "Bea: 8 Story Points",
   ]);

@@ -196,7 +196,7 @@ Estas decisiones definen el comportamiento funcional del producto. Las fórmulas
 6. **Actualización de Story Points:** el Story Point actual solo se actualiza cuando se registra una estimación acordada mediante Planning Poker.
 7. **Planning Poker:** la votación es individual y oculta; las estimaciones se revelan simultáneamente; se discuten las diferencias; pueden realizarse nuevas rondas; y se registra el valor acordado.
 8. **Diferencia de estimaciones:** existe cuando los valores votados no son todos iguales.
-9. **Estimación acordada:** hay consenso cuando todos los participantes de la ronda votan el mismo valor. Ese valor se registra como Story Point definitivo. Sin consenso, la estimación no se finaliza ni se actualiza el Story Point actual.
+9. **Estimación acordada:** hay consenso cuando todos los participantes de la ronda votan el mismo valor. Ese valor se registra como Story Point definitivo. Una ronda finalizada puede revelar diferencias; sin consenso no se registra un Story Point definitivo y el equipo puede discutir y realizar otra ronda.
 10. **Horas:** las horas estimadas se registran para la User Story durante la planificación; las horas reales provienen del registro de esfuerzo.
 11. **Fórmulas de métricas:** las fórmulas de las métricas obligatorias se definirán explícitamente en sus SDD antes de implementarlas.
 12. **Alcance temporal de las métricas:** se calculan por Sprint y pueden agregarse a nivel proyecto. El conjunto planificado de un Sprint debe preservarse aunque el Backlog cambie posteriormente.
@@ -207,10 +207,11 @@ Estas decisiones definen el comportamiento funcional del producto. Las fórmulas
 17. **Reporte final:** debe poder generarse en PDF e incluir información general del proyecto, Sprints, User Stories, Story Points, horas, métricas, defectos y estado general.
 18. **MVP e identificación:** se identificará a los miembros para Planning Poker y el registro de esfuerzo. No se implementará un sistema complejo de permisos en el MVP.
 19. **Finalización de Planning Poker:** una ronda solo puede finalizarse cuando todos sus participantes registrados ya votaron.
-19. **Participantes de Planning Poker:** todos los miembros registrados del proyecto participan en cada ronda; la ronda conserva la lista de participantes que tenía al abrirse.
-20. **Corrección de voto:** un miembro puede reemplazar su propio voto mientras la ronda permanezca abierta; una ronda finalizada no admite cambios.
+20. **Participantes de Planning Poker:** todos los miembros registrados del proyecto participan en cada ronda; la ronda conserva la lista de participantes que tenía al abrirse.
+21. **Corrección de voto:** un miembro puede reemplazar su propio voto mientras la ronda permanezca abierta; una ronda finalizada no admite cambios.
+22. **Nuevas rondas de Planning Poker:** la siguiente ronda se abre solo después de finalizar la anterior, recibe el número consecutivo y conserva los votos/resultados revelados de las rondas previas.
 
-La especificación de US-12 aplica estas decisiones y usa la identidad seleccionada de la lista del proyecto, como define D-05 de US-03.
+Las especificaciones de US-12 a US-14 aplican estas decisiones y usan la identidad seleccionada de la lista del proyecto, como define D-05 de US-03. Trazabilidad: §2.4 → EP-04 → [US-14 / Issue #14](https://github.com/Aguscampos04/Carva/issues/14) → [SDD-US-14](../sdd/SDD-US-14-discutir-diferencias-nuevas-rondas.md) → [BDD-US-14](../bdd/BDD-US-14-discutir-diferencias-nuevas-rondas.feature).
 
 ### Modificación y finalización del proyecto — US-02 / Issue #2
 
