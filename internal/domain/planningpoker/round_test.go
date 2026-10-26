@@ -61,6 +61,58 @@ func TestRoundFinalizedResultReportsConsensus(t *testing.T) {
 	}
 }
 
+func TestRoundResultAgreedStoryPointsRequiresFinalizedUnanimousVotes(t *testing.T) {
+	round := testRound(t)
+	finalizedResult := func(t *testing.T, points ...int) RoundResult {
+		t.Helper()
+		votes := make([]Vote, len(points))
+		for i, value := range points {
+			votes[i] = Vote{MemberID: round.Participants[i], StoryID: round.StoryID, RoundID: round.ID, StoryPoints: value}
+		}
+		finalized, err := round.Finalize(votes)
+		if err != nil {
+			t.Fatalf("Finalize() error = %v", err)
+		}
+		return finalized
+	}
+	for _, test := range []struct {
+		name      string
+		result    RoundResult
+		want      int
+		wantError error
+	}{
+		{
+			name:   "unanimous zero is a valid agreement",
+			result: finalizedResult(t, 0, 0),
+		},
+		{
+			name:   "unanimous nonzero agreement",
+			result: finalizedResult(t, 5, 5),
+			want:   5,
+		},
+		{
+			name:      "different votes have no agreement",
+			result:    finalizedResult(t, 3, 8),
+			wantError: ErrNoConsensus,
+		},
+		{
+			name:      "open round cannot be agreed",
+			result:    RoundResult{Round: round},
+			wantError: ErrRoundNotFinalized,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := test.result.AgreedStoryPoints()
+			if !errors.Is(err, test.wantError) {
+				t.Fatalf("AgreedStoryPoints() error = %v, want %v", err, test.wantError)
+			}
+			if err == nil && got != test.want {
+				t.Fatalf("AgreedStoryPoints() = %d, want %d", got, test.want)
+			}
+		})
+	}
+}
+
 func TestRoundResultCannotBeReadBeforeFinalization(t *testing.T) {
 	round := testRound(t)
 	_, err := round.Result(nil)

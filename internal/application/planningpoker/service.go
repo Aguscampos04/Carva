@@ -20,6 +20,7 @@ type Repository interface {
 	ListVotes(context.Context, string) ([]domain.Vote, error)
 	FinalizeRound(context.Context, string, string, string) (domain.RoundResult, error)
 	GetRoundResult(context.Context, string, string, string) (domain.RoundResult, error)
+	RegisterAgreement(context.Context, string, string, string, string) (int, error)
 }
 
 // BacklogReader verifies that the story belongs to the requested project.
@@ -152,4 +153,13 @@ func (s Service) RoundResult(ctx context.Context, projectID, storyID, roundID, m
 		return domain.RoundResult{}, fmt.Errorf("get Planning Poker round result: %w", err)
 	}
 	return result, nil
+}
+
+// RegisterAgreement stores the unanimous result as the story's current Story Points.
+func (s Service) RegisterAgreement(ctx context.Context, projectID, storyID, roundID, memberID string) (int, error) {
+	points, err := s.repository.RegisterAgreement(ctx, projectID, storyID, roundID, memberID)
+	if err != nil {
+		return 0, fmt.Errorf("register Planning Poker agreement: %w", err)
+	}
+	return points, nil
 }

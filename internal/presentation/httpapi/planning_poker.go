@@ -19,6 +19,7 @@ type PlanningPokerService interface {
 	VisibleVotes(context.Context, string, string, string, string) ([]domain.Vote, error)
 	FinalizeRound(context.Context, string, string, string, string) (domain.RoundResult, error)
 	RoundResult(context.Context, string, string, string, string) (domain.RoundResult, error)
+	RegisterAgreement(context.Context, string, string, string, string) (int, error)
 }
 
 type planningPokerVoteRequest struct {
@@ -89,6 +90,18 @@ func registerPlanningPokerRoutes(mux *http.ServeMux, service PlanningPokerServic
 		}
 		writeJSON(w, http.StatusOK, result)
 	})
+	mux.HandleFunc("POST "+base+"/rounds/{roundID}/agreement", func(w http.ResponseWriter, r *http.Request) {
+		memberID := r.URL.Query().Get("member_id")
+		if strings.TrimSpace(memberID) == "" {
+			writeError(w, http.StatusBadRequest, "member_id is required")
+			return
+		}
+		points, err := service.RegisterAgreement(r.Context(), r.PathValue("projectID"), r.PathValue("storyID"), r.PathValue("roundID"), memberID)
+		if planningPokerError(w, err) {
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]int{"story_points": points})
+	})
 }
 
 func planningPokerError(w http.ResponseWriter, err error) bool {
@@ -107,6 +120,8 @@ func planningPokerError(w http.ResponseWriter, err error) bool {
 		writeError(w, http.StatusNotFound, "Planning Poker project, story, or round not found")
 	case errors.Is(err, domain.ErrVotesPending):
 		writeError(w, http.StatusConflict, "faltan votos de participantes para finalizar la ronda")
+	case errors.Is(err, domain.ErrNoConsensus):
+		writeError(w, http.StatusConflict, "la ronda no tiene una estimación unánime")
 	case errors.Is(err, domain.ErrRoundNotFinalized):
 		writeError(w, http.StatusConflict, "la ronda todavía no está finalizada")
 	case errors.Is(err, domain.ErrRoundExists), errors.Is(err, domain.ErrRoundNotOpen):

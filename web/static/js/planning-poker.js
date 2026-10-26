@@ -1,6 +1,6 @@
 // US-12: members are selected by their project UUID; open rounds show only the
 // selected member's own vote.
-function createPlanningPoker({ requestJSON }) {
+function createPlanningPoker({ requestJSON, onEstimateRegistered = () => {} }) {
   function createWidget(projectID, story) {
     const section = document.createElement("section");
     section.className = "planning-poker";
@@ -48,14 +48,49 @@ function createPlanningPoker({ requestJSON }) {
     const resultVotes = document.createElement("ul");
     const resultHistory = document.createElement("div");
     resultHistory.className = "planning-poker-history";
-    result.append(resultMessage, resultVotes, resultHistory);
+    const agreement = document.createElement("button");
+    agreement.type = "button";
+    agreement.textContent = "Registrar estimación acordada";
+    agreement.hidden = true;
+    result.append(resultMessage, resultVotes, resultHistory, agreement);
     section.append(title, message, start, form, finalize, result);
 
     let round = null;
     let rounds = [];
     let saving = false;
     let finalizing = false;
+    let registeringAgreement = false;
+    const registeredAgreementRoundIDs = new Set();
     const base = `/api/projects/${encodeURIComponent(projectID)}/backlog/${encodeURIComponent(story.id)}/estimation`;
+
+    async function registerAgreement(targetRound, button, messageElement) {
+      if (registeringAgreement || !memberSelect.value) return;
+      registeringAgreement = true;
+      button.disabled = true;
+      try {
+        const path = `${base}/rounds/${encodeURIComponent(targetRound.id)}/agreement?member_id=${encodeURIComponent(memberSelect.value)}`;
+        const registered = await requestJSON(path, { method: "POST" });
+        registeredAgreementRoundIDs.add(targetRound.id);
+        messageElement.textContent = `No hay diferencias entre las estimaciones. Se registraron ${registered.story_points} Story Points acordados.`;
+        button.hidden = true;
+        await onEstimateRegistered({ storyID: story.id, storyPoints: registered.story_points });
+      } catch (error) {
+        messageElement.textContent = error.message;
+      } finally {
+        registeringAgreement = false;
+        button.disabled = false;
+      }
+    }
+
+    function addAgreementButton(container, targetRound, roundResult, messageElement) {
+      if (roundResult.has_differences) return;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Registrar estimación acordada";
+      button.hidden = registeredAgreementRoundIDs.has(targetRound.id);
+      button.addEventListener("click", () => registerAgreement(targetRound, button, messageElement));
+      container.append(button);
+    }
 
     async function loadOwnVote() {
       if (!round || !memberSelect.value) return;
@@ -84,6 +119,7 @@ function createPlanningPoker({ requestJSON }) {
       messageElement.textContent = roundResult.has_differences
         ? "Hay diferencias entre las estimaciones."
         : "No hay diferencias entre las estimaciones.";
+      agreement.hidden = roundResult.has_differences || registeredAgreementRoundIDs.has(targetRound.id);
     }
 
     async function loadFinalizedHistory(excludedRoundID, memberNames) {
@@ -108,6 +144,7 @@ function createPlanningPoker({ requestJSON }) {
           votes.append(item);
         }
         card.append(heading, summary, votes);
+        addAgreementButton(card, previousRound, previousResult, summary);
         resultHistory.append(card);
       }
       return resultHistory.children.length > 0;
@@ -118,6 +155,7 @@ function createPlanningPoker({ requestJSON }) {
       form.hidden = true;
       finalize.hidden = true;
       result.hidden = true;
+      agreement.hidden = true;
       resultHeading.textContent = "";
       resultMessage.textContent = "";
       resultVotes.replaceChildren();
@@ -195,6 +233,11 @@ function createPlanningPoker({ requestJSON }) {
         finalizing = false;
         finalize.disabled = false;
       }
+    });
+
+    agreement.addEventListener("click", async () => {
+      if (!round) return;
+      await registerAgreement(round, agreement, resultMessage);
     });
 
     memberSelect.addEventListener("change", () => {

@@ -231,3 +231,126 @@ func TestPlanningPokerCannotStartWithoutProjectMembers(t *testing.T) {
 		t.Fatalf("start without members = %d %s, want unprocessable entity", response.Code, response.Body)
 	}
 }
+
+func TestPlanningPokerRegistersOnlyFinalizedUnanimousAgreement(t *testing.T) {
+	_, db := openMigratedProjectDB(t)
+	ctx := context.Background()
+	projectService := projects.NewService(sqlite.NewProjectRepository(db))
+	projectValue, err := projectService.Create(ctx, "Consensus")
+	if err != nil {
+		t.Fatal(err)
+	}
+	backlogRepository := sqlite.NewBacklogRepository(db)
+	backlogService := appbacklog.NewService(backlogRepository)
+	provisional := 2
+	item, err := backlogService.Create(ctx, projectValue.ID, domainbacklog.Input{
+		Title: "Search", Description: "A member can search", Priority: domainbacklog.PriorityHigh,
+		ProvisionalStoryPoints: &provisional, AcceptanceCriteria: []string{"A result is shown"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	memberService := members.NewService(sqlite.NewMemberRepository(db))
+	first, err := memberService.Create(ctx, projectValue.ID, "Ana")
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := memberService.Create(ctx, projectValue.ID, "Bea")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := appplanningpoker.NewService(sqlite.NewPlanningPokerRepository(db), backlogRepository, memberService)
+	handler := httpapi.NewHandlerWithPlanningPoker(projectService, backlogService, nil, service, memberService)
+	base := "/api/projects/" + projectValue.ID + "/backlog/" + item.ID + "/estimation/rounds"
+	startRound := func() domainpoker.Round {
+		t.Helper()
+		response := performJSONRequest(handler, http.MethodPost, base, nil)
+		if response.Code != http.StatusCreated {
+			t.Fatalf("start round = %d %s", response.Code, response.Body)
+		}
+		var round domainpoker.Round
+		if err := json.Unmarshal(response.Body.Bytes(), &round); err != nil {
+			t.Fatal(err)
+		}
+		return round
+	}
+	cast := func(round domainpoker.Round, memberID string, points int) {
+		t.Helper()
+		path := base + "/" + round.ID + "/votes/" + memberID
+		if response := performJSONRequest(handler, http.MethodPut, path, map[string]any{"story_points": points}); response.Code != http.StatusOK {
+			t.Fatalf("record vote = %d %s", response.Code, response.Body)
+		}
+	}
+	finalize := func(round domainpoker.Round) {
+		t.Helper()
+		path := base + "/" + round.ID + "/finalize?member_id=" + url.QueryEscape(first.ID)
+		if response := performJSONRequest(handler, http.MethodPost, path, nil); response.Code != http.StatusOK {
+			t.Fatalf("finalize round = %d %s", response.Code, response.Body)
+		}
+	}
+	register := func(round domainpoker.Round, memberID string) *httptest.ResponseRecorder {
+		t.Helper()
+		path := base + "/" + round.ID + "/agreement?member_id=" + url.QueryEscape(memberID)
+		return performJSONRequest(handler, http.MethodPost, path, nil)
+	}
+	readStory := func() domainbacklog.Item {
+		t.Helper()
+		items, err := backlogService.List(ctx, projectValue.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(items) != 1 {
+			t.Fatalf("backlog items = %d, want 1", len(items))
+		}
+		return items[0]
+	}
+
+	unanimous := startRound()
+	cast(unanimous, first.ID, 5)
+	cast(unanimous, second.ID, 5)
+	finalize(unanimous)
+	if story := readStory(); story.StoryPoints != nil {
+		t.Fatalf("finalizing an unanimous round changed Story Points before explicit registration: %+v", story)
+	}
+	response := register(unanimous, first.ID)
+	if response.Code != http.StatusOK {
+		t.Fatalf("register unanimous agreement = %d %s, want OK", response.Code, response.Body)
+	}
+	var agreement map[string]int
+	if err := json.Unmarshal(response.Body.Bytes(), &agreement); err != nil {
+		t.Fatal(err)
+	}
+	if agreement["story_points"] != 5 {
+		t.Fatalf("agreement response = %+v, want story_points 5", agreement)
+	}
+	if story := readStory(); story.StoryPoints == nil || *story.StoryPoints != 5 || story.ProvisionalStoryPoints == nil || *story.ProvisionalStoryPoints != provisional {
+		t.Fatalf("story after agreement = %+v, want definitive 5 and provisional 2", story)
+	}
+
+	different := startRound()
+	cast(different, first.ID, 3)
+	cast(different, second.ID, 8)
+	finalize(different)
+	if response := register(different, first.ID); response.Code != http.StatusConflict {
+		t.Fatalf("register differing votes = %d %s, want conflict", response.Code, response.Body)
+	}
+	if story := readStory(); story.StoryPoints == nil || *story.StoryPoints != 5 {
+		t.Fatalf("non-unanimous round changed current Story Points: %+v", story)
+	}
+
+	open := startRound()
+	if story := readStory(); story.StoryPoints == nil || *story.StoryPoints != 5 {
+		t.Fatalf("starting a new round changed current Story Points: %+v", story)
+	}
+	cast(open, first.ID, 7)
+	cast(open, second.ID, 7)
+	if response := register(open, first.ID); response.Code != http.StatusConflict {
+		t.Fatalf("register open round = %d %s, want conflict", response.Code, response.Body)
+	}
+	if response := register(unanimous, "not-a-participant"); response.Code != http.StatusBadRequest {
+		t.Fatalf("register as nonparticipant = %d %s, want bad request", response.Code, response.Body)
+	}
+	if story := readStory(); story.StoryPoints == nil || *story.StoryPoints != 5 {
+		t.Fatalf("invalid agreement changed current Story Points: %+v", story)
+	}
+}
