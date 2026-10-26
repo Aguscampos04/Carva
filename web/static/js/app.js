@@ -9,6 +9,7 @@ const backlogMessage = document.querySelector("#backlog-message");
 const backlogItems = document.querySelector("#backlog-items");
 let currentProjectID = "";
 let projectRequest = 0;
+let backlogRequest = 0;
 const sprintHistory = createSprintHistory({
   form: document.querySelector("#sprint-history-form"),
   projectInput: document.querySelector("#history-project-id"),
@@ -42,10 +43,12 @@ const membersUI = createMembersSection({
   submit: document.querySelector("#register-member"),
   requestJSON,
 });
+const effortUI = createEffort({requestJSON,confirmDelete: text => window.confirm(text),onChanged: () => loadBacklog()});
 const planningPokerUI = createPlanningPoker({ requestJSON, onEstimateRegistered: () => loadBacklog() });
 
 function showProject(project) {
   ++projectRequest;
+  effortUI.invalidate();
   currentProjectID = project.id;
   document.querySelector("#project-name-result").textContent = project.name;
   document.querySelector("#project-id-result").textContent = project.id;
@@ -63,7 +66,7 @@ function showProject(project) {
 
 async function requestJSON(url, options = {}) {
   const response = await fetch(url, options);
-  const result = await response.json();
+  const result = response.status === 204 ? null : parseHoursJSON(await response.text());
   if (!response.ok) throw new Error(result.error || "No se pudo completar la operación.");
   return result;
 }
@@ -78,10 +81,11 @@ async function loadBacklog() {
   backlogItems.replaceChildren();
   try {
     const items = await requestJSON(backlogPath());
+    if (currentProjectID !== selectedProject || request !== backlogRequest) return;
     renderBacklog(items);
     backlogMessage.textContent = items.length === 0 ? "Todavía no hay User Stories." : `${items.length} User Stories.`;
   } catch (error) {
-    backlogMessage.textContent = error.message;
+    if (currentProjectID === selectedProject && request === backlogRequest) backlogMessage.textContent = error.message;
   }
 }
 
@@ -107,6 +111,8 @@ function createBacklogCard(item) {
   } else {
     addDetail(detailsList, "Story Points", "Sin estimar");
   }
+  addDetail(detailsList, "Horas estimadas", item.estimated_hours ?? "Pendiente de regularizaci�n");
+  addDetail(detailsList, "Horas reales", item.actual_hours);
   addDetail(detailsList, "Identificador", item.id);
 
   const criteriaTitle = document.createElement("h4");
@@ -124,7 +130,7 @@ function createBacklogCard(item) {
   editButton.addEventListener("click", () => {
     card.replaceChildren(title, description, detailsList, criteriaTitle, criteria, createEditForm(item));
   });
-  card.append(title, description, detailsList, criteriaTitle, criteria, editButton, planningPokerUI.createWidget(currentProjectID, item));
+  card.append(title, description, detailsList, criteriaTitle, criteria, editButton, planningPokerUI.createWidget(currentProjectID, item), effortUI.createWidget({id:currentProjectID}, item));
   return card;
 }
 
@@ -150,6 +156,8 @@ function createEditForm(item) {
     option.textContent = value;
     priority.append(option);
   }
+  const estimated = addFormField(editForm, item, "estimated_hours", "Horas estimadas", "input", item.estimated_hours ?? "");
+  estimated.type="number"; estimated.min="0.01"; estimated.step="0.01"; estimated.required=true;
   const points = addFormField(editForm, item, "provisional_story_points", "Story Points provisionales", "input", item.provisional_story_points ?? "");
   points.type = "number";
   points.min = "0";
@@ -175,7 +183,7 @@ function createEditForm(item) {
       await requestJSON(`${backlogPath()}/${encodeURIComponent(item.id)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(readBacklogFields(editForm)),
+        body: exactHoursJSON(readBacklogFields(editForm),["estimated_hours"]),
       });
       await loadBacklog();
     } catch (cause) {
@@ -202,6 +210,7 @@ function readBacklogFields(formElement) {
   const data = new FormData(formElement);
   const pointText = data.get("provisional_story_points");
   return {
+    estimated_hours: data.get("estimated_hours"),
     title: data.get("title"),
     description: data.get("description"),
     priority: data.get("priority"),
@@ -257,7 +266,7 @@ backlogForm.addEventListener("submit", async (event) => {
     await requestJSON(backlogPath(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(readBacklogFields(backlogForm)),
+      body: exactHoursJSON(readBacklogFields(backlogForm),["estimated_hours"]),
     });
     backlogForm.reset();
     document.querySelector("#backlog-priority-input").value = "Alta";

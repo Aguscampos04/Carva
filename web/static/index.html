@@ -9,6 +9,7 @@
     <script src="/js/projects.js" defer></script>
     <script src="/js/sprint-history.js" defer></script>
     <script src="/js/planning-poker.js" defer></script>
+    <script src="/js/effort.js" defer></script>
     <script src="/js/app.js" defer></script>
   </head>
   <body>
@@ -88,6 +89,8 @@
             <option value="Media">Media</option>
             <option value="Baja">Baja</option>
           </select>
+          <label for="backlog-hours-input">Horas estimadas</label>
+          <input id="backlog-hours-input" name="estimated_hours" type="number" min="0.01" step="0.01" required>
           <label for="backlog-points-input">Story Points provisionales (opcional)</label>
           <input id="backlog-points-input" name="provisional_story_points" type="number" min="0" step="1">
           <label for="backlog-criteria-input">Criterios de aceptación (uno por línea)</label>
