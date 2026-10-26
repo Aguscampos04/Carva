@@ -71,3 +71,21 @@ test('BDD 39: stale responses cannot populate changed project',async()=>{
  const loading=button(e.widget,'Registrar y consultar esfuerzo').listeners.click();e.ui.invalidate();resolve({});await loading;
  assert.equal(all(e.widget).some(n=>n.tagName==='form'),false);
 });
+test('BDD 39: save errors keep the effort draft and never show a phantom entry',async()=>{
+ const api=fakeAPI();const e=setup((url,options={})=>options.method?Promise.reject(new Error('Storage unavailable')):api.api(url,options));
+ await button(e.widget,'Registrar y consultar esfuerzo').listeners.click();
+ const f=fields(e.widget);f.member_id.value='m';f.activity.value='Draft';f.hours.value='1.25';
+ await all(e.widget).find(n=>n.tagName==='form').listeners.submit({preventDefault(){}});
+ assert.equal(f.activity.value,'Draft');assert.equal(f.hours.value,'1.25');assert.equal(e.changed(),0);
+ assert(all(e.widget).some(n=>n.textContent==='Storage unavailable'));
+ assert.equal(button(e.widget,'Guardar esfuerzo').disabled,false);
+});
+test('BDD 07: double submit sends only one effort request while pending',async()=>{
+ const api=fakeAPI();let finish,posts=0;
+ const e=setup((url,options={})=>{if(options.method){posts++;return new Promise(r=>finish=r)}return api.api(url,options)});
+ await button(e.widget,'Registrar y consultar esfuerzo').listeners.click();
+ const f=fields(e.widget);f.member_id.value='m';f.activity.value='Review';f.hours.value='1';
+ const submit=all(e.widget).find(n=>n.tagName==='form').listeners.submit;
+ const pending=submit({preventDefault(){}});await submit({preventDefault(){}});
+ assert.equal(posts,1);finish({});await pending;assert.equal(e.changed(),1);
+});
