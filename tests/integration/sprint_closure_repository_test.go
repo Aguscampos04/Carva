@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"reflect"
 	"strconv"
 	"testing"
@@ -168,7 +169,7 @@ func newSprintClosureFixture(t *testing.T) *sprintClosureFixture {
 
 func (fixture *sprintClosureFixture) createStory(t *testing.T, title string) backlogdomain.Item {
 	t.Helper()
-	item, err := fixture.backlog.Create(context.Background(), fixture.projectID, backlogdomain.Input{
+	item, err := fixture.backlog.Create(context.Background(), fixture.projectID, backlogdomain.Input{EstimatedHours: hours.Ptr(800),
 		Title: title, Description: "Description", Priority: backlogdomain.PriorityHigh, AcceptanceCriteria: []string{"Done"},
 	})
 	if err != nil {

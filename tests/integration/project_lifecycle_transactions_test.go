@@ -216,6 +216,7 @@ func TestProjectSprintCreationWinsBeforeFinalization(t *testing.T) {
 		t.Fatal(err)
 	}
 	entered, release := make(chan struct{}), make(chan struct{})
+	var enteredOnce sync.Once
 	created := make(chan error, 1)
 	value, err := sprint.New(p.ID, "First")
 	if err != nil {
@@ -223,7 +224,7 @@ func TestProjectSprintCreationWinsBeforeFinalization(t *testing.T) {
 	}
 	go func() {
 		_, err := sqlite.NewSprintRepository(db).Create(context.Background(), value, func(current project.Project) (project.Project, error) {
-			close(entered)
+			enteredOnce.Do(func() { close(entered) })
 			<-release
 			if err := current.CanCreateSprint(); err != nil {
 				return project.Project{}, err
@@ -260,10 +261,11 @@ func TestProjectConcurrentFutureStartAndFinalization(t *testing.T) {
 		url := "/api/projects/" + p["id"].(string)
 		repo := sqlite.NewProjectRepository(db)
 		entered, release := make(chan struct{}), make(chan struct{})
+		var enteredOnce sync.Once
 		done := make(chan error, 1)
 		go func() {
 			_, err := repo.Mutate(context.Background(), p["id"].(string), func(current project.Project) (project.Project, error) {
-				close(entered)
+				enteredOnce.Do(func() { close(entered) })
 				<-release
 				if editFirst {
 					return current.Edit(project.Patch{HasStartDate: true, StartDate: project.Date("2026-10-21")})

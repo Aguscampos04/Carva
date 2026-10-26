@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"errors"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"reflect"
 	"testing"
 
@@ -99,7 +100,7 @@ func TestBacklogRejectsUpdatingAnItemThroughAnotherProject(t *testing.T) {
 }
 
 func backlogInput() domain.Input {
-	return domain.Input{
+	return domain.Input{EstimatedHours: hours.Ptr(800),
 		Title: "Login", Description: "User can sign in", Priority: domain.PriorityHigh,
 		AcceptanceCriteria: []string{"Valid credentials grant access"},
 	}

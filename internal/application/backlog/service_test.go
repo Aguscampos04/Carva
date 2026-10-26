@@ -3,6 +3,7 @@ package backlog
 import (
 	"context"
 	"errors"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"reflect"
 	"testing"
 
@@ -78,7 +79,7 @@ func TestServiceListsOnlyItemsForExistingProject(t *testing.T) {
 }
 
 func validInput() domain.Input {
-	return domain.Input{
+	return domain.Input{EstimatedHours: hours.Ptr(800),
 		Title: "Login", Description: "User can sign in", Priority: domain.PriorityMedium,
 		AcceptanceCriteria: []string{"Valid credentials grant access"},
 	}
@@ -129,4 +130,16 @@ func (r *memoryRepository) ListByProject(_ context.Context, projectID string) ([
 		}
 	}
 	return result, nil
+}
+
+func (r *memoryRepository) Mutate(ctx context.Context, pid, id string, change func(domain.Item) (domain.Item, error)) (domain.Item, error) {
+	current, err := r.FindByID(ctx, pid, id)
+	if err != nil {
+		return current, err
+	}
+	next, err := change(current)
+	if err != nil {
+		return next, err
+	}
+	return next, r.Update(ctx, next)
 }

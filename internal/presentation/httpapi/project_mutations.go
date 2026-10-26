@@ -132,7 +132,7 @@ func writeProjectMutationError(w http.ResponseWriter, err error, fallback string
 		writeError(w, 400, err.Error())
 	case errors.Is(err, project.ErrNotFound):
 		writeError(w, 404, "project not found")
-	case errors.Is(err, project.ErrStartAfterToday), errors.Is(err, project.ErrFinalized):
+	case errors.Is(err, project.ErrEffortDates), errors.Is(err, project.ErrStartAfterToday), errors.Is(err, project.ErrFinalized):
 		writeError(w, 409, err.Error())
 	case errors.Is(err, projects.ErrBusy):
 		writeError(w, 503, projects.ErrBusy.Error())

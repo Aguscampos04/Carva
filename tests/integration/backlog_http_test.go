@@ -23,7 +23,7 @@ func TestBacklogHTTPCreateUpdateAndConsult(t *testing.T) {
 	provisional := 5
 	createBody := map[string]any{
 		"title": "Login", "description": "A member can sign in", "priority": string(domain.PriorityHigh),
-		"provisional_story_points": provisional, "acceptance_criteria": []string{"Valid credentials grant access"},
+		"provisional_story_points": provisional, "estimated_hours": 8, "acceptance_criteria": []string{"Valid credentials grant access"},
 	}
 	createdResponse := performJSONRequest(handler, http.MethodPost, "/api/projects/"+projectID+"/backlog", createBody)
 	if createdResponse.Code != http.StatusCreated {
@@ -42,7 +42,7 @@ func TestBacklogHTTPCreateUpdateAndConsult(t *testing.T) {
 
 	updateBody := map[string]any{
 		"title": "Updated login", "description": "Updated description", "priority": string(domain.PriorityMedium),
-		"provisional_story_points": provisional, "acceptance_criteria": []string{"Updated criterion"}, "status": string(domain.Completed),
+		"provisional_story_points": provisional, "estimated_hours": 8, "acceptance_criteria": []string{"Updated criterion"}, "status": string(domain.Completed),
 		"story_points": 99, "id": "client-id", "project_id": "other-project",
 	}
 	updatedResponse := performJSONRequest(handler, http.MethodPut, "/api/projects/"+projectID+"/backlog/"+created.ID, updateBody)
@@ -90,13 +90,13 @@ func TestBacklogHTTPValidationAndScopedUpdate(t *testing.T) {
 	_, db := openMigratedProjectDB(t)
 	handler, projectID := newBacklogHTTPHandler(t, db)
 	invalid := performJSONRequest(handler, http.MethodPost, "/api/projects/"+projectID+"/backlog", map[string]any{
-		"title": " ", "description": "Description", "priority": "Alta", "acceptance_criteria": []string{"criterion"},
+		"title": " ", "description": "Description", "priority": "Alta", "estimated_hours": 8, "acceptance_criteria": []string{"criterion"},
 	})
 	if invalid.Code != http.StatusBadRequest {
 		t.Errorf("invalid POST status = %d, want %d", invalid.Code, http.StatusBadRequest)
 	}
 	created := performJSONRequest(handler, http.MethodPost, "/api/projects/"+projectID+"/backlog", map[string]any{
-		"title": "Login", "description": "Description", "priority": "Alta", "acceptance_criteria": []string{"criterion"},
+		"title": "Login", "description": "Description", "priority": "Alta", "estimated_hours": 8, "acceptance_criteria": []string{"criterion"},
 	})
 	var item domain.Item
 	if err := json.NewDecoder(created.Body).Decode(&item); err != nil {
@@ -107,7 +107,7 @@ func TestBacklogHTTPValidationAndScopedUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 	otherProjectUpdate := performJSONRequest(handler, http.MethodPut, "/api/projects/"+otherProject.ID+"/backlog/"+item.ID, map[string]any{
-		"title": "Wrong project", "description": "Description", "priority": "Alta", "acceptance_criteria": []string{"criterion"},
+		"title": "Wrong project", "description": "Description", "priority": "Alta", "estimated_hours": 8, "acceptance_criteria": []string{"criterion"},
 	})
 	if otherProjectUpdate.Code != http.StatusNotFound {
 		t.Errorf("cross-project PUT status = %d, want %d", otherProjectUpdate.Code, http.StatusNotFound)

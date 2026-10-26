@@ -3,6 +3,7 @@ package backlog
 
 import (
 	"errors"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"strings"
 )
 
@@ -40,24 +41,27 @@ var (
 
 // Input contains the fields users can edit through US-05.
 type Input struct {
-	Title                  string   `json:"title"`
-	Description            string   `json:"description"`
-	Priority               Priority `json:"priority"`
-	ProvisionalStoryPoints *int     `json:"provisional_story_points"`
-	AcceptanceCriteria     []string `json:"acceptance_criteria"`
+	EstimatedHours         *hours.Value `json:"estimated_hours"`
+	Title                  string       `json:"title"`
+	Description            string       `json:"description"`
+	Priority               Priority     `json:"priority"`
+	ProvisionalStoryPoints *int         `json:"provisional_story_points"`
+	AcceptanceCriteria     []string     `json:"acceptance_criteria"`
 }
 
 // Item is a User Story stored in a project's Product Backlog.
 type Item struct {
-	ID                     string   `json:"id"`
-	ProjectID              string   `json:"project_id"`
-	Title                  string   `json:"title"`
-	Description            string   `json:"description"`
-	Priority               Priority `json:"priority"`
-	Status                 Status   `json:"status"`
-	ProvisionalStoryPoints *int     `json:"provisional_story_points"`
-	StoryPoints            *int     `json:"story_points"`
-	AcceptanceCriteria     []string `json:"acceptance_criteria"`
+	EstimatedHours         *hours.Value `json:"estimated_hours"`
+	ActualHours            hours.Value  `json:"actual_hours"`
+	ID                     string       `json:"id"`
+	ProjectID              string       `json:"project_id"`
+	Title                  string       `json:"title"`
+	Description            string       `json:"description"`
+	Priority               Priority     `json:"priority"`
+	Status                 Status       `json:"status"`
+	ProvisionalStoryPoints *int         `json:"provisional_story_points"`
+	StoryPoints            *int         `json:"story_points"`
+	AcceptanceCriteria     []string     `json:"acceptance_criteria"`
 }
 
 // New creates a pending Backlog item after validating its editable fields.
@@ -74,6 +78,7 @@ func New(id, projectID string, input Input) (Item, error) {
 
 	return Item{
 		ID:                     id,
+		EstimatedHours:         cloneHours(input.EstimatedHours),
 		ProjectID:              projectID,
 		Title:                  input.Title,
 		Description:            input.Description,
@@ -95,6 +100,7 @@ func (item Item) Update(input Input) (Item, error) {
 		return Item{}, ErrEstimateFinalized
 	}
 
+	item.EstimatedHours = cloneHours(input.EstimatedHours)
 	item.Title = input.Title
 	item.Description = input.Description
 	item.Priority = input.Priority
@@ -127,6 +133,9 @@ func validate(input Input) error {
 	if input.ProvisionalStoryPoints != nil && *input.ProvisionalStoryPoints < 0 {
 		return ErrInvalidProvisionalStoryPoints
 	}
+	if input.EstimatedHours == nil || *input.EstimatedHours <= 0 {
+		return hours.ErrInvalid
+	}
 	if len(input.AcceptanceCriteria) == 0 {
 		return ErrInvalidAcceptanceCriteria
 	}
@@ -151,4 +160,11 @@ func equalInt(left, right *int) bool {
 		return left == nil && right == nil
 	}
 	return *left == *right
+}
+
+func cloneHours(v *hours.Value) *hours.Value {
+	if v == nil {
+		return nil
+	}
+	return hours.Ptr(*v)
 }

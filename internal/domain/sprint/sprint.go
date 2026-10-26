@@ -3,6 +3,7 @@ package sprint
 
 import (
 	"errors"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"strings"
 
 	"github.com/Aguscampos04/Carva/internal/domain/backlog"
@@ -38,17 +39,18 @@ func (value Sprint) Close() (Sprint, error) {
 
 // PlannedBacklogItem is the immutable planning-time copy of a Backlog item.
 type PlannedBacklogItem struct {
-	SprintID                   int64    `json:"sprint_id"`
-	BacklogItemID              string   `json:"backlog_item_id"`
-	Title                      string   `json:"title"`
-	Description                string   `json:"description"`
-	Priority                   string   `json:"priority"`
-	Status                     string   `json:"status"`
-	PlannedStatus              string   `json:"planned_status"`
-	AcceptanceCriteriaVerified bool     `json:"acceptance_criteria_verified"`
-	ProvisionalStoryPoints     *int     `json:"provisional_story_points"`
-	StoryPoints                *int     `json:"story_points"`
-	AcceptanceCriteria         []string `json:"acceptance_criteria"`
+	EstimatedHours             *hours.Value `json:"estimated_hours"`
+	SprintID                   int64        `json:"sprint_id"`
+	BacklogItemID              string       `json:"backlog_item_id"`
+	Title                      string       `json:"title"`
+	Description                string       `json:"description"`
+	Priority                   string       `json:"priority"`
+	Status                     string       `json:"status"`
+	PlannedStatus              string       `json:"planned_status"`
+	AcceptanceCriteriaVerified bool         `json:"acceptance_criteria_verified"`
+	ProvisionalStoryPoints     *int         `json:"provisional_story_points"`
+	StoryPoints                *int         `json:"story_points"`
+	AcceptanceCriteria         []string     `json:"acceptance_criteria"`
 }
 
 // Snapshot captures a Backlog item's planning fields for a Sprint.
@@ -61,6 +63,7 @@ func Snapshot(sprintID int64, item backlog.Item) (PlannedBacklogItem, error) {
 	}
 	return PlannedBacklogItem{
 		SprintID:               sprintID,
+		EstimatedHours:         item.EstimatedHours,
 		BacklogItemID:          item.ID,
 		Title:                  item.Title,
 		Description:            item.Description,
