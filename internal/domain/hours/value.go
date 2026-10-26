@@ -21,11 +21,12 @@ func (v *Value) UnmarshalJSON(data []byte) error {
 	}
 	whole, frac, _ := strings.Cut(raw, ".")
 	frac += strings.Repeat("0", 2-len(frac))
-	n, err := strconv.ParseInt(strings.TrimLeft(whole+frac, "0"), 10, 64)
-	if whole+frac == "000" || strings.TrimLeft(whole+frac, "0") == "" {
-		n = 0
-		err = nil
+	centText := strings.TrimLeft(whole+frac, "0")
+	if centText == "" {
+		*v = 0
+		return nil
 	}
+	n, err := strconv.ParseInt(centText, 10, 64)
 	if err != nil {
 		return ErrInvalid
 	}

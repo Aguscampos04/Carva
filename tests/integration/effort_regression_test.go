@@ -73,6 +73,7 @@ func TestUS16FinalizedEffort(t *testing.T) {
 	for _, date := range []string{"2026-10-21", "2026-09-30", "2026-10-27"} {
 		expectCode(t, effortRequest(h, "PUT", "/api/projects/p/effort/"+id, strings.TrimSuffix(strings.Replace(body, "2026-10-20", date, 1), "}")+`,"backlog_item_id":"a"}`), 409)
 	}
+	expectCode(t, effortRequest(h, "PUT", "/api/projects/p/effort/"+id, strings.TrimSuffix(body, "}")+`,"backlog_item_id":"a"}`), 200)
 	execEffortSQL(t, db, "UPDATE projects SET end_date=NULL WHERE id='p'")
 	expectCode(t, effortRequest(h, "PUT", "/api/projects/p/effort/"+id, strings.TrimSuffix(body, "}")+`,"backlog_item_id":"a"}`), 409)
 	expectCode(t, effortRequest(h, "GET", "/api/projects/p/effort/"+id, ""), 200)
@@ -173,6 +174,9 @@ func TestUS16HistoricalMigrationAndReopen(t *testing.T) {
 		execEffortSQL(t, db, `INSERT INTO carva_schema_migrations(version,name)VALUES(?,?)`, n, name)
 	}
 	seedEffort(t, db)
+	execEffortSQL(t, db, `INSERT INTO sprints(id,project_id,goal,closed)VALUES(1,'p','archived',1),(2,'p','open',0);
+ INSERT INTO sprint_backlog_items(sprint_id,backlog_item_id,title,description,priority,status,acceptance_criteria)
+ SELECT s.id,'a','Original','Original','Alta','Pendiente','["original"]' FROM sprints s WHERE s.project_id='p'`)
 	for range 2 {
 		if err := sqlite.Migrate(context.Background(), db); err != nil {
 			t.Fatal(err)
@@ -198,6 +202,9 @@ func TestUS16HistoricalMigrationAndReopen(t *testing.T) {
 	}
 	var count int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM effort_entries WHERE id=? AND deleted_at IS NOT NULL`, id).Scan(&count); err != nil || count != 1 {
+		t.Fatal(count, err)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM sprint_backlog_items WHERE backlog_item_id='a' AND estimated_hours_hundredths=425 AND title='Original' AND acceptance_criteria='["original"]'`).Scan(&count); err != nil || count != 2 {
 		t.Fatal(count, err)
 	}
 }
@@ -283,7 +290,7 @@ func TestUS16ConcurrentLifecycle(t *testing.T) {
 
 // BDD 29/34/37: use actual application operations for assignment, transfer, agreement and completion.
 func TestUS16ConcurrentPlanning(t *testing.T) {
-	for _, operation := range []string{"assign", "transfer", "agreement", "complete"} {
+	for _, operation := range []string{"assign", "transfer", "transfer-existing", "agreement", "complete"} {
 		t.Run(operation, func(t *testing.T) {
 			path, db := openMigratedProjectDB(t)
 			seedEffort(t, db)
@@ -300,6 +307,16 @@ func TestUS16ConcurrentPlanning(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
+			if operation != "assign" {
+				w := effortRequest(effortHandler(db), "POST", effortPath, strings.TrimSuffix(effortBody("1"), "}")+`,"sprint_id":1}`)
+				expectCode(t, w, 201)
+			}
+			if operation == "transfer-existing" {
+				if _, err := ss.AssignBacklogItem(context.Background(), "p", 2, "a"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			ss = sprints.NewService(sqlite.NewSprintRepository(other), sqlite.NewBacklogRepository(other))
 			execEffortSQL(t, db, `INSERT INTO estimation_rounds VALUES('r','p','a',1,'finalized'); INSERT INTO estimation_round_participants VALUES('r','m'); INSERT INTO estimation_votes VALUES('r','m',5)`)
 			codes := concurrentEffort(t, func() int {
 				return effortRequest(effortHandler(db), "PUT", "/api/projects/p/backlog/a", estimateBody).Code
@@ -308,7 +325,7 @@ func TestUS16ConcurrentPlanning(t *testing.T) {
 				switch operation {
 				case "assign":
 					_, err = ss.AssignBacklogItem(context.Background(), "p", 1, "a")
-				case "transfer":
+				case "transfer", "transfer-existing":
 					_, err = ss.Close(context.Background(), "p", 1)
 				case "complete":
 					_, err = ss.CompleteBacklogItem(context.Background(), "p", 1, "a", true)
@@ -326,6 +343,12 @@ func TestUS16ConcurrentPlanning(t *testing.T) {
 			var bad int
 			if err := db.QueryRow(`SELECT COUNT(*) FROM sprint_backlog_items WHERE backlog_item_id='a' AND (estimated_hours_hundredths IS NULL OR estimated_hours_hundredths<>425)`).Scan(&bad); err != nil || bad != 0 {
 				t.Fatal(bad, err)
+			}
+			if operation != "assign" {
+				var associated int
+				if err := db.QueryRow(`SELECT sprint_id FROM effort_entries WHERE project_id='p' AND backlog_item_id='a'`).Scan(&associated); err != nil || associated != 1 || activeTotal(t, db, "a") != 100 {
+					t.Fatal(associated, err)
+				}
 			}
 			value, err := appbacklog.NewService(br).Get(context.Background(), "p", "a")
 			if err != nil {
@@ -358,5 +381,35 @@ func TestUS16BoundedContention(t *testing.T) {
 	expectCode(t, effortRequest(effortHandler(db), "POST", effortPath, effortBody("1")), 503)
 	if time.Since(start) > 8*time.Second {
 		t.Fatal("unbounded wait")
+	}
+}
+
+// BDD 10/12/27: every scope is resolved by identity in the route's project.
+func TestUS16ScopedResources(t *testing.T) {
+	_, db := openMigratedProjectDB(t)
+	seedEffort(t, db)
+	h := effortHandler(db)
+	execEffortSQL(t, db, `INSERT INTO sprints(id,project_id,goal)VALUES(1,'p','unassigned'),(2,'q','foreign')`)
+	for _, tc := range []struct {
+		path, body string
+		want       int
+	}{
+		{effortPath, strings.Replace(effortBody("1"), `"m"`, `"missing"`, 1), 404},
+		{effortPath, strings.TrimSuffix(effortBody("1"), "}") + `,"sprint_id":1}`, 409},
+		{effortPath, strings.TrimSuffix(effortBody("1"), "}") + `,"sprint_id":2}`, 404},
+		{effortPath, strings.TrimSuffix(effortBody("1"), "}") + `,"sprint_id":999}`, 404},
+		{"/api/projects/p/backlog/c/effort", effortBody("1"), 404},
+		{"/api/projects/missing/backlog/a/effort", effortBody("1"), 404},
+		{effortPath, strings.TrimSuffix(effortBody("1"), "}") + `,"project_id":"q"}`, 400},
+	} {
+		expectCode(t, effortRequest(h, "POST", tc.path, tc.body), tc.want)
+	}
+	w := effortRequest(h, "POST", effortPath, effortBody("1"))
+	expectCode(t, w, 201)
+	id := readObject(t, w)["id"].(string)
+	expectCode(t, effortRequest(h, "PUT", "/api/projects/p/effort/"+id, strings.TrimSuffix(effortBody("1"), "}")+`,"backlog_item_id":"c"}`), 404)
+	expectCode(t, effortRequest(h, "POST", "/api/projects/q/effort/"+id+"/delete", `{"confirmed":true}`), 404)
+	if activeTotal(t, db, "a") != 100 {
+		t.Fatal("cross-project operation wrote data")
 	}
 }

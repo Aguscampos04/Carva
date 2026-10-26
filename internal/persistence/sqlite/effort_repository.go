@@ -72,8 +72,8 @@ func (r *EffortRepository) Save(ctx context.Context, e domain.Entry, create bool
 			}
 		}
 		// D-30 is checked before any relationship or aggregate write.
-		if p.Status == project.Finalized && p.EndDate == "" {
-			return domain.ErrUnknownEnd
+		if err := domain.ValidateWritable(p); err != nil {
+			return err
 		}
 		if err := checkStory(ctx, conn, e.ProjectID, e.StoryID); err != nil {
 			return err

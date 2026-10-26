@@ -61,9 +61,13 @@ func Snapshot(sprintID int64, item backlog.Item) (PlannedBacklogItem, error) {
 	if strings.TrimSpace(item.ID) == "" {
 		return PlannedBacklogItem{}, ErrInvalidBacklogItemID
 	}
+	var estimate *hours.Value
+	if item.EstimatedHours != nil {
+		estimate = hours.Ptr(*item.EstimatedHours)
+	}
 	return PlannedBacklogItem{
 		SprintID:               sprintID,
-		EstimatedHours:         item.EstimatedHours,
+		EstimatedHours:         estimate,
 		BacklogItemID:          item.ID,
 		Title:                  item.Title,
 		Description:            item.Description,

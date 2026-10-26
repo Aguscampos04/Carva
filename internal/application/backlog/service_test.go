@@ -133,6 +133,9 @@ func (r *memoryRepository) ListByProject(_ context.Context, projectID string) ([
 }
 
 func (r *memoryRepository) Mutate(ctx context.Context, pid, id string, change func(domain.Item) (domain.Item, error)) (domain.Item, error) {
+	if !r.projects[pid] {
+		return domain.Item{}, domain.ErrProjectNotFound
+	}
 	current, err := r.FindByID(ctx, pid, id)
 	if err != nil {
 		return current, err

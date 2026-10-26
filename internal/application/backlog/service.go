@@ -50,14 +50,6 @@ func (s *Service) Create(ctx context.Context, projectID string, input domain.Inp
 
 // Update replaces editable fields while preserving controlled values.
 func (s *Service) Update(ctx context.Context, projectID, itemID string, input domain.Input) (domain.Item, error) {
-	exists, err := s.repository.ProjectExists(ctx, projectID)
-	if err != nil {
-		return domain.Item{}, fmt.Errorf("check backlog project: %w", err)
-	}
-	if !exists {
-		return domain.Item{}, domain.ErrProjectNotFound
-	}
-
 	return s.repository.Mutate(ctx, projectID, itemID, func(current domain.Item) (domain.Item, error) { return current.Update(input) })
 }
 

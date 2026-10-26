@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Aguscampos04/Carva/internal/domain/project"
 
 	appbacklog "github.com/Aguscampos04/Carva/internal/application/backlog"
 	domain "github.com/Aguscampos04/Carva/internal/domain/backlog"
@@ -71,6 +72,11 @@ func (r *BacklogRepository) FindByID(ctx context.Context, pid, id string) (domai
 func (r *BacklogRepository) Mutate(ctx context.Context, pid, id string, change func(domain.Item) (domain.Item, error)) (domain.Item, error) {
 	var next domain.Item
 	err := withImmediate(ctx, r.db, func(conn *sql.Conn) error {
+		if _, err := findProject(ctx, conn, pid); errors.Is(err, project.ErrNotFound) {
+			return domain.ErrProjectNotFound
+		} else if err != nil {
+			return err
+		}
 		current, err := findBacklog(ctx, conn, pid, id)
 		if err != nil {
 			return err

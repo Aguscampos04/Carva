@@ -77,6 +77,9 @@ function backlogPath(projectID = currentProjectID) {
 
 async function loadBacklog() {
   if (!currentProjectID) return;
+  const selectedProject=currentProjectID;
+  const request=++backlogRequest;
+  effortUI.invalidate();
   backlogMessage.textContent = "Consultando Product Backlog…";
   backlogItems.replaceChildren();
   try {
@@ -111,7 +114,7 @@ function createBacklogCard(item) {
   } else {
     addDetail(detailsList, "Story Points", "Sin estimar");
   }
-  addDetail(detailsList, "Horas estimadas", item.estimated_hours ?? "Pendiente de regularizaci�n");
+  addDetail(detailsList, "Horas estimadas", item.estimated_hours ?? "Pendiente de regularización");
   addDetail(detailsList, "Horas reales", item.actual_hours);
   addDetail(detailsList, "Identificador", item.id);
 

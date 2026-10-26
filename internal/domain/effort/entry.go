@@ -46,11 +46,20 @@ func (in Input) Validate() error {
 	return nil
 }
 func ValidateDate(p project.Project, today, day project.Date) error {
-	if p.Status == project.Finalized && p.EndDate == "" {
-		return ErrUnknownEnd
+	if err := ValidateWritable(p); err != nil {
+		return err
 	}
 	if day > today || (p.StartDate != "" && day < p.StartDate) || (p.Status == project.Finalized && day > p.EndDate) {
 		return ErrDateRange
+	}
+	return nil
+}
+
+// ValidateWritable is also checked before relationship lookup, to give D-30
+// the same precedence in all effort writes. Consultation/deletion do not call it.
+func ValidateWritable(p project.Project) error {
+	if p.Status == project.Finalized && p.EndDate == "" {
+		return ErrUnknownEnd
 	}
 	return nil
 }

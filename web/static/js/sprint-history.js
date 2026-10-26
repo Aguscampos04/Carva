@@ -71,7 +71,7 @@ function createSprintHistory({ form, projectInput, select, message, details, goa
       if (item.story_points != null) addText(card, "p", `Story Points: ${item.story_points}`);
       else if (item.provisional_story_points != null) addText(card, "p", `Story Points provisionales: ${item.provisional_story_points}`);
       else addText(card, "p", "Story Points: Sin estimar");
-      addText(card, "p", `Horas estimadas vigentes (pueden actualizarse): ${item.estimated_hours ?? "Pendiente de regularizaci�n"}`);
+      addText(card, "p", `Horas estimadas vigentes (pueden actualizarse): ${item.estimated_hours ?? "Pendiente de regularización"}`);
       addText(card, "h4", "Criterios de aceptación planificados");
       const criteria = document.createElement("ul");
       for (const criterion of item.acceptance_criteria) addText(criteria, "li", criterion);
