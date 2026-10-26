@@ -38,4 +38,6 @@ Pendiente. No se afirma que otra persona haya revisado o aprobado el código.
 
 ## GitHub
 
-Commit, push y Pull Request: pendientes de publicar y verificar.
+Commit `4224449` publicado en la rama `codex/issue-13`.
+
+La creación del Pull Request contra `main` fue intentada mediante la integración de GitHub, que devolvió HTTP 403 (`Resource not accessible by integration`). No se afirma que el PR haya sido creado ni se realizó merge. El PR puede abrirse desde [comparar `main` con `codex/issue-13`](https://github.com/Aguscampos04/Carva/compare/main...codex/issue-13?expand=1); su descripción debe incluir `Closes #13` para cerrar la Issue al fusionarlo.
