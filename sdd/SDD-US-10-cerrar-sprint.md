@@ -7,6 +7,8 @@
 
 ## 1. Objetivo
 
+**Integración aprobada US-16:** el traslado incluye `estimated_hours` sincronizadas (única excepción D-21 al snapshot inmutable). Esfuerzo no se copia ni se mueve al trasladar historias; cada registro mantiene su Sprint opcional y suma una sola vez. Administrarlo en cerrado no reabre ni modifica planificación/resultados; los bloqueos de asignación y compleción de US-10 permanecen. Véase [SDD-US-16](SDD-US-16-registrar-horas-esfuerzo.md).
+
 Cerrar un Sprint y, en la misma operación, trasladar sus historias no completadas al siguiente Sprint disponible del proyecto. El cierre debe conservar intactos el plan y los resultados históricos del Sprint de origen.
 
 ## 2. Inputs

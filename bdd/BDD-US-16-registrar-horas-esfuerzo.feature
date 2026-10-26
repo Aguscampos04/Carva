@@ -1,7 +1,8 @@
 # Estado: documentación en revisión; 31 decisiones D-01...D-31 aprobadas, incluida D-26 corregida.
 # Las 31 decisiones y PT-01…PT-06 fueron aprobadas formalmente para implementar en PR #45.
 # Enunciado §2.5/§2.7 -> EP-05 -> US-16 / Issue #16 -> SDD-US-16 -> AC -> BDD.
-# Automatización, TEST-US-16-NN y evidencia TDD pendientes; estos escenarios no se ejecutaron.
+# Automatización por pruebas Go/Node y evidencia TDD en docs/evidencia-ia-us-16.md.
+# El feature no se ejecuta con un runner Gherkin; la matriz relaciona sus 46 comportamientos con pruebas reales.
 # Convención existente: keywords Gherkin en inglés y comportamiento en español.
 @US-16 @Issue-16 @implementacion-autorizada
 Feature: Registrar horas estimadas y esfuerzo real

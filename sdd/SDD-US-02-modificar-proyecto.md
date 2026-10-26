@@ -10,6 +10,8 @@
 
 ## Objective
 
+**Integración aprobada US-16 (D-18/D-30/D-31):** cambiar inicio se valida contra la fecha mínima de esfuerzo activo dentro de la misma transacción; eliminados no bloquean y conservan su historia. Incompatibilidad responde 409 sin guardar tampoco otros campos del PATCH. Un Finalizado con fin NULL conserva esa fecha desconocida: esfuerzo bloquea altas/ediciones y permite consulta/baja, sin modificar estado/fin. Se mantiene la zona aprobada. Véase [SDD-US-16](SDD-US-16-registrar-horas-esfuerzo.md).
+
 Permitir editar nombre y fecha de inicio de un proyecto existente y finalizarlo manualmente, registrando su fecha real de finalización. La consulta debe reflejar datos persistidos y el mismo estado compartido con US-01/07 y las consultas futuras US-04/23.
 
 Los dos AC originales de #2 se conservan en AC-01 (modificación y consulta posterior) y AC-04 (consulta del estado Finalizado). Los demás precisan las decisiones aprobadas y el contrato propuesto. No se incluyen eliminación, reapertura, fechas de Sprints, permisos ni implementación de otras historias.

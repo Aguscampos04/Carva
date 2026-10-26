@@ -16,7 +16,7 @@ Exclusiones: métricas de desviación, velocidad, dashboards y reportes de otras
 
 ## Inputs
 
-| Entrada | Tipo / obligatoriedad propuesta | Regla |
+| Entrada | Tipo / obligatoriedad aprobada | Regla |
 | --- | --- | --- |
 | `projectID` | String de ruta, UUID emitido por US-01 | Proyecto existente; determina el ámbito y no se cambia en el cuerpo. ID que no resuelve: 404, sin nuevo validador global de UUID. |
 | `itemID` | String de ruta, UUID de US-05 | Historia existente del proyecto para detalle/alta. |
@@ -93,7 +93,7 @@ Identificación adicional aprobada: reutilizar US-03, UUID seleccionado de la li
 
 ### PT-01 — Precisión de horas y fechas (aprobada para implementar)
 
-Representar horas en centésimas enteras en dominio y SQLite (`int64`/`INTEGER`), no minutos ni `REAL`/`float64`. 0.01 horas equivale a una centésima de hora, no a un minuto. Decodificar el número decimal JSON exactamente, rechazar fracciones con precisión mayor a dos sin redondear ni truncar. Propuesta de sintaxis de escritura: números sin exponente, enteros o fracción de uno/dos dígitos (1, 1.5, 1.50); `1.500`, `1e1`, strings y separador coma no son el formato contratado. La UI puede aceptar entrada decimal local y serializar el número canónico, sin conversiones binarias que alteren centésimas. Esta sintaxis es una precisión técnica pendiente, no una decisión funcional adicional.
+Representar horas en centésimas enteras en dominio y SQLite (`int64`/`INTEGER`), no minutos ni `REAL`/`float64`. 0.01 horas equivale a una centésima de hora, no a un minuto. Decodificar el número decimal JSON exactamente, rechazar fracciones con precisión mayor a dos sin redondear ni truncar. Sintaxis de escritura aprobada: números sin exponente, enteros o fracción de uno/dos dígitos (1, 1.5, 1.50); `1.500`, `1e1`, strings y separador coma no son el formato contratado. La UI puede aceptar entrada decimal local y serializar el número canónico, sin conversiones binarias que alteren centésimas. Esta sintaxis es una precisión técnica aprobada mediante PT-01, no una decisión funcional adicional.
 
 Estimada mínima 0.01; sin máximo funcional aprobado (24 solo aplica al real diario). Rechazar desbordamientos del almacenamiento antes de escribir, identificándolos como límite técnico de representación para revisar, sin wraparound. Real individual hasta 24 por consecuencia de D-24; 24 exactas se admite si no existe otro activo de ese miembro/día/proyecto. Sumas exactas y comprobadas contra overflow; salida como número decimal, no prometer ceros finales. No almacenar total como campo editable ni derivarlo de snapshots duplicados.
 
@@ -120,7 +120,7 @@ El último endpoint evita calcular hoy con el navegador y evita asumir un listad
 
 Ejemplo válido de alta: `{"member_id":"b1d168da-325a-40d1-90b7-b5a1ba006389","work_date":"2026-10-26","activity":"Revisar criterios","hours":1.25,"sprint_id":null}`. La ruta aporta historia/proyecto. La respuesta añade UUID y ámbito. PUT requiere los campos editables salvo `sprint_id`: omitirlo conserva el valor persistido bajo validación contra la historia destino; `null` quita explícitamente y un número selecciona ese Sprint. Si se cambia historia y el Sprint conservado no es válido, rechazar con 409 sin reasignar ni quitar silenciosamente. La omisión sobre asociación nula la conserva sin exigir nueva selección. No se cambia `project_id` en PUT; mandar ese campo se rechaza, no se ignora.
 
-Propuesta de decodificación para rutas nuevas: un único objeto JSON UTF-8, claves exactas y no duplicadas, EOF verificado; rechazar campos desconocidos/protegidos, raíz nula, tipos inválidos y campos obligatorios nulos. En POST de esfuerzo `sprint_id` ausente/nulo significa sin Sprint. No extender silenciosamente esta política estricta al decoder compartido de US-05, que hoy es permisivo con extras: ampliar únicamente su campo de estimación y validación, sin cambiar otras reglas de transporte. En US-05 ausente/null sigue siendo inválido para estimación.
+Decodificación aprobada para rutas nuevas: un único objeto JSON UTF-8, claves exactas y no duplicadas, EOF verificado; rechazar campos desconocidos/protegidos, raíz nula, tipos inválidos y campos obligatorios nulos. En POST de esfuerzo `sprint_id` ausente/nulo significa sin Sprint. No extender silenciosamente esta política estricta al decoder compartido de US-05, que hoy es permisivo con extras: ampliar únicamente su campo de estimación y validación, sin cambiar otras reglas de transporte. En US-05 ausente/null sigue siendo inválido para estimación.
 
 Baja por acción POST sigue la convención `/finalize` y `/close`, permite confirmación explícita sin depender de cuerpo DELETE y evita exponer eliminación física. Confirmación API expresa intención, no demuestra que la UI mostró diálogo. Repetir baja confirmada de una fila ya eliminada del mismo proyecto devuelve 204 conservando la marca inicial; inexistente o de otro proyecto: 404. GET/PUT de eliminados: 404. No se agrega `include_deleted`, búsqueda global, paginación ni restauración. Orden propuesto de entradas: fecha ascendente e ID ascendente para desempatar; no confundirlo con orden de carga.
 
@@ -135,7 +135,7 @@ Baja por acción POST sigue la convención `/finalize` y `/close`, permite confi
 | Proyectos y miembros | Reutilizar entidades y UUID existentes. Incorporar consulta de límites temporales y validación transaccional de cambio de inicio; no inventar miembro global ni fechas de Sprint. |
 | Lecturas de Backlog | Proyección `actual_hours` calculada sobre activos; no input editable ni fuente de verdad del agregado. |
 
-Esquema conceptual, **sin SQL ni migración en esta etapa**:
+Esquema aprobado e implementado mediante `000012_effort.sql` (las migraciones anteriores permanecen intactas):
 
 - `backlog_items.estimated_hours_hundredths INTEGER NULL`, CHECK nulo o positivo. NULL reservado a datos históricos; no DEFAULT cero ni estimación inferida. La escritura de aplicación distingue reconstrucción histórica de alta/edición para exigir D-07/08.
 - `sprint_backlog_items.estimated_hours_hundredths INTEGER NULL`, mismo CHECK. No cambia IDs, claves únicas, `status`, `completion_verified` ni SP. Lecturas usan la columna persistida, sin reconstruir el resto del snapshot desde Backlog.
@@ -156,7 +156,7 @@ Esquema conceptual, **sin SQL ni migración en esta etapa**:
 
 ### PT-05 — Migración histórica (aprobada para implementar)
 
-En futura implementación crear la siguiente migración libre según el estado de `main` de ese momento (actualmente la última es `000011_planning_poker.sql`); no modificar migraciones aplicadas ni fijar una versión que pueda colisionar. Agregar columnas anulables y tabla/índices/FK, manteniendo el mecanismo versionado/embebido y su aplicación transaccional existente.
+La versión libre comprobada fue `000012_effort.sql`, ahora implementada después de `000011_planning_poker.sql`; no se modifican migraciones aplicadas. Agregar columnas anulables y tabla/índices/FK, manteniendo el mecanismo versionado/embebido y su aplicación transaccional existente.
 
 Historias y snapshots previos sin horas quedan NULL, visibles y pendientes; esfuerzo inicial vacío y total activo 0. No estimar por SP, copiar ceros ni fechas actuales, recrear IDs, resetear resultados o perder vínculos. Cuando una historia se regularice, propagar a todas sus asignaciones incluidas las antiguas. Si en un entorno posterior ya existiera estimación válida, conservarla y alinear únicamente ese campo de sus snapshots; no inferir ni modificar otros datos.
 
@@ -174,9 +174,9 @@ En Finalizado con fin NULL, mostrar aviso de fecha de fin desconocida y deshabil
 
 Confirmación de baja identifica registro, fecha, miembro y horas; cancelar/cerrar mantiene todo, restaura foco y no guarda borradores. API valida `confirmed:true` independientemente del diálogo. Tras alta/edición/baja confirmada, recargar los totales afectados; conservar borrador si falla y mostrar error. Evitar doble envío, descartar respuestas de proyecto/historia anteriores y renderizar actividad/nombres como texto. En un Sprint histórico mostrar horas estimadas como **vigentes**, aclarando que pueden actualizarse; el resto del plan y resultados es histórico. No agregar métricas ni cambiar la UI de historial a una pantalla de gestión de esfuerzo.
 
-## Compatibilidad e inventario de cambios futuros
+## Compatibilidad e inventario de cambios implementados
 
-| Historia / contrato actual comprobado | Impacto estrictamente necesario |
+| Historia / contrato actual comprobado | Cambio realizado / compatibilidad |
 | --- | --- |
 | US-05/06: `Input`, `Item`, POST/PUT/GET Backlog, `backlog.Service`, `Repository`, SQL y formularios no tienen horas | Agregar campo requerido en escrituras y opcional legado en lectura; total calculado; detalle nuevo; puerto de mutación atómica. Clientes y fixtures que crean/editan sin estimación dejarán de ser válidos: actualizar en implementación, no mediante valores inventados. |
 | US-02: PATCH inicio opcional/nulo, `projects.Repository.Mutate` solo recibe proyecto y valida inicio/fin | Ampliar puerto/contexto transaccional para consultar esfuerzo activo y aplicar D-18/D-31, preservando semántica de omisión/null, nombre, estados y fin inmutable. Reloj/zona reutilizados. D-30 conserva Finalizado con fin NULL y bloquea únicamente alta/edición de esfuerzo, sin modificar sus fechas. |
@@ -188,7 +188,7 @@ Confirmación de baja identifica registro, fecha, miembro y horas; cancelar/cerr
 | US-15: `RegisterAgreement` actualiza únicamente `backlog_items.story_points` bajo `withImmediate` | Mantener independencia; estimación de horas editable aun con definitivo. Reemplazo genérico obsoleto no debe borrar acuerdo. No convertir puntos en horas ni actualizar puntos de snapshots por D-21. |
 | Composición `cmd/carva`, interfaces `httpapi` y adaptadores SQLite | Incorporar servicio/puertos de esfuerzo, rutas/DTO/errores, reloj y consultas; no framework ni dependencia nueva necesaria. |
 
-Los SDD/BDD previos permanecen sin modificaciones en esta entrega. Su futura sincronización está identificada: US-05 debe incluir horas requeridas en datos y ejemplos válidos (también fixtures de US-02 que crean historias); US-08 BR-03 y US-11 reglas de historial deben explicitar solo la excepción D-21. Los escenarios actuales que cambian título/criterios/puntos continúan válidos al aportar estimación donde corresponda. US-10 continúa prohibiendo nueva planificación/compleción en cerrado; administrar esfuerzo por US-16 no es esa operación. Ninguna funcionalidad pendiente se da por existente.
+Se sincronizan las notas de compatibilidad de SDD/BDD afectados y los fixtures positivos de las pruebas existentes: US-05 debe incluir horas requeridas en datos y ejemplos válidos (también fixtures de US-02 que crean historias); US-08 BR-03 y US-11 reglas de historial deben explicitar solo la excepción D-21. Los escenarios actuales que cambian título/criterios/puntos continúan válidos al aportar estimación donde corresponda. US-10 continúa prohibiendo nueva planificación/compleción en cerrado; administrar esfuerzo por US-16 no es esa operación. Ninguna funcionalidad pendiente se da por existente.
 
 ## Edge Cases
 
@@ -204,9 +204,9 @@ Los SDD/BDD previos permanecen sin modificaciones en esta entrega. Su futura sin
 
 ## Error Conditions
 
-Códigos/mensajes siguientes son contrato técnico propuesto. Estructura JSON de error existente; UI presenta texto claro en español sin filtrar SQL, DSN o rutas.
+Códigos/mensajes siguientes son contrato técnico aprobado. Estructura JSON de error existente; UI presenta texto claro en español sin filtrar SQL, DSN o rutas.
 
-| Condición | HTTP propuesto | Efecto |
+| Condición | HTTP aprobado | Efecto |
 | --- | --- | --- |
 | JSON/tipos/formato decimal/fecha inválidos, campos requeridos ausentes/nulos, actividad blanca, horas ≤ 0, precisión excedida; `sprint_id` no entero positivo ni null; confirmación distinta de true | 400 | Sin cambios; mensaje específico de campo. Omitir Sprint en PUT tiene la semántica de conservación descrita. |
 | Proyecto/historia/miembro/Sprint/entrada inexistente o fuera de ámbito; GET/PUT de eliminado | 404 | Sin crear recursos ni alterar otro proyecto. |
@@ -222,7 +222,7 @@ Precedencia para alta/edición de esfuerzo: validar transporte/formatos, resolve
 
 ## Acceptance Criteria
 
-AC locales a esta SDD. Los tres AC originales de #16 quedan cubiertos por AC-01/12 (registrar/consultar estimadas), AC-04/06 (campos y atribución) y AC-09/17 (independencia). Los demás precisan D y robustez técnica propuesta.
+AC locales a esta SDD. Los tres AC originales de #16 quedan cubiertos por AC-01/12 (registrar/consultar estimadas), AC-04/06 (campos y atribución) y AC-09/17 (independencia). Los demás precisan D y robustez técnica aprobada.
 
 | AC | Criterio verificable | D / fuente | BDD-US-16 |
 | --- | --- | --- | --- |
@@ -248,9 +248,9 @@ AC locales a esta SDD. Los tres AC originales de #16 quedan cubiertos por AC-01/
 
 ## BDD / Test Traceability
 
-Cada escenario tiene `@BDD-US-16-NN`, `@AC-NN` y D pertinentes; `@PT-*` distingue precisiones técnicas propuestas. Para cada BDD-US-16-NN se prevé la familia **TEST-US-16-NN** (identificador de planificación, no test existente). En la fase autorizada se registrarán nombres reales de tests, evidencia RED → GREEN → REFACTOR y código correspondiente; hoy la cadena se detiene en BDD.
+Cada escenario tiene `@BDD-US-16-NN`, `@AC-NN` y D pertinentes; `@PT-*` identifica precisiones técnicas formalmente aprobadas. Las familias TEST-US-16-NN se concretan en pruebas Go y Node: la matriz con nombres reales, evidencia RED → GREEN → REFACTOR y resultados está en [evidencia US-16](../docs/evidencia-ia-us-16.md). El archivo feature es la especificación; su comportamiento se automatiza con los runners existentes, sin framework Gherkin adicional.
 
-| Familias futuras | Nivel y comprobación prevista |
+| Familias de trazabilidad | Nivel y comprobación |
 | --- | --- |
 | TEST-US-16-01…10, 13…16, 18…23 | Unitarios Go de horas exactas, fechas, validación, cupo y regularización; aplicación con reloj controlado y puertos dobles. |
 | TEST-US-16-07…12, 17, 22…29, 40, 43, 44, 46 | Integración SQLite/HTTP de contratos, UUID, ámbito, conservación/elección de Sprint, reemplazos, confirmación y baja lógica; D-30 bloquea toda edición sin fin, pero no consulta/baja. Comprobar filas almacenadas sin exponer endpoint de eliminados. |
@@ -264,8 +264,8 @@ Implementación y automatización autorizadas. La evidencia real de ciclos RED �
 **Cuestiones funcionales resueltas, fuera de los pendientes:** R-01 queda resuelto por D-30 (alta/edición bloqueadas sin fin; consulta/baja permitidas); R-02 por D-31 (solo activos para cambio de inicio atómico). D-26 corregida conserva Sprint compatible y exige resolución explícita solo ante incompatibilidad. Su comportamiento ya está incorporado en BR, AC, BDD y propuestas técnicas; no se solicita una nueva decisión sobre esos puntos.
 
 - **R-03 — Compatibilidad de contratos:** exigir estimación rompe los clientes/fixtures antiguos de alta/PUT sin ese campo. Es el impacto aprobado D-07/08; no simular compatibilidad llenándolo con valores ficticios. Desplegar contrato y formularios juntos en implementación; datos históricos sobreviven.
-- **R-04 — Inmutabilidad documental previa:** D-21 establece una excepción aprobada que debe explicitarse en US-08/11 al implementar. Solo horas estimadas se propagan; no Story Points ni resultados. Una comparación histórica futura deberá reconocer que esa estimación es vigente, sin decidir ahora fórmulas de métricas.
+- **R-04 — Inmutabilidad documental previa:** D-21 establece una excepción aprobada que se explicita en las notas de integración de US-08/11. Solo horas estimadas se propagan; no Story Points ni resultados. Una comparación histórica futura deberá reconocer que esa estimación es vigente, sin decidir ahora fórmulas de métricas.
 - **R-05 — Carreras existentes:** asignación con snapshot previo y UPDATE genérico del Backlog necesitan coordinación descrita en PT-04. Limitar la futura modificación a proteger estimación/estado/acuerdo; no sustituir la arquitectura ni agregar versionado innecesario.
-- **R-06 — Revisión técnica pendiente:** aprobar sintaxis decimal/representación y límites técnicos de PT-01, rutas/JSON/errores/contexto y acción de baja PT-02, FK/esquema/migración PT-03/05, mecanismo de concurrencia PT-04 e interfaz PT-06. Son propuestas técnicas para cumplir las 31 decisiones funcionales ya aprobadas; el alcance de D-30/31 y la corrección de D-26 no siguen pendientes.
+- **R-06 — Resuelto por aprobación formal:** PT-01…PT-06 y las 31 decisiones están aprobadas para implementar. Restan la revisión final de la implementación y su integración por el responsable; no hay decisiones técnicas de US-16 pendientes de aprobación.
 
-La aprobación de esta documentación habilitaría únicamente la etapa que el responsable autorice expresamente después. Este PR no hace merge, no cierra #16; aceptación final y revisión de la Definition of Done pendientes del responsable.
+El responsable autorizó expresamente esta implementación completa en PR #45; las verificaciones reales se registran en la evidencia. Este PR no hace merge, no cierra #16; aceptación final y revisión de la Definition of Done pendientes del responsable.

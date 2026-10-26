@@ -6,6 +6,8 @@
 
 ## 1. Objetivo
 
+**Integración aprobada US-16:** mostrar horas estimadas **vigentes**, indicando que pueden actualizarse, desde la columna persistida de cada snapshot. D-21 permite actualizar exclusivamente ese dato incluso en cerrado; no reconstruir otros campos desde Backlog ni cambiar resultados, puntos o pertenencias. Véase [SDD-US-16](SDD-US-16-registrar-horas-esfuerzo.md).
+
 Consultar los Sprints cerrados de un proyecto y sus objetivos, planificación y resultados persistidos. La consulta no cambia el historial cuando una historia se traslada, se edita en el Backlog o se completa en otro Sprint.
 
 ## 2. Inputs

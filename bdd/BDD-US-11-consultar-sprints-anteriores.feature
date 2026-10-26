@@ -1,4 +1,6 @@
 # US-11 / Issue #11 / SDD-US-11 / enunciado §2.3
+# US-16 D-21: horas estimadas vigentes son la excepción explícita al historial
+# inmutable de los demás campos; BDD-US-16-29/34/36.
 Feature: Consultar Sprints anteriores sin alterar el pasado
 
   @BDD-01 @AC-01

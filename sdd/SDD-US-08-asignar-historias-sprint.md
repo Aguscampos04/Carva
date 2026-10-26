@@ -6,6 +6,8 @@
 
 ## 1. Objetivo
 
+**Integración aprobada US-16:** `estimated_hours` es la única excepción a la inmutabilidad del snapshot: representa la estimación vigente y se sincroniza con todas las asignaciones, incluso cerradas. Los demás campos y resultados conservan las reglas originales. Asignación/traslado leen ese valor bajo la misma coordinación transaccional que la edición de estimación; el JSON de planificación agrega `estimated_hours` (NULL histórico admitido). Véase [SDD-US-16](SDD-US-16-registrar-horas-esfuerzo.md).
+
 Asignar historias existentes del Product Backlog a un Sprint y permitir consultar la planificación guardada en ese Sprint. Los datos planificados se conservan aunque el elemento original del Backlog se edite después.
 
 ## 2. Inputs
