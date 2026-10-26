@@ -1,4 +1,4 @@
-# Estado: documentación en revisión; D-01...D-29 aprobadas el 2026-10-26.
+# Estado: documentación en revisión; 31 decisiones D-01...D-31 aprobadas, incluida D-26 corregida.
 # PT son propuestas técnicas, no aprobaciones de implementación.
 # Enunciado §2.5/§2.7 -> EP-05 -> US-16 / Issue #16 -> SDD-US-16 -> AC -> BDD.
 # Automatización, TEST-US-16-NN y evidencia TDD pendientes; estos escenarios no se ejecutaron.
@@ -143,7 +143,7 @@ Feature: Registrar horas estimadas y esfuerzo real
       | alta con dos objetos JSON consecutivos                           |
       | alta con dos claves hours en el mismo objeto                     |
       | alta con id o deleted_at elegidos por el cliente                  |
-      | edición válida salvo sprint_id omitido                           |
+      | edición con sprint_id de tipo string en lugar de entero o null  |
       | baja con confirmed ausente                                       |
       | baja con confirmed false                                         |
       | baja con confirmed null                                          |
@@ -202,7 +202,7 @@ Feature: Registrar horas estimadas y esfuerzo real
       | 2026-09-30 | rechazo por anterior a inicio | 0  |
       | 2026-10-27 | rechazo por fecha futura   | 0     |
 
-  @BDD-US-16-15 @AC-07 @D-18 @PT-04
+  @BDD-US-16-15 @AC-07 @D-18 @D-31 @PT-04
   Scenario: Proteger esfuerzo existente al cambiar inicio y permitir quitar el límite
     Given que Ana tiene 1 hora activa el "2026-10-05" en "A"
     When se intenta guardar nombre "No guardar" e inicio "2026-10-06" en el proyecto
@@ -213,13 +213,14 @@ Feature: Registrar horas estimadas y esfuerzo real
     When se elimina explícitamente la fecha de inicio y se registra otra hora el "2026-09-30"
     Then se admite el esfuerzo pasado sin inferir otra fecha de inicio
 
-  @BDD-US-16-16 @AC-07 @D-18 @PT-04
-  Scenario: Propuesta de conservar coherencia temporal también con eliminados
-    Given que existe un esfuerzo almacenado del "2026-10-05" eliminado lógicamente
-    When se intenta cambiar el inicio del proyecto a "2026-10-06"
-    Then según la precisión técnica propuesta se rechaza el cambio por inconsistencia temporal
-    And el registro eliminado conserva fecha y marca de baja
-    And no se incluye ese esfuerzo en el total activo
+  @BDD-US-16-16 @AC-07 @D-18 @D-31
+  Scenario: Los eliminados no bloquean el cambio de inicio y conservan su historia
+    Given que existe un esfuerzo de 2 horas del "2026-10-05" eliminado lógicamente
+    And existe otro esfuerzo activo de 1 hora del "2026-10-10"
+    When se guarda el inicio del proyecto "2026-10-06"
+    Then el cambio se acepta y el inicio consultado es "2026-10-06"
+    And el eliminado conserva identificador, miembro, historia, Sprint, fecha, actividad, horas y marca de baja anteriores
+    And solo el esfuerzo activo participa del total de 1 hora y del control de inicio
 
   @BDD-US-16-17 @AC-08 @AC-13 @D-14 @D-15
   Scenario: Administrar esfuerzo de historia Completada en proyecto Finalizado
@@ -313,8 +314,9 @@ Feature: Registrar horas estimadas y esfuerzo real
       | cerrar el diálogo  |
 
   @BDD-US-16-26 @AC-10 @AC-14 @D-11 @D-26 @PT-02
-  Scenario Outline: Cambiar historia exige decisión explícita sobre Sprint
-    Given que "A" está asignada al Sprint 1 y "B" a los Sprints 1 y 2 de "Carva Demo"
+  Scenario Outline: Conservar Sprint compatible y resolver explícitamente el incompatible al cambiar historia
+    Given que "A" está asignada al Sprint 1 y "B" a <pertenencias> de "Carva Demo"
+    And existe el Sprint 3 del proyecto sin asignación de "B"
     And existe una entrada de Ana de 2 horas en "A" asociada al Sprint 1
     When se cambia la historia de la entrada a "B" con <eleccion> y todos los demás campos válidos
     Then el resultado es "<resultado>"
@@ -322,12 +324,16 @@ Feature: Registrar horas estimadas y esfuerzo real
     And los totales reales de "A" y "B" son respectivamente <totalA> y <totalB>
 
     Examples:
-      | eleccion                             | resultado            | historia | sprint | totalA | totalB |
-      | sprint_id omitido                    | rechazo              | A        | 1      | 2      | 0      |
-      | selección explícita del Sprint 1     | edición aceptada     | B        | 1      | 0      | 2      |
-      | selección explícita del Sprint 2     | edición aceptada     | B        | 2      | 0      | 2      |
-      | selección explícita Sin Sprint       | edición aceptada     | B        | nulo   | 0      | 2      |
-      | Sprint 3 existente sin pertenencia B | rechazo              | A        | 1      | 2      | 0      |
+      | pertenencias    | eleccion                             | resultado        | historia | sprint | totalA | totalB |
+      | Sprints 1 y 2   | sprint_id omitido                    | edición aceptada | B        | 1      | 0      | 2      |
+      | Sprints 1 y 2   | selección explícita del Sprint 1     | edición aceptada | B        | 1      | 0      | 2      |
+      | Sprints 1 y 2   | selección explícita del Sprint 2     | edición aceptada | B        | 2      | 0      | 2      |
+      | Sprints 1 y 2   | selección explícita Sin Sprint       | edición aceptada | B        | nulo   | 0      | 2      |
+      | Sprint 2        | sprint_id omitido                    | rechazo          | A        | 1      | 2      | 0      |
+      | Sprint 2        | selección explícita del Sprint 1     | rechazo          | A        | 1      | 2      | 0      |
+      | Sprint 2        | selección explícita del Sprint 2     | edición aceptada | B        | 2      | 0      | 2      |
+      | Sprint 2        | selección explícita Sin Sprint       | edición aceptada | B        | nulo   | 0      | 2      |
+      | Sprint 2        | Sprint 3 existente sin pertenencia B | rechazo          | A        | 1      | 2      | 0      |
 
   @BDD-US-16-27 @AC-06 @AC-10 @D-27
   Scenario: Aislar registros y corregir proyecto mediante baja y alta independientes
@@ -396,7 +402,7 @@ Feature: Registrar horas estimadas y esfuerzo real
     Then exactamente una se acepta y la otra se rechaza por superar el cupo
     And el acumulado persistido de Ana para ese proyecto y día es exactamente 24
 
-  @BDD-US-16-33 @AC-07 @AC-18 @D-18 @PT-04
+  @BDD-US-16-33 @AC-07 @AC-18 @D-18 @D-31 @PT-04
   Scenario Outline: Serializar cambio de inicio y alta de esfuerzo
     Given que un cliente prepara inicio "2026-10-10" y otro esfuerzo del "2026-10-05" para "A"
     When se procesan concurrentemente y confirma primero "<primera>"
@@ -510,3 +516,55 @@ Feature: Registrar horas estimadas y esfuerzo real
     Then exactamente una edición se acepta y la otra se rechaza por superar el cupo
     And Ana acumula 23 horas el "2026-10-25" y el registro rechazado conserva su fecha original y 1 hora
     And ambas entradas conservan sus UUID sin movimientos parciales
+
+  @BDD-US-16-43 @AC-19 @D-30 @PT-02 @PT-06
+  Scenario Outline: Bloquear toda alta y edición de esfuerzo en Finalizado sin fin
+    Given que "Carva Demo" está "Finalizado" con fecha de fin NULL conservada de datos históricos
+    And existe una entrada activa de Ana de 1 hora del "2026-10-15" en "A" con actividad "Revisión"
+    When se intenta por la API "<operacion>" con datos y relaciones válidos
+    Then se responde HTTP 409 indicando fecha de fin desconocida
+    And no se crean entradas ni se modifica ningún campo de la existente ni el total de 1 hora
+    And el proyecto conserva estado "Finalizado", inicio "2026-10-01" y fin NULL
+    And la interfaz mantiene alta y edición de esfuerzo deshabilitadas con un aviso explicativo
+
+    Examples:
+      | operacion                                                |
+      | registrar esfuerzo para A                                 |
+      | editar solo actividad conservando fecha y demás datos     |
+      | cambiar miembro a Bruno conservando fecha y demás datos   |
+      | cambiar fecha de trabajo a 2026-10-16                     |
+      | cambiar horas a 2                                        |
+      | reasignar entrada a B conservando fecha y Sprint nulo      |
+
+  @BDD-US-16-44 @AC-19 @D-30
+  Scenario: Permitir consultas y baja lógica con fin desconocido sin inventar fechas
+    Given que "Carva Demo" está "Finalizado" con fin NULL
+    And existe una entrada activa de Ana de 1 hora del "2026-10-15" en "A"
+    When se consulta el detalle de "A", su esfuerzo y esa entrada individual
+    Then se muestra la entrada activa y el total de 1 hora sin exigir fecha de fin
+    And la interfaz permite consultar y solicitar la baja con confirmación
+    When se confirma su eliminación lógica y se reinicia usando la misma base
+    Then el registro permanece almacenado con sus datos y marca de baja y el total activo es 0
+    And el proyecto conserva estado "Finalizado", inicio "2026-10-01" y fin NULL
+
+  @BDD-US-16-45 @AC-07 @AC-18 @D-18 @D-31 @PT-04
+  Scenario Outline: Cambio de inicio y baja concurrentes consideran solo activos de forma atómica
+    Given que existe una única entrada activa del "2026-10-05" y no hay otras entradas anteriores al "2026-10-10"
+    And dos conexiones preparan cambiar el inicio a "2026-10-10" y eliminar esa entrada con confirmación
+    When se procesan concurrentemente y se serializa primero "<primera>"
+    Then la baja lógica se acepta y el resultado del cambio de inicio es "<resultado>"
+    And el inicio persistido es "<inicio>" y el total activo es 0
+    And el eliminado conserva fecha "2026-10-05" y los demás datos históricos sin ajustes automáticos
+
+    Examples:
+      | primera        | resultado | inicio     |
+      | baja lógica    | aceptado  | 2026-10-10 |
+      | cambio de inicio | rechazado | 2026-10-01 |
+
+  @BDD-US-16-46 @AC-10 @AC-14 @D-26 @PT-02 @PT-06
+  Scenario: Cambiar historia conservando ausencia de Sprint sin forzar una selección
+    Given que existe una entrada de Ana de 2 horas en "A" sin Sprint
+    And "B" pertenece a un Sprint abierto del proyecto
+    When se cambia la historia de la entrada a "B" omitiendo sprint_id y conservando los demás campos válidos
+    Then se acepta con el mismo UUID y Sprint nulo, sin seleccionar el Sprint de "B" automáticamente
+    And el total de "A" pasa a 0 y el de "B" a 2

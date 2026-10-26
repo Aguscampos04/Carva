@@ -256,7 +256,7 @@ El responsable autorizó el 2026-10-16 implementar la SDD y los escenarios con l
 
 ### Horas estimadas y esfuerzo real — US-16 / Issue #16
 
-Decisiones funcionales **aprobadas explícitamente por el responsable en la solicitud del 2026-10-26**. Los identificadores D-01 a D-29 tienen alcance local a US-16; no reemplazan las decisiones homónimas de otras historias. Esta aprobación funcional no autoriza implementación: la SDD y el BDD se presentan para revisión documental y la etapa TDD/código requiere aprobación expresa posterior.
+Decisiones funcionales **aprobadas explícitamente por el responsable**: D-01…D-29 en la solicitud del 2026-10-26 y D-30/D-31 junto a la corrección de D-26 en la actualización solicitada del PR #45. Los 31 identificadores tienen alcance local a US-16; no reemplazan las decisiones homónimas de otras historias. Esta aprobación funcional no autoriza implementación: la SDD y el BDD se presentan para revisión documental y la etapa TDD/código requiere aprobación expresa posterior.
 
 | ID | Decisión aprobada | AC de SDD-US-16 |
 | --- | --- | --- |
@@ -285,18 +285,22 @@ Decisiones funcionales **aprobadas explícitamente por el responsable en la soli
 | D-23 | Se permite registrar, editar y eliminar lógicamente esfuerzo asociado a Sprints cerrados, sin reabrirlos ni alterar sus historias planificadas. | AC-15 |
 | D-24 | Un miembro puede acumular como máximo 24 horas reales por fecha dentro de su proyecto, considerando todas sus historias y Sprints. Los registros eliminados lógicamente no se contabilizan. | AC-09 |
 | D-25 | Las horas reales acumuladas pueden superar las estimadas, sin modificar automáticamente la estimación. | AC-09 |
-| D-26 | Al cambiar la historia asociada a un registro, el usuario debe seleccionar un Sprint válido para la nueva historia o quitar explícitamente la asociación anterior. No realizar modificaciones silenciosas. | AC-10, AC-14 |
+| D-26 | Al cambiar la User Story de un registro, conservar el Sprint anterior si sigue siendo válido. Si es incompatible, exigir seleccionar otro Sprint válido o quitar explícitamente la asociación. Nunca modificar la asociación automáticamente. | AC-10, AC-14 |
 | D-27 | Un registro de esfuerzo solo puede reasignarse a historias del mismo proyecto. Para corregir un proyecto equivocado, debe eliminarse lógicamente el registro y crearse otro en el proyecto correcto. | AC-06, AC-10 |
 | D-28 | Se permite registrar esfuerzo en historias históricas sin estimación, mostrando «Pendiente de regularización» hasta completar ese dato. | AC-03 |
 | D-29 | El formulario de esfuerzo debe completar por defecto la fecha actual, permitiendo modificarla según las restricciones establecidas. | AC-07, AC-12 |
+| D-30 | Proyectos finalizados sin fecha de fin: bloquear altas y ediciones de esfuerzo si `end_date = NULL`. Permitir consultas y eliminación lógica. No inventar fechas ni modificar el estado del proyecto. | AC-19 |
+| D-31 | Cambio de fecha de inicio: validar D-18 únicamente contra registros de esfuerzo activos. Los eliminados lógicamente no bloquean el cambio y conservan sus datos históricos. Garantizar atomicidad de la operación. | AC-07, AC-18 |
 
 Integración aprobada con US-03: seleccionar miembros desde la lista del proyecto mediante UUID, nunca nombre libre; validar siempre su pertenencia. Cada esfuerzo conserva como mínimo miembro, fecha, actividad, horas y User Story, además de Sprint opcional y datos técnicos de identidad/eliminación lógica. Horas estimadas y reales son independientes: **no convertir Story Points en horas ni viceversa**. El día actual reutiliza la zona ya aprobada de US-02, `America/Argentina/Buenos_Aires`.
 
-Trazabilidad: [enunciado](enunciado.md) §2.5 y datos para §2.7 → EP-05 → [US-16 / Issue #16](https://github.com/Aguscampos04/Carva/issues/16) → D-01…D-29 → [SDD-US-16](../sdd/SDD-US-16-registrar-horas-esfuerzo.md) → AC-01…AC-18 y su matriz → [BDD-US-16](../bdd/BDD-US-16-registrar-horas-esfuerzo.feature), escenarios BDD-US-16-01…42 → familias futuras TEST-US-16-NN → TDD y código Go **pendientes**. No se atribuye evidencia de ejecución a estos escenarios documentales.
+Trazabilidad: [enunciado](enunciado.md) §2.5 y datos para §2.7 → EP-05 → [US-16 / Issue #16](https://github.com/Aguscampos04/Carva/issues/16) → D-01…D-31 → [SDD-US-16](../sdd/SDD-US-16-registrar-horas-esfuerzo.md) → AC-01…AC-19 y su matriz → [BDD-US-16](../bdd/BDD-US-16-registrar-horas-esfuerzo.feature), escenarios BDD-US-16-01…46 → familias futuras TEST-US-16-NN → TDD y código Go **pendientes**. D-30 → AC-19 → BDD-43/44; D-31 → AC-07/18 → BDD-15/16/33/45; D-26 corregida → AC-10/14 → BDD-26/46. No se atribuye evidencia de ejecución a estos escenarios documentales.
 
 Impactos acotados para futura implementación: US-05 requiere estimación en altas/ediciones, con NULL histórico consultable; US-02 debe proteger cambios de inicio frente al esfuerzo; US-03 aporta identidades; US-08 y US-11 incorporan la excepción explícita D-21 únicamente para horas estimadas vigentes, preservando los demás datos históricos; US-10 conserva esfuerzo en su asociación elegida al trasladar historias y sincroniza estimación; US-15 conserva su actualización independiente de Story Points. Estas precisiones no reescriben otras decisiones funcionales.
 
-Las propuestas técnicas PT-01…PT-06 de la SDD (representación exacta, API/errores, esquema, transacciones, migración e interfaz) se someten a revisión. Se señalan dos cuestiones humanas: cómo validar D-17 si un proyecto histórico Finalizado tiene fin NULL que US-02 conserva sin inventarlo, y si el control de cambio de inicio de D-18 debe considerar también los esfuerzos eliminados almacenados (propuesta conservadora PT-04). No se resuelven mediante nuevas decisiones funcionales implícitas. Sin métricas, reportes, implementación, merge, cierre de #16 ni declaración de US-16 terminada en esta etapa.
+R-01 y R-02 quedan **resueltos** por D-30 y D-31 y se retiran de los pendientes funcionales. La excepción de D-30 precisa D-15 para Finalizado sin fin; no permite completar esa fecha desde esfuerzo ni bloquea consultas/baja. D-31 precisa D-18: el cambio de inicio se coordina atómicamente contra activos, sin alterar eliminados aunque conserven fechas anteriores al nuevo inicio. D-26 corregida conserva Sprint válido o asociación nula al cambiar historia; solo una incompatibilidad exige resolución explícita, sin sustitución automática.
+
+Las propuestas técnicas PT-01…PT-06 de la SDD (representación exacta, API/errores, esquema, mecanismo transaccional, migración e interfaz) continúan sometidas a revisión; las reglas funcionales recién aprobadas no siguen pendientes. Sin métricas, reportes, implementación, merge, cierre de #16 ni declaración de US-16 terminada en esta etapa.
 
 ### Decisiones pendientes
 
