@@ -23,7 +23,7 @@ La instrucción recibida fue continuar con la Issue 14. La Issue define que una 
 
 ## Validación
 
-- `go test ./...`: PASS en la repetición aislada. Una ejecución concurrente con `go vet` tuvo un panic intermitente en `TestProjectSprintCreationWinsBeforeFinalization` (`close of closed channel`); la repetición completa pasó.
+- `go test ./...`: PASS en la última ejecución completa. Dos ejecuciones previas fallaron intermitentemente en el test ajeno `TestProjectSprintCreationWinsBeforeFinalization` (`close of closed channel`); las ejecuciones completas posteriores pasaron.
 - Tests de integración Planning Poker: PASS.
 - `go vet ./...`: PASS.
 - `gofmt -l .`: sin archivos pendientes.
@@ -32,4 +32,6 @@ La instrucción recibida fue continuar con la Issue 14. La Issue define que una 
 
 ## Revisión humana y publicación
 
-La revisión humana queda pendiente. El commit `37f5b25` está publicado en la rama `codex/issue-14`, basada en `codex/issue-13`. US-13 sigue en el PR #42 abierto. La creación del PR de US-14 se intentó con la integración de GitHub y devolvió HTTP 403 (`Resource not accessible by integration`); `gh auth status` confirmó que la sesión local no es válida. No se afirma que el PR exista, no se realizó merge ni se cerró la Issue #14. Puede abrirse desde [comparar `codex/issue-13` con `codex/issue-14`](https://github.com/Aguscampos04/Carva/compare/codex/issue-13...codex/issue-14?expand=1).
+US-13 se integró en `main` mediante el PR #42 el 2026-10-26. Como el merge generó el commit `21ccbd1` separado del head de la rama, se reubicaron los commits propios de US-14 sobre el `main` actualizado; así la comparación queda limitada a US-14. La revisión humana de US-14 queda pendiente.
+
+La creación del PR de US-14 se intentó con la integración de GitHub y devolvió HTTP 403 (`Resource not accessible by integration`); `gh auth status` confirmó que la sesión local no es válida. No se afirma que el PR exista, no se realizó merge ni se cerró la Issue #14. Puede abrirse desde [comparar `main` con `codex/issue-14`](https://github.com/Aguscampos04/Carva/compare/main...codex/issue-14?expand=1).

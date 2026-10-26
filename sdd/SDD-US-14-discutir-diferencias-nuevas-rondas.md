@@ -2,7 +2,7 @@
 
 **Estado:** derivada de US-14 / Issue #14; contrato técnico sujeto a revisión del equipo.
 **Trazabilidad:** enunciado §2.4 → EP-04 → US-14 / [Issue #14](https://github.com/Aguscampos04/Carva/issues/14) → esta SDD → [BDD-US-14](../bdd/BDD-US-14-discutir-diferencias-nuevas-rondas.feature) → tests → Go.
-**Dependencia:** US-13, publicada en la rama `codex/issue-13` y en el PR #42 (abierto).
+**Dependencia:** US-13, integrada en `main` mediante el PR #42 (merged el 2026-10-26).
 
 ## Objective
 
