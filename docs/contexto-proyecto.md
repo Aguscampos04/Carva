@@ -254,6 +254,50 @@ Trazabilidad: enunciado §2.1 → EP-01 → [US-03 / Issue #3](https://github.co
 
 El responsable autorizó el 2026-10-16 implementar la SDD y los escenarios con los ajustes de revisión: JSON estricto, integridad referencial efectiva en SQLite, claridad de BDD 07/17 y UUID completo presentado como dato secundario. Esta autorización de la etapa no implica aprobación final de la historia por el equipo ni evidencia de tests; la implementación deberá conservar evidencia TDD y entregarse por PR sin merge ni cierre de #3.
 
+### Horas estimadas y esfuerzo real — US-16 / Issue #16
+
+Decisiones funcionales **aprobadas explícitamente por el responsable en la solicitud del 2026-10-26**. Los identificadores D-01 a D-29 tienen alcance local a US-16; no reemplazan las decisiones homónimas de otras historias. Esta aprobación funcional no autoriza implementación: la SDD y el BDD se presentan para revisión documental y la etapa TDD/código requiere aprobación expresa posterior.
+
+| ID | Decisión aprobada | AC de SDD-US-16 |
+| --- | --- | --- |
+| D-01 | Se pueden registrar horas estimadas para cualquier User Story del Product Backlog, aunque no esté asignada a un Sprint. | AC-01 |
+| D-02 | Las horas estimadas pueden modificarse en cualquier momento, incluso cuando existen registros de esfuerzo real. Se conserva el valor actualizado como estimación vigente. | AC-01 |
+| D-03 | Cada registro debe asociarse obligatoriamente a una User Story del proyecto. No existen registros generales sin historia. | AC-04 |
+| D-04 | Se pueden registrar horas reales para historias asignadas o no a un Sprint. | AC-04 |
+| D-05 | Las horas trabajadas deben ser mayores que cero y admitir hasta dos decimales. | AC-05 |
+| D-06 | Las horas estimadas admiten hasta dos decimales. | AC-01, AC-02 |
+| D-07 | Toda User Story nueva requiere horas estimadas mayores que cero desde su creación. | AC-02 |
+| D-08 | Las historias existentes sin estimación se conservan como pendientes de regularización. Se pueden consultar, pero al editarlas se exige completar una estimación válida. | AC-03 |
+| D-09 | La fecha de trabajo puede ser actual o pasada, nunca futura. | AC-07 |
+| D-10 | La actividad es un texto libre obligatorio, no vacío ni compuesto únicamente por espacios. | AC-05 |
+| D-11 | Los registros pueden editarse después de guardarse: miembro, fecha, actividad, horas e historia asociada, conservando su identificador. | AC-10 |
+| D-12 | Los registros pueden eliminarse únicamente después de una confirmación del usuario. | AC-11 |
+| D-13 | La eliminación es lógica (*soft delete*). Los registros eliminados permanecen almacenados para trazabilidad, pero no aparecen en las consultas normales ni participan de las sumatorias. No se requiere interfaz para consultar eliminados. | AC-11, AC-12 |
+| D-14 | Se permite registrar, editar y eliminar lógicamente esfuerzo para historias completadas, sin modificar su estado. | AC-13 |
+| D-15 | Se permite registrar, editar y eliminar lógicamente esfuerzo en proyectos finalizados, sin cambiar su estado ni sus fechas. | AC-08, AC-13 |
+| D-16 | Un miembro puede tener múltiples registros independientes el mismo día para la misma historia. Sus horas se acumulan. | AC-09 |
+| D-17 | En proyectos finalizados, la fecha de trabajo no puede ser posterior a la fecha real de finalización, aunque el registro se cargue después. | AC-08 |
+| D-18 | Si existe fecha de inicio del proyecto, no se permite esfuerzo anterior a ella. Los cambios posteriores de esa fecha deben rechazarse cuando generen inconsistencias con los registros existentes; nunca modificar automáticamente sus fechas. | AC-07 |
+| D-19 | Cada User Story muestra sus horas estimadas, el total de horas reales de sus registros activos y permite consultar el detalle. | AC-12 |
+| D-20 | El registro y la administración del esfuerzo real se realizan desde el detalle de cada User Story del Product Backlog. | AC-12 |
+| D-21 | Cuando cambian las horas estimadas de una historia, se actualiza también ese valor en todos los Sprints a los que está asignada, incluidos los cerrados. Los demás datos históricos se conservan. | AC-16 |
+| D-22 | Cada registro puede asociarse opcionalmente a un Sprint al que pertenezca la historia. También puede permanecer sin Sprint. | AC-14 |
+| D-23 | Se permite registrar, editar y eliminar lógicamente esfuerzo asociado a Sprints cerrados, sin reabrirlos ni alterar sus historias planificadas. | AC-15 |
+| D-24 | Un miembro puede acumular como máximo 24 horas reales por fecha dentro de su proyecto, considerando todas sus historias y Sprints. Los registros eliminados lógicamente no se contabilizan. | AC-09 |
+| D-25 | Las horas reales acumuladas pueden superar las estimadas, sin modificar automáticamente la estimación. | AC-09 |
+| D-26 | Al cambiar la historia asociada a un registro, el usuario debe seleccionar un Sprint válido para la nueva historia o quitar explícitamente la asociación anterior. No realizar modificaciones silenciosas. | AC-10, AC-14 |
+| D-27 | Un registro de esfuerzo solo puede reasignarse a historias del mismo proyecto. Para corregir un proyecto equivocado, debe eliminarse lógicamente el registro y crearse otro en el proyecto correcto. | AC-06, AC-10 |
+| D-28 | Se permite registrar esfuerzo en historias históricas sin estimación, mostrando «Pendiente de regularización» hasta completar ese dato. | AC-03 |
+| D-29 | El formulario de esfuerzo debe completar por defecto la fecha actual, permitiendo modificarla según las restricciones establecidas. | AC-07, AC-12 |
+
+Integración aprobada con US-03: seleccionar miembros desde la lista del proyecto mediante UUID, nunca nombre libre; validar siempre su pertenencia. Cada esfuerzo conserva como mínimo miembro, fecha, actividad, horas y User Story, además de Sprint opcional y datos técnicos de identidad/eliminación lógica. Horas estimadas y reales son independientes: **no convertir Story Points en horas ni viceversa**. El día actual reutiliza la zona ya aprobada de US-02, `America/Argentina/Buenos_Aires`.
+
+Trazabilidad: [enunciado](enunciado.md) §2.5 y datos para §2.7 → EP-05 → [US-16 / Issue #16](https://github.com/Aguscampos04/Carva/issues/16) → D-01…D-29 → [SDD-US-16](../sdd/SDD-US-16-registrar-horas-esfuerzo.md) → AC-01…AC-18 y su matriz → [BDD-US-16](../bdd/BDD-US-16-registrar-horas-esfuerzo.feature), escenarios BDD-US-16-01…42 → familias futuras TEST-US-16-NN → TDD y código Go **pendientes**. No se atribuye evidencia de ejecución a estos escenarios documentales.
+
+Impactos acotados para futura implementación: US-05 requiere estimación en altas/ediciones, con NULL histórico consultable; US-02 debe proteger cambios de inicio frente al esfuerzo; US-03 aporta identidades; US-08 y US-11 incorporan la excepción explícita D-21 únicamente para horas estimadas vigentes, preservando los demás datos históricos; US-10 conserva esfuerzo en su asociación elegida al trasladar historias y sincroniza estimación; US-15 conserva su actualización independiente de Story Points. Estas precisiones no reescriben otras decisiones funcionales.
+
+Las propuestas técnicas PT-01…PT-06 de la SDD (representación exacta, API/errores, esquema, transacciones, migración e interfaz) se someten a revisión. Se señalan dos cuestiones humanas: cómo validar D-17 si un proyecto histórico Finalizado tiene fin NULL que US-02 conserva sin inventarlo, y si el control de cambio de inicio de D-18 debe considerar también los esfuerzos eliminados almacenados (propuesta conservadora PT-04). No se resuelven mediante nuevas decisiones funcionales implícitas. Sin métricas, reportes, implementación, merge, cierre de #16 ni declaración de US-16 terminada en esta etapa.
+
 ### Decisiones pendientes
 
 Todavía deben definirse y documentarse, entre otras:
