@@ -34,6 +34,14 @@ test('US16 exact decimal payloads do not round cents or huge estimates',()=>{
  assert.equal(c.exactHoursJSON({estimated_hours:'92233720368547758.07',title:'A'},['estimated_hours']),'{"estimated_hours":92233720368547758.07,"title":"A"}');
  assert.throws(()=>c.exactHoursJSON({hours:'1.001'},['hours']));
 });
+test('US16 parsing preserves decimal tokens and cannot reinterpret activity text',()=>{
+ const {c}=setup(async()=>{});
+ const raw='{"estimated_hours":92233720368547758.07,"activity":"text \\"hours\\":123", "hours":1.25}'.replace('text \\"hours\\":123','text');
+ assert.equal(c.parseHoursJSON(raw).estimated_hours,'92233720368547758.07');
+ const input=JSON.stringify({activity:'"hours":123',actual_hours:1.25});
+ assert.equal(c.parseHoursJSON(input).activity,'"hours":123');
+ assert.equal(c.parseHoursJSON(input).actual_hours,'1.25');
+});
 test('BDD 05/07/11/13: detail, missing estimate, server date, homonym UUID and effort submit',async()=>{
  const api=fakeAPI();const e=setup(api.api);await button(e.widget,'Registrar y consultar esfuerzo').listeners.click();
  assert(all(e.widget).some(n=>n.textContent.includes('Pendiente de regularización')));
