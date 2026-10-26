@@ -18,6 +18,8 @@ type Repository interface {
 	FindRound(context.Context, string, string, string) (domain.Round, error)
 	UpsertVote(context.Context, domain.Round, domain.Vote) error
 	ListVotes(context.Context, string) ([]domain.Vote, error)
+	FinalizeRound(context.Context, string, string, string) (domain.RoundResult, error)
+	GetRoundResult(context.Context, string, string, string) (domain.RoundResult, error)
 }
 
 // BacklogReader verifies that the story belongs to the requested project.
@@ -106,4 +108,36 @@ func (s Service) VisibleVotes(ctx context.Context, projectID, storyID, roundID, 
 		return nil, fmt.Errorf("list Planning Poker votes: %w", err)
 	}
 	return round.VisibleVotes(memberID, votes)
+}
+
+// FinalizeRound reveals the result to a participant after every participant voted.
+func (s Service) FinalizeRound(ctx context.Context, projectID, storyID, roundID, memberID string) (domain.RoundResult, error) {
+	round, err := s.repository.FindRound(ctx, projectID, storyID, roundID)
+	if err != nil {
+		return domain.RoundResult{}, fmt.Errorf("find Planning Poker round for finalization: %w", err)
+	}
+	if _, err := round.VisibleVotes(memberID, nil); err != nil {
+		return domain.RoundResult{}, err
+	}
+	result, err := s.repository.FinalizeRound(ctx, projectID, storyID, roundID)
+	if err != nil {
+		return domain.RoundResult{}, fmt.Errorf("finalize Planning Poker round: %w", err)
+	}
+	return result, nil
+}
+
+// RoundResult returns revealed votes to a participant after finalization.
+func (s Service) RoundResult(ctx context.Context, projectID, storyID, roundID, memberID string) (domain.RoundResult, error) {
+	round, err := s.repository.FindRound(ctx, projectID, storyID, roundID)
+	if err != nil {
+		return domain.RoundResult{}, fmt.Errorf("find Planning Poker round result: %w", err)
+	}
+	if _, err := round.VisibleVotes(memberID, nil); err != nil {
+		return domain.RoundResult{}, err
+	}
+	result, err := s.repository.GetRoundResult(ctx, projectID, storyID, roundID)
+	if err != nil {
+		return domain.RoundResult{}, fmt.Errorf("get Planning Poker round result: %w", err)
+	}
+	return result, nil
 }

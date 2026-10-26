@@ -23,6 +23,13 @@ type Round struct {
 	Participants []string    `json:"participants"`
 }
 
+// RoundResult is revealed only after every participant voted and the round was finalized.
+type RoundResult struct {
+	Round          Round  `json:"round"`
+	Votes          []Vote `json:"votes"`
+	HasDifferences bool   `json:"has_differences"`
+}
+
 // NewRound opens an estimation round for its project members.
 func NewRound(id, projectID, storyID string, number int, participants []string) (Round, error) {
 	if strings.TrimSpace(id) == "" {
@@ -83,6 +90,69 @@ func (round Round) VisibleVotes(memberID string, votes []Vote) ([]Vote, error) {
 		}
 	}
 	return visible, nil
+}
+
+// Finalize closes a round after all participants have voted and reveals the votes together.
+func (round Round) Finalize(votes []Vote) (RoundResult, error) {
+	if round.Status != RoundOpen {
+		return RoundResult{}, ErrRoundNotOpen
+	}
+	if len(votes) < len(round.Participants) {
+		return RoundResult{}, ErrVotesPending
+	}
+	result, err := newRoundResult(round, votes)
+	if err != nil {
+		return RoundResult{}, err
+	}
+	result.Round.Status = RoundFinalized
+	return result, nil
+}
+
+// Result returns the full set of votes only after a round has been finalized.
+func (round Round) Result(votes []Vote) (RoundResult, error) {
+	if round.Status != RoundFinalized {
+		return RoundResult{}, ErrRoundNotFinalized
+	}
+	return newRoundResult(round, votes)
+}
+
+func newRoundResult(round Round, votes []Vote) (RoundResult, error) {
+	if len(round.Participants) == 0 {
+		return RoundResult{}, ErrNoParticipants
+	}
+	if len(votes) < len(round.Participants) {
+		return RoundResult{}, ErrVotesPending
+	}
+	if len(votes) != len(round.Participants) {
+		return RoundResult{}, ErrInvalidVoteSet
+	}
+	seen := make(map[string]struct{}, len(votes))
+	for _, vote := range votes {
+		if vote.RoundID != round.ID || vote.StoryID != round.StoryID {
+			return RoundResult{}, ErrInvalidVoteScope
+		}
+		if !round.hasParticipant(vote.MemberID) {
+			return RoundResult{}, ErrNotParticipant
+		}
+		if _, exists := seen[vote.MemberID]; exists {
+			return RoundResult{}, ErrInvalidVoteSet
+		}
+		seen[vote.MemberID] = struct{}{}
+	}
+	for _, participant := range round.Participants {
+		if _, exists := seen[participant]; !exists {
+			return RoundResult{}, ErrVotesPending
+		}
+	}
+
+	hasDifferences := false
+	for _, vote := range votes[1:] {
+		if vote.StoryPoints != votes[0].StoryPoints {
+			hasDifferences = true
+			break
+		}
+	}
+	return RoundResult{Round: round, Votes: slices.Clone(votes), HasDifferences: hasDifferences}, nil
 }
 
 func (round Round) hasParticipant(memberID string) bool {
