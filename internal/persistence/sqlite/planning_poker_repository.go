@@ -139,7 +139,69 @@ func (r *PlanningPokerRepository) UpsertVote(ctx context.Context, round domain.R
 }
 
 func (r *PlanningPokerRepository) ListVotes(ctx context.Context, roundID string) ([]domain.Vote, error) {
-	rows, err := r.db.QueryContext(ctx, `
+	return votesOn(ctx, r.db, roundID)
+}
+
+func (r *PlanningPokerRepository) FinalizeRound(ctx context.Context, projectID, storyID, roundID string) (domain.RoundResult, error) {
+	var result domain.RoundResult
+	err := withImmediate(ctx, r.db, func(conn *sql.Conn) error {
+		round, err := scanPlanningPokerRound(conn.QueryRowContext(ctx, `
+			SELECT id, project_id, story_id, round_number, status
+			FROM estimation_rounds WHERE id = ? AND project_id = ? AND story_id = ?`, roundID, projectID, storyID))
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ErrRoundNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("select Planning Poker round for finalization: %w", err)
+		}
+		round.Participants, err = participantsOn(ctx, conn, round.ID)
+		if err != nil {
+			return err
+		}
+		votes, err := votesOn(ctx, conn, round.ID)
+		if err != nil {
+			return err
+		}
+		result, err = round.Finalize(votes)
+		if err != nil {
+			return err
+		}
+		updated, err := conn.ExecContext(ctx,
+			`UPDATE estimation_rounds SET status = ? WHERE id = ? AND status = ?`, domain.RoundFinalized, round.ID, domain.RoundOpen)
+		if err != nil {
+			return fmt.Errorf("finalize Planning Poker round: %w", err)
+		}
+		rows, err := updated.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("count finalized Planning Poker rounds: %w", err)
+		}
+		if rows != 1 {
+			return domain.ErrRoundNotOpen
+		}
+		return nil
+	})
+	if err != nil {
+		return domain.RoundResult{}, err
+	}
+	return result, nil
+}
+
+func (r *PlanningPokerRepository) GetRoundResult(ctx context.Context, projectID, storyID, roundID string) (domain.RoundResult, error) {
+	round, err := r.FindRound(ctx, projectID, storyID, roundID)
+	if err != nil {
+		return domain.RoundResult{}, err
+	}
+	votes, err := r.ListVotes(ctx, roundID)
+	if err != nil {
+		return domain.RoundResult{}, err
+	}
+	return round.Result(votes)
+}
+
+func votesOn(ctx context.Context, queryer interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}, roundID string) ([]domain.Vote, error) {
+	rows, err := queryer.QueryContext(ctx, `
 		SELECT votes.member_id, rounds.story_id, votes.story_points
 		FROM estimation_votes AS votes
 		JOIN estimation_rounds AS rounds ON rounds.id = votes.round_id

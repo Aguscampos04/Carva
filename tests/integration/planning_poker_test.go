@@ -69,12 +69,6 @@ func TestPlanningPokerVotesAreAttributedAndHiddenUntilFinalization(t *testing.T)
 		path := base + "/" + round.ID + "/votes/" + memberID
 		return performJSONRequest(handler, http.MethodPut, path, map[string]any{"story_points": points})
 	}
-	if response := cast(first.ID, 3); response.Code != http.StatusOK {
-		t.Fatalf("first vote = %d %s", response.Code, response.Body)
-	}
-	if response := cast(second.ID, 8); response.Code != http.StatusOK {
-		t.Fatalf("second vote = %d %s", response.Code, response.Body)
-	}
 	readVotes := func(memberID string) []domainpoker.Vote {
 		t.Helper()
 		path := base + "/" + round.ID + "/votes?member_id=" + url.QueryEscape(memberID)
@@ -87,6 +81,26 @@ func TestPlanningPokerVotesAreAttributedAndHiddenUntilFinalization(t *testing.T)
 			t.Fatal(err)
 		}
 		return votes
+	}
+	if response := cast(first.ID, 3); response.Code != http.StatusOK {
+		t.Fatalf("first vote = %d %s", response.Code, response.Body)
+	}
+	if visible := readVotes(first.ID); len(visible) != 1 || visible[0].MemberID != first.ID {
+		t.Fatalf("first participant saw %#v before everyone voted, want only their vote", visible)
+	}
+	if visible := readVotes(second.ID); len(visible) != 0 {
+		t.Fatalf("second participant saw %#v before voting, want no votes", visible)
+	}
+	finalizePath := base + "/" + round.ID + "/finalize?member_id=" + url.QueryEscape(first.ID)
+	if response := performJSONRequest(handler, http.MethodPost, finalizePath, nil); response.Code != http.StatusConflict {
+		t.Fatalf("finalize with pending vote = %d %s, want conflict", response.Code, response.Body)
+	}
+	resultPath := base + "/" + round.ID + "/result?member_id=" + url.QueryEscape(first.ID)
+	if response := performJSONRequest(handler, http.MethodGet, resultPath, nil); response.Code != http.StatusConflict {
+		t.Fatalf("read result before finalization = %d %s, want conflict", response.Code, response.Body)
+	}
+	if response := cast(second.ID, 8); response.Code != http.StatusOK {
+		t.Fatalf("second vote = %d %s", response.Code, response.Body)
 	}
 	if visible := readVotes(first.ID); len(visible) != 1 || visible[0].MemberID != first.ID || visible[0].StoryPoints != 3 {
 		t.Fatalf("first participant saw %#v, want only their own vote", visible)
@@ -119,6 +133,29 @@ func TestPlanningPokerVotesAreAttributedAndHiddenUntilFinalization(t *testing.T)
 	}
 	if len(stored) != 1 || stored[0].StoryPoints != nil {
 		t.Fatalf("votes changed definitive Story Points: %+v", stored)
+	}
+
+	finalized := performJSONRequest(handler, http.MethodPost, finalizePath, nil)
+	if finalized.Code != http.StatusOK {
+		t.Fatalf("finalize complete round = %d %s", finalized.Code, finalized.Body)
+	}
+	var result domainpoker.RoundResult
+	if err := json.Unmarshal(finalized.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Round.Status != domainpoker.RoundFinalized || len(result.Votes) != 2 || !result.HasDifferences {
+		t.Fatalf("finalized result = %+v, want both votes and differences", result)
+	}
+	secondResultPath := base + "/" + round.ID + "/result?member_id=" + url.QueryEscape(second.ID)
+	secondResult := performJSONRequest(handler, http.MethodGet, secondResultPath, nil)
+	if secondResult.Code != http.StatusOK {
+		t.Fatalf("second participant read revealed result = %d %s", secondResult.Code, secondResult.Body)
+	}
+	if response := cast(first.ID, 13); response.Code != http.StatusConflict {
+		t.Fatalf("vote after finalization = %d %s, want conflict", response.Code, response.Body)
+	}
+	if response := performJSONRequest(handler, http.MethodPost, finalizePath, nil); response.Code != http.StatusConflict {
+		t.Fatalf("finalize already-finalized round = %d %s, want conflict", response.Code, response.Body)
 	}
 }
 
