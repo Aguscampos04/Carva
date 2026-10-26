@@ -13,7 +13,7 @@ import (
 
 // PlanningPokerService exposes project-scoped round and vote operations.
 type PlanningPokerService interface {
-	StartInitialRound(context.Context, string, string) (domain.Round, error)
+	StartRound(context.Context, string, string) (domain.Round, error)
 	ListRounds(context.Context, string, string) ([]domain.Round, error)
 	RecordVote(context.Context, string, string, string, string, int) error
 	VisibleVotes(context.Context, string, string, string, string) ([]domain.Vote, error)
@@ -28,7 +28,7 @@ type planningPokerVoteRequest struct {
 func registerPlanningPokerRoutes(mux *http.ServeMux, service PlanningPokerService) {
 	base := "/api/projects/{projectID}/backlog/{storyID}/estimation"
 	mux.HandleFunc("POST "+base+"/rounds", func(w http.ResponseWriter, r *http.Request) {
-		round, err := service.StartInitialRound(r.Context(), r.PathValue("projectID"), r.PathValue("storyID"))
+		round, err := service.StartRound(r.Context(), r.PathValue("projectID"), r.PathValue("storyID"))
 		if planningPokerError(w, err) {
 			return
 		}

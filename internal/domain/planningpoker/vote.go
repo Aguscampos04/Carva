@@ -23,7 +23,7 @@ var (
 	ErrInvalidVoteSet       = errors.New("Planning Poker votes do not match the round participants")
 	ErrRoundNotFound        = errors.New("Planning Poker round not found")
 	ErrNotFound             = errors.New("Planning Poker resource not found")
-	ErrRoundExists          = errors.New("an initial Planning Poker round already exists for this story")
+	ErrRoundExists          = errors.New("a Planning Poker round with this number already exists for this story")
 )
 
 // Vote is one member's Story Points selection for one story and round.

@@ -13,7 +13,7 @@ import (
 
 // Repository persists rounds and their votes.
 type Repository interface {
-	CreateInitialRound(context.Context, domain.Round) error
+	CreateRound(context.Context, domain.Round) error
 	ListRounds(context.Context, string, string) ([]domain.Round, error)
 	FindRound(context.Context, string, string, string) (domain.Round, error)
 	UpsertVote(context.Context, domain.Round, domain.Vote) error
@@ -43,10 +43,22 @@ func NewService(repository Repository, backlog BacklogReader, members MemberRead
 	return Service{repository: repository, backlog: backlog, members: members}
 }
 
-// StartInitialRound snapshots the registered members for the first round.
-func (s Service) StartInitialRound(ctx context.Context, projectID, storyID string) (domain.Round, error) {
+// StartRound snapshots the registered project members for the initial or next round.
+func (s Service) StartRound(ctx context.Context, projectID, storyID string) (domain.Round, error) {
 	if _, err := s.backlog.FindByID(ctx, projectID, storyID); err != nil {
 		return domain.Round{}, fmt.Errorf("find Planning Poker story: %w", err)
+	}
+	rounds, err := s.repository.ListRounds(ctx, projectID, storyID)
+	if err != nil {
+		return domain.Round{}, fmt.Errorf("list Planning Poker rounds before starting: %w", err)
+	}
+	number := 1
+	if len(rounds) > 0 {
+		latest := rounds[len(rounds)-1]
+		if latest.Status != domain.RoundFinalized {
+			return domain.Round{}, domain.ErrRoundNotFinalized
+		}
+		number = latest.Number + 1
 	}
 	projectMembers, err := s.members.List(ctx, projectID)
 	if err != nil {
@@ -56,12 +68,12 @@ func (s Service) StartInitialRound(ctx context.Context, projectID, storyID strin
 	for _, participant := range projectMembers {
 		participantIDs = append(participantIDs, participant.ID)
 	}
-	round, err := domain.NewRound(uuid.NewString(), projectID, storyID, 1, participantIDs)
+	round, err := domain.NewRound(uuid.NewString(), projectID, storyID, number, participantIDs)
 	if err != nil {
 		return domain.Round{}, err
 	}
-	if err := s.repository.CreateInitialRound(ctx, round); err != nil {
-		return domain.Round{}, fmt.Errorf("create initial Planning Poker round: %w", err)
+	if err := s.repository.CreateRound(ctx, round); err != nil {
+		return domain.Round{}, fmt.Errorf("create Planning Poker round: %w", err)
 	}
 	return round, nil
 }

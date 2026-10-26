@@ -17,7 +17,7 @@ func NewPlanningPokerRepository(db *sql.DB) *PlanningPokerRepository {
 	return &PlanningPokerRepository{db: db}
 }
 
-func (r *PlanningPokerRepository) CreateInitialRound(ctx context.Context, round domain.Round) error {
+func (r *PlanningPokerRepository) CreateRound(ctx context.Context, round domain.Round) error {
 	return withImmediate(ctx, r.db, func(conn *sql.Conn) error {
 		var storyExists bool
 		if err := conn.QueryRowContext(ctx,
@@ -28,13 +28,24 @@ func (r *PlanningPokerRepository) CreateInitialRound(ctx context.Context, round 
 		if !storyExists {
 			return domain.ErrNotFound
 		}
-		var exists bool
-		if err := conn.QueryRowContext(ctx,
-			`SELECT EXISTS(SELECT 1 FROM estimation_rounds WHERE story_id = ?)`, round.StoryID,
-		).Scan(&exists); err != nil {
-			return fmt.Errorf("check existing Planning Poker round: %w", err)
+		var previousNumber int
+		var previousStatus string
+		err := conn.QueryRowContext(ctx, `
+			SELECT round_number, status FROM estimation_rounds
+			WHERE story_id = ? ORDER BY round_number DESC LIMIT 1`, round.StoryID,
+		).Scan(&previousNumber, &previousStatus)
+		expectedNumber := 1
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+		case err != nil:
+			return fmt.Errorf("find previous Planning Poker round: %w", err)
+		default:
+			if domain.RoundStatus(previousStatus) != domain.RoundFinalized {
+				return domain.ErrRoundNotFinalized
+			}
+			expectedNumber = previousNumber + 1
 		}
-		if exists {
+		if round.Number != expectedNumber {
 			return domain.ErrRoundExists
 		}
 		if _, err := conn.ExecContext(ctx, `
