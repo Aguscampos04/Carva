@@ -1,9 +1,9 @@
 # Estado: documentación en revisión; 31 decisiones D-01...D-31 aprobadas, incluida D-26 corregida.
-# PT son propuestas técnicas, no aprobaciones de implementación.
+# Las 31 decisiones y PT-01…PT-06 fueron aprobadas formalmente para implementar en PR #45.
 # Enunciado §2.5/§2.7 -> EP-05 -> US-16 / Issue #16 -> SDD-US-16 -> AC -> BDD.
 # Automatización, TEST-US-16-NN y evidencia TDD pendientes; estos escenarios no se ejecutaron.
 # Convención existente: keywords Gherkin en inglés y comportamiento en español.
-@US-16 @Issue-16 @documentacion-en-revision
+@US-16 @Issue-16 @implementacion-autorizada
 Feature: Registrar horas estimadas y esfuerzo real
   Como integrante del equipo
   Quiero mantener estimaciones y registros de esfuerzo independientes por historia

@@ -256,7 +256,7 @@ El responsable autorizó el 2026-10-16 implementar la SDD y los escenarios con l
 
 ### Horas estimadas y esfuerzo real — US-16 / Issue #16
 
-Decisiones funcionales **aprobadas explícitamente por el responsable**: D-01…D-29 en la solicitud del 2026-10-26 y D-30/D-31 junto a la corrección de D-26 en la actualización solicitada del PR #45. Los 31 identificadores tienen alcance local a US-16; no reemplazan las decisiones homónimas de otras historias. Esta aprobación funcional no autoriza implementación: la SDD y el BDD se presentan para revisión documental y la etapa TDD/código requiere aprobación expresa posterior.
+Decisiones funcionales **aprobadas explícitamente por el responsable**: D-01…D-29 en la solicitud del 2026-10-26 y D-30/D-31 junto a la corrección de D-26 en la actualización solicitada del PR #45. Los 31 identificadores tienen alcance local a US-16; no reemplazan las decisiones homónimas de otras historias. El responsable aprobó posteriormente de forma expresa las 31 decisiones y PT-01…PT-06 y autorizó implementar completamente US-16 mediante SDD → BDD → TDD en la misma rama del PR #45, con commits y push; sin merge ni cierre de #16. Aceptación final pendiente.
 
 | ID | Decisión aprobada | AC de SDD-US-16 |
 | --- | --- | --- |
@@ -300,7 +300,7 @@ Impactos acotados para futura implementación: US-05 requiere estimación en alt
 
 R-01 y R-02 quedan **resueltos** por D-30 y D-31 y se retiran de los pendientes funcionales. La excepción de D-30 precisa D-15 para Finalizado sin fin; no permite completar esa fecha desde esfuerzo ni bloquea consultas/baja. D-31 precisa D-18: el cambio de inicio se coordina atómicamente contra activos, sin alterar eliminados aunque conserven fechas anteriores al nuevo inicio. D-26 corregida conserva Sprint válido o asociación nula al cambiar historia; solo una incompatibilidad exige resolución explícita, sin sustitución automática.
 
-Las propuestas técnicas PT-01…PT-06 de la SDD (representación exacta, API/errores, esquema, mecanismo transaccional, migración e interfaz) continúan sometidas a revisión; las reglas funcionales recién aprobadas no siguen pendientes. Sin métricas, reportes, implementación, merge, cierre de #16 ni declaración de US-16 terminada en esta etapa.
+Las propuestas técnicas PT-01…PT-06 de la SDD (representación exacta, API/errores, esquema, mecanismo transaccional, migración e interfaz) quedan aprobadas formalmente para implementar; ni estas ni las reglas funcionales siguen pendientes de decisión. Se autoriza implementación y automatización con evidencia real, conservando fuera de alcance métricas/reportes. Sin merge, cierre de #16 ni aceptación final implícita.
 
 ### Decisiones pendientes
 

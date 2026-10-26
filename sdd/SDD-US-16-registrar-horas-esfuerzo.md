@@ -1,6 +1,6 @@
 # SDD-US-16 — Registrar horas estimadas y esfuerzo real
 
-**Estado:** propuesta documental en revisión; 31 decisiones funcionales D-01…D-31 aprobadas por el responsable, incluida la corrección de D-26 y las resoluciones D-30/31 incorporadas en la actualización del PR #45. Contratos y precisiones técnicas PT propuestos, pendientes de aprobación expresa antes de TDD e implementación. US-16 no está implementada ni finalizada.
+**Estado:** implementación autorizada por el responsable; revisión final pendiente; 31 decisiones funcionales D-01…D-31 aprobadas por el responsable, incluida la corrección de D-26 y las resoluciones D-30/31 incorporadas en la actualización del PR #45. El responsable aprobó formalmente las 31 decisiones y PT-01…PT-06 y autorizó implementación completa en la misma rama del PR #45, con SDD → BDD → TDD y evidencia real. La aceptación final e integración siguen reservadas al responsable.
 **User Story:** Como integrante del equipo, quiero registrar horas estimadas para una User Story durante la planificación y horas trabajadas en el registro de esfuerzo para disponer de ambos datos.
 **Trazabilidad:** [enunciado](../docs/enunciado.md) §2.5 y soporte de datos para §2.7 → EP-05 → [US-16 / Issue #16](https://github.com/Aguscampos04/Carva/issues/16) → [decisiones](../docs/contexto-proyecto.md#horas-estimadas-y-esfuerzo-real--us-16--issue-16) → esta SDD → AC → [BDD-US-16](../bdd/BDD-US-16-registrar-horas-esfuerzo.feature) → futuros tests TDD → futuro código Go.
 **Base revisada:** `main` actualizado desde `origin/main`, commit `a128429e5e72209e0455644d2f6e3e09c83f0544`; rama `codex/docs-us16-horas-esfuerzo`. Issue #16 abierta, EP-05, prioridad importante; su cuerpo conserva SP y Sprint pendientes. No se infieren ceremonias ni aprobaciones finales.
@@ -10,9 +10,9 @@
 
 Mantener una estimación vigente de horas por historia y administrar registros independientes de esfuerzo real desde su detalle en el Product Backlog. Consultar la estimación, el total activo y su detalle, sin derivar horas desde Story Points ni alterar automáticamente estimación, estados o resultados históricos al cargar esfuerzo.
 
-Alcance: alta/edición de estimaciones mediante US-05, consulta y regularización histórica, alta/consulta/edición/baja lógica de esfuerzo, identidad de US-03, validaciones de fechas de US-02, propagación de estimación a snapshots y coordinación transaccional. Las propuestas técnicas siguientes concretan las decisiones para revisión; no autorizan implementarlas.
+Alcance: alta/edición de estimaciones mediante US-05, consulta y regularización histórica, alta/consulta/edición/baja lógica de esfuerzo, identidad de US-03, validaciones de fechas de US-02, propagación de estimación a snapshots y coordinación transaccional. PT-01…PT-06 concretan las decisiones y fueron aprobadas formalmente para implementar.
 
-Exclusiones: métricas de desviación, velocidad, dashboards y reportes de otras US; conversión horas/SP; reapertura de proyectos/Sprints; edición de resultados históricos; gestión nueva de miembros; autenticación/permisos; restauración o interfaz de eliminados; bitácora de todas las versiones de cada edición. Esta entrega no agrega código, migraciones ni tests automatizados.
+Exclusiones: métricas de desviación, velocidad, dashboards y reportes de otras US; conversión horas/SP; reapertura de proyectos/Sprints; edición de resultados históricos; gestión nueva de miembros; autenticación/permisos; restauración o interfaz de eliminados; bitácora de todas las versiones de cada edición. La etapa de implementación está autorizada; se conserva el alcance funcional aprobado.
 
 ## Inputs
 
@@ -91,7 +91,7 @@ Identificación adicional aprobada: reutilizar US-03, UUID seleccionado de la li
 
 ## Constraints
 
-### PT-01 — Precisión de horas y fechas (propuesta)
+### PT-01 — Precisión de horas y fechas (aprobada para implementar)
 
 Representar horas en centésimas enteras en dominio y SQLite (`int64`/`INTEGER`), no minutos ni `REAL`/`float64`. 0.01 horas equivale a una centésima de hora, no a un minuto. Decodificar el número decimal JSON exactamente, rechazar fracciones con precisión mayor a dos sin redondear ni truncar. Propuesta de sintaxis de escritura: números sin exponente, enteros o fracción de uno/dos dígitos (1, 1.5, 1.50); `1.500`, `1e1`, strings y separador coma no son el formato contratado. La UI puede aceptar entrada decimal local y serializar el número canónico, sin conversiones binarias que alteren centésimas. Esta sintaxis es una precisión técnica pendiente, no una decisión funcional adicional.
 
@@ -99,7 +99,7 @@ Estimada mínima 0.01; sin máximo funcional aprobado (24 solo aplica al real di
 
 Reutilizar `project.Date`/`ParseDate`: `YYYY-MM-DD`, fechas existentes, años 0001…9999; no aceptar timestamps, año cero, fechas imposibles ni espacios. Comparar días, sin componentes horarios. Capturar hoy del reloj del servidor en la zona aprobada al validar la operación dentro de la unidad de trabajo; usar el mismo día para todas sus comprobaciones. El valor propuesto en formulario no evita revalidación en servidor si pasa la medianoche.
 
-### PT-02 — Contratos REST propuestos
+### PT-02 — Contratos REST aprobados para implementar
 
 Rutas sobre `/api/projects`, nombres `snake_case` como US-05 y error `{"error":"mensaje"}`. No renombrar `projectID` de las respuestas existentes de Sprint. Todos los objetos de esfuerzo devuelven `id`, `project_id`, `backlog_item_id`, `member_id`, `work_date`, `activity`, `hours`, `sprint_id` (número o `null`); `deleted_at` es técnico, no se publica en consultas normales.
 
@@ -124,7 +124,7 @@ Propuesta de decodificación para rutas nuevas: un único objeto JSON UTF-8, cla
 
 Baja por acción POST sigue la convención `/finalize` y `/close`, permite confirmación explícita sin depender de cuerpo DELETE y evita exponer eliminación física. Confirmación API expresa intención, no demuestra que la UI mostró diálogo. Repetir baja confirmada de una fila ya eliminada del mismo proyecto devuelve 204 conservando la marca inicial; inexistente o de otro proyecto: 404. GET/PUT de eliminados: 404. No se agrega `include_deleted`, búsqueda global, paginación ni restauración. Orden propuesto de entradas: fecha ascendente e ID ascendente para desempatar; no confundirlo con orden de carga.
 
-### PT-03 — Modelo de dominio y persistencia (propuesta)
+### PT-03 — Modelo de dominio y persistencia (aprobada para implementar)
 
 | Entidad / estructura | Cambio futuro y responsabilidad |
 | --- | --- |
@@ -143,7 +143,7 @@ Esquema conceptual, **sin SQL ni migración en esta etapa**:
 - FK a proyectos, miembros, historias y, si se informa, asignación `(sprint_id, backlog_item_id)` que ya es única en `sprint_backlog_items`. Validar además que Sprint/miembro/historia comparten `project_id`; las FK simples por ID no garantizan ese aislamiento. Se propone reforzarlo con índices UNIQUE `(project_id,id)` en padres y FK compuestas de historia/miembro/Sprint. Con Sprint nulo, las FK obligatorias de historia/miembro siguen vigentes. No borrado en cascada de esfuerzo ni snapshots.
 - Índices propuestos por `(project_id,backlog_item_id,deleted_at)` y `(project_id,member_id,work_date,deleted_at)` para detalle/suma; no UNIQUE miembro/día/historia (D-16). CHECK y FK respaldan, pero no sustituyen validación Go ni cupo transaccional. `foreign_keys` está habilitado por conexión en el DSN actual.
 
-### PT-04 — Integridad, atomicidad y concurrencia (propuesta)
+### PT-04 — Integridad, atomicidad y concurrencia (aprobada para implementar)
 
 1. Reutilizar el patrón `withImmediate` de `internal/persistence/sqlite/immediate.go`: conexión reservada, `BEGIN IMMEDIATE`, lecturas de estado vigente, validación Go a través de puerto, escrituras específicas y COMMIT/ROLLBACK. Espera acotada de 5 segundos y cancelación; BUSY/LOCKED solo se reintenta tras rollback confirmado, sin repetir a ciegas resultados de commit inciertos. No confiar exclusivamente en un mutex de proceso ni validar fuera de la transacción.
 2. Alta/edición de esfuerzo: releer proyecto y bloquear por D-30 si está Finalizado con fin NULL, antes de escribir cualquier campo. Comprobar historia/miembro y asociación opcional, fechas y suma activa miembro/día/proyecto dentro de la misma unidad. En edición resolver `sprint_id` omitido desde el registro vigente y validar su compatibilidad con historia destino; si falla exigir elección explícita, nunca cambiar a otro Sprint o NULL por cuenta del servidor. Calcular `suma destino sin entryID + nuevas horas`; excluir el ID una sola vez si permanece en el grupo. Si cambia miembro o fecha, liberar su contribución de origen y verificar destino antes de escribir; cambiar solo historia/Sprint no crea otro cupo. Baja libera cupo activo y no exige fin conocido ni revalidar la fecha histórica. Nunca eliminar primero ni dejar movimientos parciales al fallar validación.
@@ -154,7 +154,7 @@ Esquema conceptual, **sin SQL ni migración en esta etapa**:
 7. Dos ediciones del mismo registro activo: releer en transacción y validar el reemplazo de campos requeridos y la conservación/elección de Sprint según PT-02; prevalece última escritura serializada válida. No se proponen ETag ni versionado. Baja contra edición: si baja confirma primero, PUT falla 404; si edición primero, baja conserva esa versión y la marca eliminada. Ninguna resurrección. Dos altas independientes pueden crear dos UUID; no deduplicar por mismos datos. Si se pierde respuesta de POST, consultar detalle antes de repetir.
 8. Totales sin multiplicar por asignaciones: agregar desde `effort_entries` por historia/proyecto con filtro activo, nunca sumar un JOIN que repita entradas por cada Sprint. Leer detalle de historia con estimación/total en una vista consistente (misma sentencia o transacción de lectura). Si UI combina listado de entradas y detalle en solicitudes separadas durante una escritura, volver a cargar tras éxito; no prometer snapshot distribuido entre peticiones.
 
-### PT-05 — Migración histórica (propuesta)
+### PT-05 — Migración histórica (aprobada para implementar)
 
 En futura implementación crear la siguiente migración libre según el estado de `main` de ese momento (actualmente la última es `000011_planning_poker.sql`); no modificar migraciones aplicadas ni fijar una versión que pueda colisionar. Agregar columnas anulables y tabla/índices/FK, manteniendo el mecanismo versionado/embebido y su aplicación transaccional existente.
 
@@ -164,7 +164,7 @@ Conservar también proyectos históricos Finalizados con `end_date = NULL`; D-30
 
 La verificación futura de migración debe partir de una base temporal de esquema anterior con proyecto, miembros homónimos, historias y snapshots abiertos/cerrados/trasladados; aplicar y reabrir; comparar datos/IDs/resultados; consultar legado, registrar esfuerzo sin regularizar y luego regularizar. Reaplicar no debe duplicar ni reinicializar; fallo revierte la migración. No inspeccionar ni alterar la base local de desarrollo para generar evidencia.
 
-### PT-06 — Interfaz (propuesta)
+### PT-06 — Interfaz (aprobada para implementar)
 
 Ampliar alta/edición actual de Backlog en `web/static/index.html` y `web/static/js/app.js`: horas estimadas obligatorias, mínimo 0.01, paso 0.01. No bloquear estimación por SP definitivo ni esfuerzo; conservar validaciones US-05. En cada tarjeta mostrar estimación o «Pendiente de regularización», total real y acción de detalle; desde ese detalle gestionar entradas activas, sin formulario general sin historia.
 
@@ -257,7 +257,7 @@ Cada escenario tiene `@BDD-US-16-NN`, `@AC-NN` y D pertinentes; `@PT-*` distingu
 | TEST-US-16-30…38, 41, 42, 45 | Migración y reapertura sobre archivo temporal; fallos inyectados antes de commit, dos conexiones/repositorios independientes, coordinación con US-02/08/09/10/15 y baja contra cambio de inicio solo sobre activos; comprobar valores y filas finales, no solo status HTTP. |
 | TEST-US-16-05/07/11/13/24/25/26/39/43/44/46 | UI con dobles HTTP y reloj conocido: selectores, estado pendiente, fecha predeterminada, conservación de Sprint compatible/resolución incompatible, bloqueo D-30, diálogo, totales, borradores y respuestas tardías. |
 
-No se agrega framework BDD, pruebas ni evidencia de TDD en esta etapa. Tras aprobación deberá ajustarse documentación/fixtures de dependencias, escribir tests y comprobar RED real antes del código. Validaciones Go y de UI se ejecutarán entonces; no se atribuyen resultados de pruebas funcionales a este PR documental.
+Implementación y automatización autorizadas. La evidencia real de ciclos RED → GREEN → REFACTOR, verificaciones y correspondencia BDD/tests se registra en docs/evidencia-ia-us-16.md durante el desarrollo. No se requiere framework BDD adicional.
 
 ## Riesgos, incompatibilidades y revisión humana
 
@@ -268,4 +268,4 @@ No se agrega framework BDD, pruebas ni evidencia de TDD en esta etapa. Tras apro
 - **R-05 — Carreras existentes:** asignación con snapshot previo y UPDATE genérico del Backlog necesitan coordinación descrita en PT-04. Limitar la futura modificación a proteger estimación/estado/acuerdo; no sustituir la arquitectura ni agregar versionado innecesario.
 - **R-06 — Revisión técnica pendiente:** aprobar sintaxis decimal/representación y límites técnicos de PT-01, rutas/JSON/errores/contexto y acción de baja PT-02, FK/esquema/migración PT-03/05, mecanismo de concurrencia PT-04 e interfaz PT-06. Son propuestas técnicas para cumplir las 31 decisiones funcionales ya aprobadas; el alcance de D-30/31 y la corrección de D-26 no siguen pendientes.
 
-La aprobación de esta documentación habilitaría únicamente la etapa que el responsable autorice expresamente después. Este PR no hace merge, no cierra #16 y no declara cumplida la Definition of Done de US-16.
+La aprobación de esta documentación habilitaría únicamente la etapa que el responsable autorice expresamente después. Este PR no hace merge, no cierra #16; aceptación final y revisión de la Definition of Done pendientes del responsable.
