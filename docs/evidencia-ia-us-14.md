@@ -32,4 +32,4 @@ La instrucción recibida fue continuar con la Issue 14. La Issue define que una 
 
 ## Revisión humana y publicación
 
-La revisión humana queda pendiente. US-13 sigue en el PR #42 abierto, por lo que US-14 se prepara como rama dependiente de `codex/issue-13`; no se realizó merge ni se cerró la Issue #14.
+La revisión humana queda pendiente. El commit `37f5b25` está publicado en la rama `codex/issue-14`, basada en `codex/issue-13`. US-13 sigue en el PR #42 abierto. La creación del PR de US-14 se intentó con la integración de GitHub y devolvió HTTP 403 (`Resource not accessible by integration`); `gh auth status` confirmó que la sesión local no es válida. No se afirma que el PR exista, no se realizó merge ni se cerró la Issue #14. Puede abrirse desde [comparar `codex/issue-13` con `codex/issue-14`](https://github.com/Aguscampos04/Carva/compare/codex/issue-13...codex/issue-14?expand=1).
