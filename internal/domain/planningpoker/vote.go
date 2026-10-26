@@ -19,6 +19,7 @@ var (
 	ErrNotParticipant       = errors.New("member is not a participant in this round")
 	ErrRoundNotOpen         = errors.New("Planning Poker round is not open")
 	ErrRoundNotFinalized    = errors.New("Planning Poker round is not finalized")
+	ErrNoConsensus          = errors.New("Planning Poker round has no unanimous estimate")
 	ErrVotesPending         = errors.New("all Planning Poker participants must vote before finalization")
 	ErrInvalidVoteSet       = errors.New("Planning Poker votes do not match the round participants")
 	ErrRoundNotFound        = errors.New("Planning Poker round not found")

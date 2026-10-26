@@ -42,7 +42,7 @@ const membersUI = createMembersSection({
   submit: document.querySelector("#register-member"),
   requestJSON,
 });
-const planningPokerUI = createPlanningPoker({ requestJSON });
+const planningPokerUI = createPlanningPoker({ requestJSON, onEstimateRegistered: () => loadBacklog() });
 
 function showProject(project) {
   ++projectRequest;

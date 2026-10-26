@@ -113,6 +113,94 @@ test("BDD-US-13-02/04: finalizing reveals every vote and displays differences", 
     "Ana: 3 Story Points",
     "Bea: 8 Story Points",
   ]);
+  assert.equal(result.children[4].hidden, true, "a round with differences must not offer to register an agreement");
+});
+
+test("BDD-US-15-01: a unanimous finalized round can register its agreed Story Points", async () => {
+  const members = [{ id: "member-1", name: "Ana" }, { id: "member-2", name: "Bea" }];
+  const calls = [];
+  const registered = [];
+  const context = vm.createContext({
+    document: { createElement: tag => new Element(tag) },
+    encodeURIComponent,
+    URL,
+  });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../../web/static/js/planning-poker.js"), "utf8"), context);
+  const widget = context.createPlanningPoker({
+    async requestJSON(url, options = {}) {
+      calls.push({ url, options });
+      if (url.endsWith("/rounds")) return [{ id: "round-1", number: 1, status: "finalized", participants: members.map(item => item.id) }];
+      if (url.endsWith("/members")) return members;
+      if (url.includes("/result?")) return {
+        round: { id: "round-1", status: "finalized" },
+        votes: [{ member_id: "member-1", story_points: 5 }, { member_id: "member-2", story_points: 5 }],
+        has_differences: false,
+      };
+      if (url.includes("/agreement?")) return { story_points: 5 };
+      throw new Error(`Unexpected request ${url}`);
+    },
+    async onEstimateRegistered(value) { registered.push(value); },
+  });
+
+  const section = widget.createWidget("project-1", { id: "story-1" });
+  await new Promise(resolve => setImmediate(resolve));
+  const result = section.children[5];
+  const agreement = result.children[4];
+  assert.equal(agreement.hidden, false);
+  assert.match(result.children[1].textContent, /No hay diferencias/);
+
+  await agreement.listeners.click();
+  const request = calls.find(call => call.url.includes("/agreement?"));
+  assert.equal(request.options.method, "POST");
+  assert.match(request.url, /member_id=member-1$/);
+  assert.equal(registered.length, 1);
+  assert.equal(registered[0].storyID, "story-1");
+  assert.equal(registered[0].storyPoints, 5);
+  assert.equal(agreement.hidden, true);
+  assert.match(result.children[1].textContent, /5 Story Points acordados/);
+});
+
+test("BDD-US-15-05: a unanimous historical round can still register its agreement", async () => {
+  const members = [{ id: "member-1", name: "Ana" }, { id: "member-2", name: "Bea" }];
+  const calls = [];
+  const context = vm.createContext({
+    document: { createElement: tag => new Element(tag) },
+    encodeURIComponent,
+    URL,
+  });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../../web/static/js/planning-poker.js"), "utf8"), context);
+  const widget = context.createPlanningPoker({
+    async requestJSON(url, options = {}) {
+      calls.push({ url, options });
+      if (url.endsWith("/rounds")) return [
+        { id: "round-1", number: 1, status: "finalized", participants: members.map(item => item.id) },
+        { id: "round-2", number: 2, status: "open", participants: members.map(item => item.id) },
+      ];
+      if (url.endsWith("/members")) return members;
+      if (url.includes("/round-1/result?")) return {
+        round: { id: "round-1", status: "finalized" },
+        votes: [{ member_id: "member-1", story_points: 5 }, { member_id: "member-2", story_points: 5 }],
+        has_differences: false,
+      };
+      if (url.includes("/round-2/votes?")) return [];
+      if (url.includes("/round-1/agreement?")) return { story_points: 5 };
+      throw new Error(`Unexpected request ${url}`);
+    },
+  });
+
+  const section = widget.createWidget("project-1", { id: "story-1" });
+  await new Promise(resolve => setImmediate(resolve));
+  const history = section.children[5].children[3];
+  const historicalRound = history.children[0];
+  const agreement = historicalRound.children[3];
+  assert.equal(agreement.hidden, false);
+
+  await agreement.listeners.click();
+  const request = calls.find(call => call.url.includes("/round-1/agreement?"));
+  assert.equal(request.options.method, "POST");
+  assert.match(request.url, /member_id=member-1$/);
+  assert.equal(agreement.hidden, true);
+  assert.match(historicalRound.children[1].textContent, /5 Story Points acordados/);
 });
 
 test("BDD-US-14-01/02: previous results stay visible when a new round starts", async () => {

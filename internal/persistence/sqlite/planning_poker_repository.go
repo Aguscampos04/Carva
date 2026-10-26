@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	appplanningpoker "github.com/Aguscampos04/Carva/internal/application/planningpoker"
+	backlogdomain "github.com/Aguscampos04/Carva/internal/domain/backlog"
 	domain "github.com/Aguscampos04/Carva/internal/domain/planningpoker"
 )
 
@@ -207,6 +208,58 @@ func (r *PlanningPokerRepository) GetRoundResult(ctx context.Context, projectID,
 		return domain.RoundResult{}, err
 	}
 	return round.Result(votes)
+}
+
+// RegisterAgreement atomically validates a finalized unanimous round and updates its story.
+func (r *PlanningPokerRepository) RegisterAgreement(ctx context.Context, projectID, storyID, roundID, memberID string) (int, error) {
+	var points int
+	err := withImmediate(ctx, r.db, func(conn *sql.Conn) error {
+		round, err := scanPlanningPokerRound(conn.QueryRowContext(ctx, `
+			SELECT id, project_id, story_id, round_number, status
+			FROM estimation_rounds WHERE id = ? AND project_id = ? AND story_id = ?`, roundID, projectID, storyID))
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ErrRoundNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("select Planning Poker round for agreement: %w", err)
+		}
+		round.Participants, err = participantsOn(ctx, conn, round.ID)
+		if err != nil {
+			return err
+		}
+		if _, err := round.VisibleVotes(memberID, nil); err != nil {
+			return err
+		}
+		votes, err := votesOn(ctx, conn, round.ID)
+		if err != nil {
+			return err
+		}
+		result, err := round.Result(votes)
+		if err != nil {
+			return err
+		}
+		points, err = result.AgreedStoryPoints()
+		if err != nil {
+			return err
+		}
+		updated, err := conn.ExecContext(ctx,
+			`UPDATE backlog_items SET story_points = ? WHERE project_id = ? AND id = ?`, points, projectID, storyID)
+		if err != nil {
+			return fmt.Errorf("update agreed Story Points: %w", err)
+		}
+		rows, err := updated.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("count updated agreed Story Points: %w", err)
+		}
+		if rows == 0 {
+			return backlogdomain.ErrNotFound
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	return points, nil
 }
 
 func votesOn(ctx context.Context, queryer interface {

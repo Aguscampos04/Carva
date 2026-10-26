@@ -30,6 +30,18 @@ type RoundResult struct {
 	HasDifferences bool   `json:"has_differences"`
 }
 
+// AgreedStoryPoints returns the unanimous value of a complete finalized round.
+func (result RoundResult) AgreedStoryPoints() (int, error) {
+	validated, err := result.Round.Result(result.Votes)
+	if err != nil {
+		return 0, err
+	}
+	if validated.HasDifferences {
+		return 0, ErrNoConsensus
+	}
+	return validated.Votes[0].StoryPoints, nil
+}
+
 // NewRound opens an estimation round for its project members.
 func NewRound(id, projectID, storyID string, number int, participants []string) (Round, error) {
 	if strings.TrimSpace(id) == "" {
