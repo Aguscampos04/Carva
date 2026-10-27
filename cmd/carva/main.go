@@ -41,6 +41,7 @@ func main() {
 	api = httpapi.WithEffort(api, appeffort.NewService(sqlite.NewEffortRepository(db), time.Now))
 	api = httpapi.WithDefects(api, defects.NewService(sqlite.NewDefectRepository(db)))
 	api = httpapi.WithMetrics(api, appmetrics.NewService(sqlite.NewMetricsRepository(db)))
+	api = httpapi.WithAssignees(api, backlog.NewAssigneeService(sqlite.NewAssigneeRepository(db)))
 	mux.Handle("/api/", api)
 	mux.Handle("/", http.FileServer(http.FS(static.Files)))
 
