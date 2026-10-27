@@ -25,5 +25,3 @@ function createApp(fetch){
   return {context:c,get,document,location,window,pages,run:code=>vm.runInContext(code,c)};
 }
 module.exports={Element,createApp};
-
-

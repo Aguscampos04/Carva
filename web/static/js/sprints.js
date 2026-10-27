@@ -199,4 +199,3 @@ function createSprintWorkspace({requestJSON, canLeave, onChanged}) {
     invalidate(){++generation;++selection;project=null;selected='';mutating=false;list.replaceChildren();detail.replaceChildren();detail.hidden=true;},
   };
 }
-
