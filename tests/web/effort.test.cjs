@@ -56,7 +56,7 @@ test('AC-US17-01/02: comparison exposes separate estimates and related real hour
  const terms=all(e.widget).filter(n=>n.tagName==='dt').map(n=>n.textContent);
  const values=all(e.widget).filter(n=>n.tagName==='dd').map(n=>n.textContent);
  assert.deepEqual(terms,['Horas estimadas','Horas reales']);
- assert.deepEqual(values,['2.5','3.75']);
+ assert.deepEqual(values,['2.5 h','3.75 h']);
 });test('BDD 24/25/43/44: unknown end blocks writes, keeps consultation and confirmed delete',async()=>{
  const api=fakeAPI({blocked:true,records:[{id:'e',member_id:'m',activity:'Review',hours:2,work_date:'2026-10-20',backlog_item_id:'a',sprint_id:null}]});
  const e=setup(api.api,()=>false);await button(e.widget,'Registrar y consultar esfuerzo').listeners.click();

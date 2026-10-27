@@ -105,7 +105,13 @@ function createEffort({ requestJSON, confirmDelete, onChanged }) {
         if (!current() || request !== loadID) return;
         context = formContext; members = memberList; stories = storyList; currentProject = freshProject;
         message.textContent = records.length ? `${records.length} registros activos.` : "Sin registros de esfuerzo.";
-        content.replaceChildren(element("h4", `Horas estimadas: ${detail.estimated_hours ?? "Pendiente de regularización"} · Horas reales: ${detail.actual_hours}`));
+        const comparison = element("section"); comparison.className = "effort-comparison";
+        comparison.setAttribute("aria-label", "Comparación de esfuerzo");
+        comparison.append(element("h4", "Comparación de esfuerzo"));
+        const values = element("dl");
+        values.append(element("dt", "Horas estimadas"), element("dd", `${detail.estimated_hours ?? "Pendiente de regularización"}${detail.estimated_hours == null ? "" : " h"}`));
+        values.append(element("dt", "Horas reales"), element("dd", `${detail.actual_hours} h`));
+        content.replaceChildren(comparison, values);
         const list = element("ul");
         for (const entry of records) {
           const row = element("li");
