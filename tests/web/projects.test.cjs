@@ -66,6 +66,8 @@ test("late mutations from another project cannot replace selection or reset draf
 });
 
 test("app wiring: a refresh started before finalization cannot discard its result", async () => {
+  const dashboardProjects = [];
+  let dashboardConfig;
   const elements = new Map();
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
@@ -83,7 +85,7 @@ test("app wiring: a refresh started before finalization cannot discard its resul
     window: { confirm: () => true },
     createMembersSection: () => ({ showProject() {} }),
     createSprintHistory: () => ({ showProject() {} }),
-    createMetricsSection: () => ({ showProject() {} }),
+    createMetricsSection: config => { dashboardConfig = config; return { showProject(id, project) { dashboardProjects.push({id, project}); } }; },
     fetch: async (url, options = {}) => {
       if (url === "/api/projects") return response(project);
       if (url.endsWith("/backlog")) return response([]);
@@ -101,4 +103,7 @@ test("app wiring: a refresh started before finalization cannot discard its resul
   assert.equal(element("#finalize-project").hidden, true);
   assert.equal(element("#members-section").hidden, true); // stub does not render members
   assert.equal(element("#backlog-section").hidden, false);
+  assert.equal(dashboardConfig.dashboard.identity, element("#dashboard-identity"));
+  assert.equal(dashboardProjects.at(-1).id, "demo");
+  assert.equal(dashboardProjects.at(-1).project.status, "Finalizado");
 });

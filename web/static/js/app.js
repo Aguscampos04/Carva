@@ -56,6 +56,14 @@ const metricsUI = createMetricsSection({
   sprintHours: document.querySelector("#sprint-hours"),
   projectDefects: document.querySelector("#project-defects"),
   sprintDefects: document.querySelector("#sprint-defects"),
+  dashboard: {
+    section: document.querySelector("#metrics-section"),
+    identity: document.querySelector("#dashboard-identity"),
+    projectCharts: document.querySelector("#dashboard-project-charts"),
+    sprintCharts: document.querySelector("#dashboard-sprint-charts"),
+    sprintTitle: document.querySelector("#dashboard-sprint-title"),
+  },
+  refresh: document.querySelector("#refresh-metrics"),
   requestJSON,
 });
 
@@ -75,7 +83,7 @@ function showProject(project) {
   message.textContent = "Proyecto disponible.";
   membersUI.showProject(project.id);
   sprintHistory.showProject(project.id);
-  metricsUI.showProject(project.id);
+  metricsUI.showProject(project.id, project);
   loadBacklog();
 }
 
