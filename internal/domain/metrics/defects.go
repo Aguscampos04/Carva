@@ -20,6 +20,17 @@ type SprintDefectMetrics struct {
 	Metrics DefectMetrics `json:"metrics"`
 }
 
+type DefectSprint struct {
+	ID     int64
+	Goal   string
+	Closed bool
+}
+
+type ProjectDefectData struct {
+	Sprints []DefectSprint
+	Defects []DefectSnapshot
+}
+
 type ProjectDefectMetrics struct {
 	Metrics DefectMetrics         `json:"metrics"`
 	Sprints []SprintDefectMetrics `json:"sprints"`
