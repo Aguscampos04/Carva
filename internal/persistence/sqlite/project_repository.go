@@ -44,7 +44,7 @@ func findProject(ctx context.Context, reader projectReader, id string) (project.
 	return readProject(reader.QueryRowContext(ctx, `SELECT id,name,status,start_date,end_date FROM projects WHERE id=?`, id))
 }
 
-func readProject(row *sql.Row) (project.Project, error) {
+func readProject(row interface{ Scan(...any) error }) (project.Project, error) {
 	var found project.Project
 	var status string
 	var start, end sql.NullString
@@ -69,6 +69,27 @@ func readProject(row *sql.Row) (project.Project, error) {
 		}
 	}
 	return found, nil
+}
+
+// List reads existing projects without relying on browser history or local caches.
+func (r *ProjectRepository) List(ctx context.Context) ([]project.Project, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT id,name,status,start_date,end_date FROM projects ORDER BY name COLLATE NOCASE,id`)
+	if err != nil {
+		return nil, fmt.Errorf("list projects: %w", err)
+	}
+	defer rows.Close()
+	values := make([]project.Project, 0)
+	for rows.Next() {
+		value, err := readProject(rows)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate projects: %w", err)
+	}
+	return values, nil
 }
 
 // Mutate reads and validates the latest state under the same write transaction.
