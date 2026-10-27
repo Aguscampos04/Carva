@@ -1,17 +1,80 @@
-function createMetricsSection({ section, message, projectMetrics, sprintSelect, sprintMetrics, projectHours, sprintHours, projectDefects, sprintDefects, requestJSON }) {
+// Presentation only: all metric values, including availability, come from Go.
+function renderMetricCharts(target, points, hours, defects) {
+  const element = (tag, text) => {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+  const svgElement = (tag, attributes) => {
+    const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+    return node;
+  };
+  const groups = [
+    { title: "Story Points", unit: "SP", values: points, fields: [["planned_story_points", "Planificados"], ["completed_story_points", "Completados"], ["team_velocity", "Velocidad"]] },
+    { title: "Avance", unit: "%", values: points, limit: 100, fields: [["completion_percentage", "Historias completadas"]] },
+    { title: "Esfuerzo", unit: "h", values: hours, fields: [["estimated_hours", "Horas estimadas"], ["actual_hours", "Horas reales"]] },
+    { title: "Desviación", unit: "h", values: hours, signed: true, fields: [["deviation", "Reales menos estimadas"]] },
+    { title: "Defectos", unit: "defectos", values: defects, fields: [["detected_defects", "Detectados"], ["resolved_defects", "Resueltos"]] },
+  ];
+  target.replaceChildren();
+  for (const group of groups) {
+    const figure = element("figure"); figure.className = "metric-chart";
+    figure.append(element("figcaption", group.title));
+    const number = key => {
+      const value = group.values?.[key];
+      return value === null || value === undefined || !Number.isFinite(Number(value)) ? null : Number(value);
+    };
+    const max = group.limit ?? Math.max(1, ...group.fields.map(([key]) => Math.abs(number(key) ?? 0)));
+    const min = group.signed ? -max : 0;
+    const position = value => 8 + ((value - min) / (max - min)) * 384;
+    const format = value => new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(value);
+    figure.append(element("p", `Escala: ${format(min)} a ${format(max)} ${group.unit}`));
+    for (const [key, label] of group.fields) {
+      const row = element("div"); row.setAttribute("data-metric", key);
+      const value = number(key);
+      row.append(element("p", `${label}: ${value === null ? "No disponible" : `${format(value)} ${group.unit}`}`));
+      if (value !== null) {
+        const svg = svgElement("svg", { viewBox: "0 0 400 26", "aria-hidden": "true", focusable: "false" });
+        const zero = position(0), end = position(value);
+        svg.append(svgElement("line", { x1: zero, y1: 0, x2: zero, y2: 26, class: "metric-axis" }));
+        svg.append(svgElement("rect", { x: Math.min(zero, end), y: 4, width: Math.abs(end - zero), height: 18, class: value < 0 ? "metric-bar negative" : "metric-bar" }));
+        row.append(svg);
+      }
+      figure.append(row);
+    }
+    target.append(figure);
+  }
+}
+
+function createMetricsSection({ section, message, projectMetrics, sprintSelect, sprintMetrics, projectHours, sprintHours, projectDefects, sprintDefects, requestJSON, dashboard, refresh }) {
   let projectID = "";
   let generation = 0;
   let selection = 0;
+  let currentProject = null;
+  let sprints = [];
+
+  function clearSprint() {
+    sprintMetrics.replaceChildren();
+    sprintHours.replaceChildren();
+    sprintDefects.replaceChildren();
+    if (dashboard) {
+      dashboard.sprintCharts.replaceChildren();
+      dashboard.sprintTitle.textContent = "Seleccioná un Sprint para ver sus gráficos.";
+    }
+  }
 
   function clear() {
     projectMetrics.replaceChildren();
-    sprintMetrics.replaceChildren();
+    clearSprint();
     projectHours.replaceChildren();
     sprintHours.replaceChildren();
     projectDefects.replaceChildren();
     sprintDefects.replaceChildren();
     sprintSelect.replaceChildren();
     sprintSelect.disabled = true;
+    sprints = [];
+    if (dashboard) dashboard.projectCharts.replaceChildren();
   }
 
   function showHours(target, values) {
@@ -60,12 +123,17 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
     }
   }
 
-  async function showProject(id) {
+  async function showProject(id, project = null) {
     projectID = id;
+    currentProject = project;
     const request = ++generation;
     ++selection;
     clear();
     section.hidden = !id;
+    if (dashboard) {
+      dashboard.section.hidden = !id;
+      dashboard.identity.textContent = project ? `${project.name} — ${project.id} — Estado: ${project.status}` : "";
+    }
     message.textContent = id ? "Consultando métricas del proyecto…" : "";
     if (!id) return;
     try {
@@ -78,6 +146,8 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
       showValues(projectMetrics, result.metrics);
       showHours(projectHours, hoursResult.metrics);
       showDefectValues(projectDefects, defectsResult.metrics);
+      if (dashboard) renderMetricCharts(dashboard.projectCharts, result.metrics, hoursResult.metrics, defectsResult.metrics);
+      sprints = result.sprints;
       const placeholder = document.createElement("option");
       placeholder.value = "";
       placeholder.textContent = result.sprints.length ? "Seleccioná un Sprint" : "No hay Sprints";
@@ -95,12 +165,14 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
     }
   }
 
+  if (refresh) refresh.addEventListener("click", () => showProject(projectID, currentProject));
+
   sprintSelect.addEventListener("change", async () => {
     const request = ++selection;
     const context = generation;
     const id = sprintSelect.value;
-    sprintMetrics.replaceChildren();
-    if (!projectID || !id) return;
+    clearSprint();
+    if (!projectID || !id) { message.textContent = "Seleccioná un Sprint para consultar sus métricas."; return; }
     message.textContent = "Consultando métricas del Sprint…";
     try {
       const [result, hoursResult, defectsResult] = await Promise.all([
@@ -112,6 +184,11 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
       showValues(sprintMetrics, result);
       showHours(sprintHours, hoursResult);
       showDefectValues(sprintDefects, defectsResult);
+      if (dashboard) {
+        renderMetricCharts(dashboard.sprintCharts, result, hoursResult, defectsResult);
+        const selected = sprints.find(sprint => String(sprint.id) === id);
+        dashboard.sprintTitle.textContent = selected ? `Sprint ${selected.id} — ${selected.goal}` : `Sprint ${id}`;
+      }
       message.textContent = "Métricas del Sprint actualizadas.";
     } catch (error) {
       if (request === selection && context === generation) message.textContent = error.message;
