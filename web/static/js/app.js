@@ -44,11 +44,13 @@ const membersUI = createMembersSection({
   requestJSON,
 });
 const effortUI = createEffort({requestJSON,confirmDelete: text => window.confirm(text),onChanged: () => loadBacklog()});
+const defectsUI = createDefects({requestJSON});
 const planningPokerUI = createPlanningPoker({ requestJSON, onEstimateRegistered: () => loadBacklog() });
 
 function showProject(project) {
   ++projectRequest;
   effortUI.invalidate();
+  defectsUI.invalidate();
   currentProjectID = project.id;
   document.querySelector("#project-name-result").textContent = project.name;
   document.querySelector("#project-id-result").textContent = project.id;
@@ -80,6 +82,7 @@ async function loadBacklog() {
   const selectedProject=currentProjectID;
   const request=++backlogRequest;
   effortUI.invalidate();
+  defectsUI.invalidate();
   backlogMessage.textContent = "Consultando Product Backlog…";
   backlogItems.replaceChildren();
   try {
@@ -133,7 +136,7 @@ function createBacklogCard(item) {
   editButton.addEventListener("click", () => {
     card.replaceChildren(title, description, detailsList, criteriaTitle, criteria, createEditForm(item));
   });
-  card.append(title, description, detailsList, criteriaTitle, criteria, editButton, planningPokerUI.createWidget(currentProjectID, item), effortUI.createWidget({id:currentProjectID}, item));
+  card.append(title, description, detailsList, criteriaTitle, criteria, editButton, planningPokerUI.createWidget(currentProjectID, item), effortUI.createWidget({id:currentProjectID}, item), defectsUI.createWidget({id:currentProjectID}, item));
   return card;
 }
 

@@ -20,3 +20,9 @@ immutable US-08 planning status.
 
 `000011_planning_poker.sql` adds the initial estimation round, its participant
 snapshot, and one replaceable vote per participant for US-12.
+
+`000012_effort.sql` adds nullable estimate values for US-16 and its project,
+member, story, and optional Sprint scoped effort records.
+
+`000013_defects.sql` adds defects linked to a project and its User Story, with
+nullable detection and resolution Sprint references for US-18.
