@@ -1,4 +1,4 @@
-function createMetricsSection({ section, message, projectMetrics, sprintSelect, sprintMetrics, projectHours, sprintHours, requestJSON }) {
+function createMetricsSection({ section, message, projectMetrics, sprintSelect, sprintMetrics, projectHours, sprintHours, projectDefects, sprintDefects, requestJSON }) {
   let projectID = "";
   let generation = 0;
   let selection = 0;
@@ -8,45 +8,54 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
     sprintMetrics.replaceChildren();
     projectHours.replaceChildren();
     sprintHours.replaceChildren();
+    projectDefects.replaceChildren();
+    sprintDefects.replaceChildren();
     sprintSelect.replaceChildren();
     sprintSelect.disabled = true;
   }
 
   function showHours(target, values) {
-    target.replaceChildren();
     const rows = [
       ["Horas estimadas", values.estimated_hours],
       ["Horas reales", values.actual_hours],
       ["Desviación", values.deviation],
-    ];
-    for (const [label, value] of rows) {
-      const term = document.createElement("dt");
-      term.textContent = label;
-      const detail = document.createElement("dd");
-      detail.textContent = value === null || value === undefined
-        ? "No disponible"
-        : `${new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} h`;
-      target.append(term, detail);
-    }
+    ].map(([label, value]) => [label, value === null || value === undefined
+      ? "No disponible"
+      : `${new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} h`]);
+    renderMetricRows(target, rows);
+  }
+
+  function showDefectValues(target, values) {
+    const rows = [
+      ["Defectos detectados", values.detected_defects],
+      ["Defectos resueltos", values.resolved_defects],
+    ].map(([label, value]) => [label, value === null || value === undefined
+      ? "No disponible"
+      : new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(value)]);
+    renderMetricRows(target, rows);
   }
 
   function showValues(target, values) {
-    target.replaceChildren();
     const rows = [
       ["Story Points planificados", values.planned_story_points],
       ["Story Points completados", values.completed_story_points],
       ["Velocidad del equipo", values.team_velocity],
       ["Historias completadas (%)", values.completion_percentage],
-    ];
+    ].map(([label, value]) => [label, value === null || value === undefined
+      ? "No disponible"
+      : label.endsWith("(%)")
+        ? `${new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} %`
+        : new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(value)]);
+    renderMetricRows(target, rows);
+  }
+
+  function renderMetricRows(target, rows) {
+    target.replaceChildren();
     for (const [label, value] of rows) {
       const term = document.createElement("dt");
       term.textContent = label;
       const detail = document.createElement("dd");
-      detail.textContent = value === null || value === undefined
-        ? "No disponible"
-        : label.endsWith("(%)")
-          ? `${new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} %`
-          : new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(value);
+      detail.textContent = value;
       target.append(term, detail);
     }
   }
@@ -60,13 +69,15 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
     message.textContent = id ? "Consultando métricas del proyecto…" : "";
     if (!id) return;
     try {
-      const [result, hoursResult] = await Promise.all([
+      const [result, hoursResult, defectsResult] = await Promise.all([
         requestJSON(`/api/projects/${encodeURIComponent(id)}/metrics/story-points`),
         requestJSON(`/api/projects/${encodeURIComponent(id)}/metrics/hours`),
+        requestJSON(`/api/projects/${encodeURIComponent(id)}/metrics/defects`),
       ]);
       if (request !== generation) return;
       showValues(projectMetrics, result.metrics);
       showHours(projectHours, hoursResult.metrics);
+      showDefectValues(projectDefects, defectsResult.metrics);
       const placeholder = document.createElement("option");
       placeholder.value = "";
       placeholder.textContent = result.sprints.length ? "Seleccioná un Sprint" : "No hay Sprints";
@@ -78,7 +89,7 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
         sprintSelect.append(option);
       }
       sprintSelect.disabled = result.sprints.length === 0;
-      message.textContent = "Métricas calculadas con la planificación, las finalizaciones y el esfuerzo registrado.";
+      message.textContent = "Métricas calculadas con la planificación, las finalizaciones, el esfuerzo y los defectos registrados.";
     } catch (error) {
       if (request === generation) message.textContent = error.message;
     }
@@ -92,13 +103,15 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
     if (!projectID || !id) return;
     message.textContent = "Consultando métricas del Sprint…";
     try {
-      const [result, hoursResult] = await Promise.all([
+      const [result, hoursResult, defectsResult] = await Promise.all([
         requestJSON(`/api/projects/${encodeURIComponent(projectID)}/sprints/${encodeURIComponent(id)}/metrics/story-points`),
         requestJSON(`/api/projects/${encodeURIComponent(projectID)}/sprints/${encodeURIComponent(id)}/metrics/hours`),
+        requestJSON(`/api/projects/${encodeURIComponent(projectID)}/sprints/${encodeURIComponent(id)}/metrics/defects`),
       ]);
       if (request !== selection || context !== generation) return;
       showValues(sprintMetrics, result);
       showHours(sprintHours, hoursResult);
+      showDefectValues(sprintDefects, defectsResult);
       message.textContent = "Métricas del Sprint actualizadas.";
     } catch (error) {
       if (request === selection && context === generation) message.textContent = error.message;

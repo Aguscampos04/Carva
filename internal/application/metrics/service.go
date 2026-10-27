@@ -12,6 +12,7 @@ type Repository interface {
 	ListProjectSprintSnapshots(context.Context, string) ([]domain.SprintSnapshot, error)
 	GetSprintSnapshot(context.Context, string, int64) (domain.SprintSnapshot, error)
 	ProjectHoursData(context.Context, string) (domain.ProjectHoursData, error)
+	ProjectDefectData(context.Context, string) (domain.ProjectDefectData, error)
 }
 
 type Service struct{ repository Repository }
@@ -83,4 +84,38 @@ func (s *Service) SprintHours(ctx context.Context, projectID string, sprintID in
 		}
 	}
 	return domain.HoursMetrics{}, sprint.ErrNotFound
+}
+
+func (s *Service) ProjectDefects(ctx context.Context, projectID string) (domain.ProjectDefectMetrics, error) {
+	data, err := s.repository.ProjectDefectData(ctx, projectID)
+	if err != nil {
+		return domain.ProjectDefectMetrics{}, err
+	}
+	result := domain.ProjectDefectMetrics{
+		Metrics: domain.CalculateProjectDefectMetrics(data.Defects),
+		Sprints: make([]domain.SprintDefectMetrics, 0, len(data.Sprints)),
+	}
+	for _, sprintData := range data.Sprints {
+		result.Sprints = append(result.Sprints, domain.SprintDefectMetrics{
+			ID: sprintData.ID, Goal: sprintData.Goal, Closed: sprintData.Closed,
+			Metrics: domain.CalculateSprintDefectMetrics(sprintData.ID, data.Defects),
+		})
+	}
+	return result, nil
+}
+
+func (s *Service) SprintDefects(ctx context.Context, projectID string, sprintID int64) (domain.DefectMetrics, error) {
+	if sprintID < 1 {
+		return domain.DefectMetrics{}, sprint.ErrNotFound
+	}
+	data, err := s.repository.ProjectDefectData(ctx, projectID)
+	if err != nil {
+		return domain.DefectMetrics{}, err
+	}
+	for _, value := range data.Sprints {
+		if value.ID == sprintID {
+			return domain.CalculateSprintDefectMetrics(sprintID, data.Defects), nil
+		}
+	}
+	return domain.DefectMetrics{}, sprint.ErrNotFound
 }
