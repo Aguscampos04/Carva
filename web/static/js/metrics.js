@@ -15,57 +15,47 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
   }
 
   function showHours(target, values) {
-    target.replaceChildren();
     const rows = [
       ["Horas estimadas", values.estimated_hours],
       ["Horas reales", values.actual_hours],
       ["Desviación", values.deviation],
-    ];
-    for (const [label, value] of rows) {
-      const term = document.createElement("dt");
-      term.textContent = label;
-      const detail = document.createElement("dd");
-      detail.textContent = value === null || value === undefined
-        ? "No disponible"
-        : `${new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} h`;
-      target.append(term, detail);
-    }
+    ].map(([label, value]) => [label, value === null || value === undefined
+      ? "No disponible"
+      : `${new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} h`]);
+    renderMetricRows(target, rows);
   }
 
   function showDefectValues(target, values) {
-    target.replaceChildren();
     const rows = [
       ["Defectos detectados", values.detected_defects],
       ["Defectos resueltos", values.resolved_defects],
-    ];
-    for (const [label, value] of rows) {
-      const term = document.createElement("dt");
-      term.textContent = label;
-      const detail = document.createElement("dd");
-      detail.textContent = value === null || value === undefined
-        ? "No disponible"
-        : new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(value);
-      target.append(term, detail);
-    }
+    ].map(([label, value]) => [label, value === null || value === undefined
+      ? "No disponible"
+      : new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(value)]);
+    renderMetricRows(target, rows);
   }
 
   function showValues(target, values) {
-    target.replaceChildren();
     const rows = [
       ["Story Points planificados", values.planned_story_points],
       ["Story Points completados", values.completed_story_points],
       ["Velocidad del equipo", values.team_velocity],
       ["Historias completadas (%)", values.completion_percentage],
-    ];
+    ].map(([label, value]) => [label, value === null || value === undefined
+      ? "No disponible"
+      : label.endsWith("(%)")
+        ? `${new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} %`
+        : new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(value)]);
+    renderMetricRows(target, rows);
+  }
+
+  function renderMetricRows(target, rows) {
+    target.replaceChildren();
     for (const [label, value] of rows) {
       const term = document.createElement("dt");
       term.textContent = label;
       const detail = document.createElement("dd");
-      detail.textContent = value === null || value === undefined
-        ? "No disponible"
-        : label.endsWith("(%)")
-          ? `${new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} %`
-          : new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(value);
+      detail.textContent = value;
       target.append(term, detail);
     }
   }
