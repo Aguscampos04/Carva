@@ -16,7 +16,7 @@ function setup(requestJSON,confirmDelete=()=>true){
 function all(e){return [e,...e.children.flatMap(all)]}
 function button(e,text){return all(e).find(n=>n.tagName==='button' && n.textContent===text)}
 function fields(e){return Object.fromEntries(all(e).filter(n=>n.name).map(n=>[n.name,n]))}
-function fakeAPI({blocked=false,records=[]}={}){
+function fakeAPI({blocked=false,records=[],detail={id:"a",estimated_hours:null,actual_hours:2}}={}){
  const calls=[];
  const api=async(url,options={})=>{
   calls.push({url,...options});
@@ -26,7 +26,7 @@ function fakeAPI({blocked=false,records=[]}={}){
   if(url.endsWith('/members'))return [{id:'m',name:'<b>Ana</b>'},{id:'n',name:'<b>Ana</b>'}];
   if(url.endsWith('/backlog'))return [{id:'a',title:'A'},{id:'b',title:'B'}];
   if(url.endsWith('/projects/p'))return {id:'p',status:blocked?'Finalizado':'En progreso',end_date:null};
-  return {id:'a',estimated_hours:null,actual_hours:2};
+  return detail;
  };return {api,calls};
 }
 test('US16 exact decimal payloads do not round cents or huge estimates',()=>{
@@ -50,7 +50,14 @@ test('BDD 05/07/11/13: detail, missing estimate, server date, homonym UUID and e
  await all(e.widget).find(n=>n.tagName==='form').listeners.submit({preventDefault(){}});
  const post=api.calls.find(c=>c.method==='POST');assert.equal(JSON.parse(post.body).member_id,'n');assert.equal(JSON.parse(post.body).hours,1.25);assert.equal(e.changed(),1);
 });
-test('BDD 24/25/43/44: unknown end blocks writes, keeps consultation and confirmed delete',async()=>{
+test('AC-US17-01/02: comparison exposes separate estimates and related real hours',async()=>{
+ const api=fakeAPI({detail:{id:'a',estimated_hours:2.5,actual_hours:3.75,story_points:5}});
+ const e=setup(api.api);await button(e.widget,'Registrar y consultar esfuerzo').listeners.click();
+ const terms=all(e.widget).filter(n=>n.tagName==='dt').map(n=>n.textContent);
+ const values=all(e.widget).filter(n=>n.tagName==='dd').map(n=>n.textContent);
+ assert.deepEqual(terms,['Horas estimadas','Horas reales']);
+ assert.deepEqual(values,['2.5','3.75']);
+});test('BDD 24/25/43/44: unknown end blocks writes, keeps consultation and confirmed delete',async()=>{
  const api=fakeAPI({blocked:true,records:[{id:'e',member_id:'m',activity:'Review',hours:2,work_date:'2026-10-20',backlog_item_id:'a',sprint_id:null}]});
  const e=setup(api.api,()=>false);await button(e.widget,'Registrar y consultar esfuerzo').listeners.click();
  assert.equal(button(e.widget,'Guardar esfuerzo').disabled,true);assert.equal(button(e.widget,'Editar esfuerzo').disabled,true);
