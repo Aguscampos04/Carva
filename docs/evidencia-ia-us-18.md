@@ -21,11 +21,11 @@ AC-01/AC-02 están cubiertos con alta sin Sprint y con Sprint de detección; el 
 
 ## Evidencia TDD en commits
 
-- `b1f2583` agrega tests de dominio y falla por los tipos/reglas aún inexistentes; `c192ddb` implementa el dominio y los tests pasan.
-- `346640d` agrega la prueba API/integración y falla porque no existe el servicio de defectos; `8758a06` completa la API y la composición, y la prueba pasa.
-- `bfa0a26` agrega pruebas de interfaz y falla porque `defects.js` no existe; `5215d65` implementa el formulario/listado y ambas pasan.
-- `7c9f8a7` actualiza la regresión de migraciones al total nuevo (13 migraciones, 10 tablas de negocio).
-- `ede39f2` actualiza el fixture de `app.js` para cargar el nuevo módulo, igual que hace la página real.
+- `3c3d631` agrega tests de dominio y falla por los tipos/reglas aún inexistentes; `699eb3d` implementa el dominio y los tests pasan.
+- `f715d53` agrega la prueba de registro API/integración antes de implementar el flujo; `33beab0` completa persistencia, API y composición, y la suite de integración pasa.
+- `93828b8` agrega pruebas de interfaz y falla porque `defects.js` no existe; `3faa7aa` implementa el formulario/listado y ambas pasan.
+- `1c8a9ad` actualiza la regresión de migraciones al total nuevo (13 migraciones, 10 tablas de negocio).
+- `101daee` actualiza el fixture de `app.js` para cargar el nuevo módulo, igual que hace la página real.
 
 ## Validación realizada
 
