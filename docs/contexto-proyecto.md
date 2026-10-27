@@ -317,7 +317,6 @@ Todavía deben definirse y documentarse, entre otras:
 - Diseño visual de la interfaz.
 - Revisión final de la implementación de US-02. SDD/BDD y PT-01 a PT-05 están aprobados para implementar; no sigue pendiente la condición funcional de finalización.
 - Fórmulas de las métricas obligatorias, que deberán especificarse en sus SDD antes de implementarlas.
-- Tratamiento de los defectos sin Sprint en los SDD correspondientes.
 
 Estas decisiones deberán tomarse antes de implementarlas y quedar documentadas cuando corresponda.
 
