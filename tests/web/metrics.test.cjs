@@ -19,7 +19,7 @@ function setup(requestJSON) {
 }
 
 const metrics = { planned_story_points: 10, completed_story_points: 4, team_velocity: null, completion_percentage: 40 };
-const hours = { estimated_hours: 575, actual_hours: 625, deviation: 50 };
+const hours = { estimated_hours: 5.75, actual_hours: 6.25, deviation: 0.5 };
 
 test("BDD-US-20-01: project and selected Sprint metrics are shown", async () => {
   const calls = [];
