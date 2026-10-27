@@ -3,7 +3,7 @@
 **Estado:** SDD y BDD aprobados para implementar por @Aguscampos04 el 2026-10-27 en este chat: «apruebo, acordate de hacer la US-19 nomas». Aprobación comprende P-01…P-04 y PT-01…PT-04; no implica validación final de la historia.
 **Issue:** [#19](https://github.com/Aguscampos04/Carva/issues/19).
 **Responsable:** @Aguscampos04. **Milestone:** Sprint 3 — Funcionalidad y calidad.
-**Origen:** enunciado §2.6 → EP-06 → US-19 → esta SDD → AC → BDD → TDD futuro → Go/tests.
+**Origen:** enunciado §2.6 → EP-06 → US-19 → esta SDD → AC → BDD → TDD registrado → Go/tests.
 
 ## 1. Objetivo
 
@@ -33,7 +33,7 @@ eliminar defectos, introducir fechas de resolución ni implementar métricas US-
 
 ## 2. Inputs
 
-**PT-01, contrato técnico propuesto:**
+**PT-01, contrato técnico aprobado:**
 `PATCH /api/projects/{projectID}/backlog/{itemID}/defects/{defectID}`.
 
 Proyecto, historia y defecto identificados por la ruta. El defecto debe pertenecer
@@ -42,8 +42,8 @@ exactamente al proyecto/historia indicados. Body JSON parcial no vacío:
 | Campo | Si se omite | Si se informa |
 | --- | --- | --- |
 | `status` | Conservar estado vigente | Uno de los cuatro valores exactos; `null`/vacío/tipo incorrecto se rechazan. |
-| `detection_sprint_id` | Conservar asociación vigente | Entero positivo del mismo proyecto; `null` quita asociación solo si se aprueba P-02. |
-| `resolution_sprint_id` | Conservar asociación vigente | Entero positivo del mismo proyecto; `null` quita asociación solo si se aprueba P-02. |
+| `detection_sprint_id` | Conservar asociación vigente | Entero positivo del mismo proyecto; `null` quita asociación conforme a P-02 aprobada. |
+| `resolution_sprint_id` | Conservar asociación vigente | Entero positivo del mismo proyecto; `null` quita asociación conforme a P-02 aprobada. |
 
 Ejemplo: `{"status":"Resuelto","resolution_sprint_id":2}` conserva la detección.
 No permitir claves adicionales, duplicadas, cuerpos no objeto ni contenido JSON
@@ -72,7 +72,7 @@ posterior. No coercionar strings/fracciones/booleanos a un ID de Sprint.
 - BR-05: las consultas recuperan los valores almacenados, sin deducir asociaciones
   desde el Sprint actual ni modificar historia, proyecto o Sprint.
 
-### Propuestas funcionales que requieren aprobación
+### Decisiones funcionales aprobadas
 
 | ID | Propuesta | Motivo / alternativa |
 | --- | --- | --- |
@@ -83,7 +83,7 @@ posterior. No coercionar strings/fracciones/booleanos a un ID de Sprint.
 
 P-01…P-04 y PT-01…PT-04 fueron aprobadas explícitamente en la fecha indicada arriba. Las alternativas describen opciones descartadas por esa aprobación.
 
-## 5. Constraints / diseño técnico propuesto
+## 5. Constraints / diseño técnico aprobado
 
 - PT-02: dominio con cambio parcial (presencia distinta de nulo), función que
   devuelve copia validada y errores de estado/Sprint inválido; identidad inmutable.
@@ -107,8 +107,8 @@ Asociación tardía, mismo Sprint en ambos campos, Sprints distintos, edición d
 solo campo sin borrar el resto, repetición del mismo cambio sin duplicar, recursos
 ajenos/inexistentes, IDs cero/negativos/fraccionarios, JSON vacío/desconocido/duplicado,
 error de persistencia después de validar, solicitudes concurrentes y cambios de
-proyecto mientras la UI espera respuesta. Los casos P-01…P-04 son condicionales
-a aprobación y no constituyen requisitos confirmados.
+proyecto mientras la UI espera respuesta. Los casos P-01…P-04 están aprobados
+conforme al encabezado.
 
 ## 7. Error Conditions (PT-01)
 
@@ -130,14 +130,14 @@ Mantener formato `{"error":"..."}`. Mensajes específicos se alinearán con
 | AC-02 | Puede registrarse un Sprint de resolución distinto del de detección. | US19-02 |
 | AC-03 | Los cambios de estado y asociación se reflejan al consultar. | US19-01/02/03/04 |
 
-Plan de tests (no escritos ni ejecutados todavía): dominio para cambios parciales
+Tests implementados: dominio para cambios parciales
 y valores; aplicación para propagación de errores; SQLite/HTTP temporal para
 persistencia, ámbito, rollback y concurrencia; Node para edición/cancelación,
 errores/doble envío/respuestas obsoletas; regresión US-18, Sprints e historial.
 
-Los escenarios etiquetados `@propuesta` dependen de P-01…P-04/PT-01…PT-04.
-TDD empezará después de aprobar esta especificación: registrar RED real,
-GREEN y refactor, sin inferir evidencia de la mera existencia de tests.
+Los escenarios etiquetados `@propuesta` conservan el identificador de su origen;
+P-01…P-04/PT-01…PT-04 están aprobados. La evidencia real de RED, GREEN y refactor
+se registra en `docs/evidencia-ia-us-19.md`.
 
 ## 9. Estado de esta etapa
 

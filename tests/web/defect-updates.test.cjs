@@ -65,3 +65,10 @@ test('US19: block duplicate submissions, retain draft on error and ignore obsole
  e.ui.invalidate();await e.edit.listeners.submit({preventDefault(){}});
  assert.equal(e.calls.length,2);assert.equal(all(e.widget).map(n=>n.textContent).join(),before);
 });
+test('US19: a late saved response cannot change an invalidated widget',async()=>{
+ let resolve;const e=await editFixture(()=>new Promise(r=>{resolve=r}));
+ e.f.status.value='Resuelto';const pending=e.edit.listeners.submit({preventDefault(){}});
+ e.ui.invalidate();const before=all(e.widget).map(n=>n.textContent).join();
+ resolve({...original,status:'Resuelto'});await pending;
+ assert.equal(all(e.widget).map(n=>n.textContent).join(),before);
+});
