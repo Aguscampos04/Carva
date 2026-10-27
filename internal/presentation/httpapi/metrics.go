@@ -48,6 +48,23 @@ func WithMetrics(base http.Handler, service *appmetrics.Service) http.Handler {
 			writeJSON(w, http.StatusOK, result)
 		}
 	})
+	mux.HandleFunc("GET /api/projects/{projectID}/metrics/defects", func(w http.ResponseWriter, r *http.Request) {
+		result, err := service.ProjectDefects(r.Context(), r.PathValue("projectID"))
+		if !writeMetricsError(w, err) {
+			writeJSON(w, http.StatusOK, result)
+		}
+	})
+	mux.HandleFunc("GET /api/projects/{projectID}/sprints/{sprintID}/metrics/defects", func(w http.ResponseWriter, r *http.Request) {
+		sprintID, err := strconv.ParseInt(r.PathValue("sprintID"), 10, 64)
+		if err != nil || sprintID < 1 {
+			writeError(w, http.StatusBadRequest, "Sprint ID must be a positive integer")
+			return
+		}
+		result, err := service.SprintDefects(r.Context(), r.PathValue("projectID"), sprintID)
+		if !writeMetricsError(w, err) {
+			writeJSON(w, http.StatusOK, result)
+		}
+	})
 	return mux
 }
 
