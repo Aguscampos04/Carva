@@ -33,7 +33,7 @@ function renderMetricCharts(target, points, hours, defects) {
     for (const [key, label] of group.fields) {
       const row = element("div"); row.setAttribute("data-metric", key);
       const value = number(key);
-      row.append(element("p", `${label}: ${value === null ? "No disponible" : `${format(value)} ${group.unit}`}`));
+      row.append(element("p", `${label}: ${value === null ? "No disponible" : `${format(group.values[key])} ${group.unit}`}`));
       if (value !== null) {
         const svg = svgElement("svg", { viewBox: "0 0 400 26", "aria-hidden": "true", focusable: "false" });
         const zero = position(0), end = position(value);
@@ -68,9 +68,7 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
     projectMetrics.replaceChildren();
     clearSprint();
     projectHours.replaceChildren();
-    sprintHours.replaceChildren();
     projectDefects.replaceChildren();
-    sprintDefects.replaceChildren();
     sprintSelect.replaceChildren();
     sprintSelect.disabled = true;
     sprints = [];
@@ -165,9 +163,17 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
     }
   }
 
-  if (refresh) refresh.addEventListener("click", () => showProject(projectID, currentProject));
+  if (refresh) refresh.addEventListener("click", async () => {
+    const selected = sprintSelect.value;
+    const project = projectID;
+    const request = generation + 1;
+    await showProject(projectID, currentProject);
+    if (request !== generation || project !== projectID || !sprints.some(sprint => String(sprint.id) === selected)) return;
+    sprintSelect.value = selected;
+    await loadSprint();
+  });
 
-  sprintSelect.addEventListener("change", async () => {
+  async function loadSprint() {
     const request = ++selection;
     const context = generation;
     const id = sprintSelect.value;
@@ -193,7 +199,8 @@ function createMetricsSection({ section, message, projectMetrics, sprintSelect, 
     } catch (error) {
       if (request === selection && context === generation) message.textContent = error.message;
     }
-  });
+  }
+  sprintSelect.addEventListener("change", loadSprint);
 
   return { showProject };
 }
