@@ -162,6 +162,16 @@ La migración aditiva `000012_effort.sql` conserva NULL históricos de estimaci�
 
 Esfuerzo y cambios de fechas se coordinan mediante `withImmediate`: fechas, relaciones y cupo se validan sobre datos vigentes. El cambio de inicio considera solo activos (D-31); el Finalizado con fin NULL conserva sus datos y solo permite consulta/baja de esfuerzo (D-30). La API de esfuerzo se agrega con `httpapi.WithEffort` sin sustituir los constructores previos. Evidencia de TDD, compatibilidad, concurrencia y CI: [US-16](evidencia-ia-us-16.md). Revisión final e integración pendientes del responsable.
 
+### Incremento US-18 — Registro de defectos
+
+La [SDD-US-18](../sdd/SDD-US-18-registrar-defecto.md) deriva el registro de
+`domain/defect` y `application/defects`. SQLite aplica `000013_defects.sql` con
+FK compuestas para mantener el proyecto, la User Story y los Sprints en el mismo
+proyecto. Los Sprints de detección y resolución son anulables; sus valores
+aprobados se validan en Go y la API `WithDefects` permite registrar y consultar
+por historia. La interfaz ofrece la operación desde cada tarjeta del Backlog;
+la edición del estado y la asociación posterior de Sprints queda en US-19.
+Trazabilidad: Issue #18 → SDD → BDD → tests Go/Node → dominio, SQLite, REST y UI.
 ### Incremento US-02 autorizado el 2026-10-20
 
 La [SDD-US-02](../sdd/SDD-US-02-modificar-proyecto.md) y PT-01 a PT-05 fueron
