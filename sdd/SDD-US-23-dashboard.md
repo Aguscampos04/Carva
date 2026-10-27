@@ -1,6 +1,6 @@
 # SDD-US-23 — Consultar dashboard del proyecto
 
-**Estado:** P-01/P-02 y PT-01…PT-03 aprobadas por @Aguscampos04 el 2026-10-27 en este chat («apruebo»). Implementación y validación final pendientes.
+**Estado:** P-01/P-02 y PT-01…PT-03 aprobadas por @Aguscampos04 el 2026-10-27 en este chat («apruebo»). Implementación local validada técnicamente; revisión humana y validación final pendientes.
 **Issue:** [#23](https://github.com/Aguscampos04/Carva/issues/23).
 **Responsable:** @Aguscampos04. **Milestone:** Sprint 4 — Métricas y entrega final.
 **Trazabilidad:** enunciado §2.8 → EP-08 → US-23 → AC → BDD → tests previstos.
@@ -16,7 +16,8 @@ Main actualizado por fast-forward a `3c5a6b1`, sin cambios locales previos.
 Issues #4, #20, #21 y #22 cerradas con su DoD marcada; PR #38, #49, #50 y #51
 integrados. SDD/BDD, pruebas Go/Node y evidencias disponibles en el repositorio
 o descripción de los PR. El PR #51 registra CI verify exitoso.
-Esto habilita por dependencias; no aprueba esta especificación nueva.
+Esto habilita por dependencias. La aprobación posterior de esta especificación
+está registrada en el encabezado.
 
 ## 2. Inputs
 
@@ -99,11 +100,15 @@ incluso si la nueva consulta falla. No mostrar texto externo como HTML ejecutabl
 - Validación de integración: datos de otra selección no aparecen en la actual,
   errores visibles y consulta sin escrituras → BDD-US-23-05/07.
 
-Tests previstos: Node para valores/series, null frente a cero, signo, identidad,
+Tests implementados: Node para valores/series, null frente a cero, signo, identidad,
 errores, reintentos, selecciones tardías e integración de app; regresión Go completa
-para fuentes y snapshots. No se ejecutaron tests nuevos ni hay evidencia TDD todavía.
+para fuentes y snapshots. Evidencia ejecutada en `docs/evidencia-ia-us-23.md`.
 
-## 9. Decisión pendiente
+## 9. Estado de implementación
 
-Aprobar P-01/P-02 y PT-01…PT-03 antes de implementar. No hay código funcional
-nuevo. Rama local `codex/us-23-dashboard`. Publicación/PR y merge no realizados.
+P-01/P-02 y PT-01…PT-03 aprobadas antes de escribir código. Implementadas localmente
+con pruebas RED/GREEN y refactor. La UI reutiliza las tres lecturas de métricas,
+el selector y los casos de uso Go existentes; recibe el proyecto oficial desde
+la misma selección que US-04. No se crean APIs ni reglas nuevas.
+Rama `codex/us-23-dashboard`. Revisión humana, confirmación final de DoD,
+publicación, PR y merge pendientes; no se declara la Issue completada.
