@@ -77,6 +77,57 @@ func (r *MetricsRepository) GetSprintSnapshot(ctx context.Context, projectID str
 	return domain.SprintSnapshot{}, sprint.ErrNotFound
 }
 
+func (r *MetricsRepository) ProjectDefectData(ctx context.Context, projectID string) (domain.ProjectDefectData, error) {
+	if err := projectExists(ctx, r.db, projectID); err != nil {
+		return domain.ProjectDefectData{}, err
+	}
+	result := domain.ProjectDefectData{
+		Sprints: make([]domain.DefectSprint, 0),
+		Defects: make([]domain.DefectSnapshot, 0),
+	}
+	sprintRows, err := r.db.QueryContext(ctx, `SELECT id, goal, closed FROM sprints WHERE project_id=? ORDER BY id`, projectID)
+	if err != nil {
+		return domain.ProjectDefectData{}, fmt.Errorf("query Sprints for defect metrics: %w", err)
+	}
+	for sprintRows.Next() {
+		var value domain.DefectSprint
+		if err := sprintRows.Scan(&value.ID, &value.Goal, &value.Closed); err != nil {
+			sprintRows.Close()
+			return domain.ProjectDefectData{}, fmt.Errorf("scan Sprint for defect metrics: %w", err)
+		}
+		result.Sprints = append(result.Sprints, value)
+	}
+	if err := sprintRows.Err(); err != nil {
+		sprintRows.Close()
+		return domain.ProjectDefectData{}, fmt.Errorf("iterate Sprints for defect metrics: %w", err)
+	}
+	if err := sprintRows.Close(); err != nil {
+		return domain.ProjectDefectData{}, fmt.Errorf("close Sprint query for defect metrics: %w", err)
+	}
+
+	defectRows, err := r.db.QueryContext(ctx, `
+		SELECT status, detection_sprint_id, resolution_sprint_id
+		FROM defects WHERE project_id=? ORDER BY rowid`, projectID)
+	if err != nil {
+		return domain.ProjectDefectData{}, fmt.Errorf("query defects for metrics: %w", err)
+	}
+	defer defectRows.Close()
+	for defectRows.Next() {
+		var value domain.DefectSnapshot
+		var detection, resolution sql.NullInt64
+		if err := defectRows.Scan(&value.Status, &detection, &resolution); err != nil {
+			return domain.ProjectDefectData{}, fmt.Errorf("scan defect for metrics: %w", err)
+		}
+		value.DetectionSprintID = nullableInt64(detection)
+		value.ResolutionSprintID = nullableInt64(resolution)
+		result.Defects = append(result.Defects, value)
+	}
+	if err := defectRows.Err(); err != nil {
+		return domain.ProjectDefectData{}, fmt.Errorf("iterate defects for metrics: %w", err)
+	}
+	return result, nil
+}
+
 func (r *MetricsRepository) ProjectHoursData(ctx context.Context, projectID string) (domain.ProjectHoursData, error) {
 	if err := projectExists(ctx, r.db, projectID); err != nil {
 		return domain.ProjectHoursData{}, err
@@ -148,6 +199,14 @@ func nullableHours(value sql.NullInt64) *hours.Value {
 		return nil
 	}
 	result := hours.Value(value.Int64)
+	return &result
+}
+
+func nullableInt64(value sql.NullInt64) *int64 {
+	if !value.Valid {
+		return nil
+	}
+	result := value.Int64
 	return &result
 }
 
