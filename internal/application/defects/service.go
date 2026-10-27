@@ -12,6 +12,19 @@ import (
 type Repository interface {
 	Create(context.Context, domain.Defect) error
 	ListByStory(context.Context, string, string) ([]domain.Defect, error)
+	Update(context.Context, string, string, string, domain.Patch) (domain.Defect, error)
+}
+
+// Update changes only the editable fields of an existing, story-scoped defect.
+func (s *Service) Update(ctx context.Context, projectID, storyID, id string, change domain.Patch) (domain.Defect, error) {
+	if err := change.Validate(); err != nil {
+		return domain.Defect{}, err
+	}
+	updated, err := s.repository.Update(ctx, projectID, storyID, id, change)
+	if err != nil {
+		return domain.Defect{}, fmt.Errorf("update defect: %w", err)
+	}
+	return updated, nil
 }
 
 type Service struct{ repository Repository }
