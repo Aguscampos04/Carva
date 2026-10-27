@@ -77,3 +77,13 @@ test('US23-05/06: hide absent project, keep empty Sprint history and ignore old 
   assert.equal(e.dashboard.sprintCharts.children.length,0);
   await e.ui.showProject('');assert.equal(e.dashboard.section.hidden,true);assert.equal(e.dashboard.projectCharts.children.length,0);
 });
+test('US23-07: retry preserves the selected Sprint and clears failed results',async()=>{
+  let fail=false;const calls=[];
+  const e=setup(async url=>{calls.push(url);if(fail&&url.includes('/sprints/'))throw new Error('Sprint no disponible');return response(url)});
+  await e.ui.showProject('p',project);e.sprintSelect.value='3';await e.sprintSelect.listeners.change();
+  fail=true;await e.sprintSelect.listeners.change();
+  assert.equal(e.dashboard.sprintCharts.children.length,0);assert.match(e.message.textContent,/Sprint no disponible/);
+  fail=false;await e.refresh.listeners.click();
+  assert.equal(e.sprintSelect.value,'3');assert.equal(nodes(e.dashboard.sprintCharts).filter(n=>n.tagName==='figure').length,5);
+  assert(calls.filter(url=>url.includes('/sprints/3/')).length>=9);
+});
