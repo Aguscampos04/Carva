@@ -62,6 +62,44 @@ func readObject(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
 	return v
 }
 
+// AC-US17-01/02: comparison keeps estimates, active effort and Story Points distinct.
+func TestUS17EffortComparisonUsesOnlyRelatedActiveRecords(t *testing.T) {
+	_, db := openMigratedProjectDB(t)
+	seedEffort(t, db)
+	if _, err := db.Exec(`UPDATE backlog_items SET estimated_hours_hundredths=250,story_points=5 WHERE project_id='p' AND id='a'`); err != nil {
+		t.Fatal(err)
+	}
+	h := effortHandler(db)
+
+	for _, tc := range []struct {
+		story string
+		hours string
+	}{
+		{story: "a", hours: "1.25"},
+		{story: "a", hours: "2.50"},
+		{story: "a", hours: "4.00"},
+		{story: "b", hours: "7.00"},
+	} {
+		response := effortRequest(h, "POST", "/api/projects/p/backlog/"+tc.story+"/effort", effortBody(tc.hours))
+		expectCode(t, response, http.StatusCreated)
+	}
+
+	var removable string
+	if err := db.QueryRow(`SELECT id FROM effort_entries WHERE backlog_item_id='a' AND hours_hundredths=400`).Scan(&removable); err != nil {
+		t.Fatal(err)
+	}
+	expectCode(t, effortRequest(h, "POST", "/api/projects/p/effort/"+removable+"/delete", `{"confirmed":true}`), http.StatusNoContent)
+
+	storyA := readObject(t, effortRequest(h, "GET", "/api/projects/p/backlog/a", ""))
+	if storyA["estimated_hours"] != 2.5 || storyA["actual_hours"] != 3.75 || storyA["story_points"] != float64(5) {
+		t.Fatalf("comparison must retain separate hour sources and Story Points: %#v", storyA)
+	}
+	storyB := readObject(t, effortRequest(h, "GET", "/api/projects/p/backlog/b", ""))
+	if storyB["actual_hours"] != float64(7) {
+		t.Fatalf("effort from another story leaked into comparison: %#v", storyB)
+	}
+}
+
 const effortPath = "/api/projects/p/backlog/a/effort"
 
 // BDD 05/07/11/19/22/24/27/30/44: legacy, independent entries, totals and soft delete.
