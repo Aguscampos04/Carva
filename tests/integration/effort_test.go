@@ -99,6 +99,7 @@ func TestUS17EffortComparisonUsesOnlyRelatedActiveRecords(t *testing.T) {
 		t.Fatalf("effort from another story leaked into comparison: %#v", storyB)
 	}
 }
+
 const effortPath = "/api/projects/p/backlog/a/effort"
 
 // BDD 05/07/11/19/22/24/27/30/44: legacy, independent entries, totals and soft delete.
