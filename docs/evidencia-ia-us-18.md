@@ -34,7 +34,7 @@ AC-01/AC-02 están cubiertos con alta sin Sprint y con Sprint de detección; el 
 | `gofmt -l .` | PASS, sin archivos. |
 | `go test ./... -count=1` | PASS, suite completa, incluida integración. |
 | `go vet ./...` | PASS. |
-| Suite web Node | PASS: 30 tests, 0 fallos. |
+| Suite web Node | PASS: 31 tests, 0 fallos (incluye la suite de US-17 integrada en main). |
 | `git diff --check origin/main...HEAD` | PASS. |
 
 La Issue #18 permanece abierta para revisión del equipo; no se ha hecho merge ni cierre.
