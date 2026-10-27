@@ -40,7 +40,7 @@ function createDefects({ requestJSON }) {
     let records = [];
     let editing = false;
 
-    function editDefect(defect, row, details) {
+    function editDefect(defect, row) {
       if (!current() || editing || submit.disabled) return;
       editing = true; open.disabled = true; submit.disabled = true;
       const editor = element("form");
@@ -99,7 +99,7 @@ function createDefects({ requestJSON }) {
           details.append(element("dt", label), element("dd", value));
         }
         const edit = element("button", "Editar defecto"); edit.type = "button";
-        edit.addEventListener("click", () => editDefect(defect, row, details));
+        edit.addEventListener("click", () => editDefect(defect, row));
         row.append(details, edit); list.append(row);
       }
       if (items.length === 0) list.append(element("li", "No hay defectos registrados para esta historia."));

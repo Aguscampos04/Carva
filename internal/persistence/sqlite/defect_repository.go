@@ -50,16 +50,8 @@ func (r *DefectRepository) Create(ctx context.Context, item domain.Defect) error
 		if !exists {
 			return domain.ErrBacklogItemNotFound
 		}
-		for _, sprintID := range []*int64{item.DetectionSprintID, item.ResolutionSprintID} {
-			if sprintID == nil {
-				continue
-			}
-			if err := conn.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM sprints WHERE project_id=? AND id=?)`, item.ProjectID, *sprintID).Scan(&exists); err != nil {
-				return fmt.Errorf("find defect Sprint: %w", err)
-			}
-			if !exists {
-				return domain.ErrSprintNotFound
-			}
+		if err := validateDefectSprints(ctx, conn, item); err != nil {
+			return err
 		}
 		_, err := conn.ExecContext(ctx, `INSERT INTO defects(id,project_id,backlog_item_id,description,severity,status,detection_sprint_id,resolution_sprint_id) VALUES(?,?,?,?,?,?,?,?)`,
 			item.ID, item.ProjectID, item.BacklogItemID, item.Description, item.Severity, item.Status,
