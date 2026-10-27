@@ -46,9 +46,9 @@ func writeDefectError(w http.ResponseWriter, err error) bool {
 	}
 	switch {
 	case errors.Is(err, domain.ErrInvalidIdentity), errors.Is(err, domain.ErrInvalidDescription),
-		errors.Is(err, domain.ErrInvalidSeverity), errors.Is(err, domain.ErrInvalidStatus), errors.Is(err, domain.ErrInvalidSprint):
+		errors.Is(err, domain.ErrInvalidSeverity), errors.Is(err, domain.ErrInvalidStatus), errors.Is(err, domain.ErrInvalidSprint), errors.Is(err, domain.ErrEmptyPatch):
 		writeError(w, http.StatusBadRequest, "invalid defect request")
-	case errors.Is(err, domain.ErrProjectNotFound), errors.Is(err, domain.ErrBacklogItemNotFound), errors.Is(err, domain.ErrSprintNotFound):
+	case errors.Is(err, domain.ErrProjectNotFound), errors.Is(err, domain.ErrBacklogItemNotFound), errors.Is(err, domain.ErrSprintNotFound), errors.Is(err, domain.ErrNotFound):
 		writeError(w, http.StatusNotFound, "defect project, story, or Sprint not found")
 	case errors.Is(err, projects.ErrBusy):
 		writeError(w, http.StatusServiceUnavailable, projects.ErrBusy.Error())
@@ -63,6 +63,17 @@ func WithDefects(base http.Handler, service *app.Service) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/", base)
 	story := "/api/projects/{projectID}/backlog/{itemID}/defects"
+	mux.HandleFunc("PATCH "+story+"/{defectID}", func(w http.ResponseWriter, r *http.Request) {
+		change, err := decodeDefectPatch(r.Body)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid defect request")
+			return
+		}
+		updated, err := service.Update(r.Context(), r.PathValue("projectID"), r.PathValue("itemID"), r.PathValue("defectID"), change)
+		if !writeDefectError(w, err) {
+			writeJSON(w, http.StatusOK, updated)
+		}
+	})
 	mux.HandleFunc("POST "+story, func(w http.ResponseWriter, r *http.Request) {
 		input, err := decodeDefectInput(r.Body)
 		if err != nil {
