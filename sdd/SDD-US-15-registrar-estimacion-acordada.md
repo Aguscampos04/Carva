@@ -6,6 +6,8 @@
 
 ## Objective
 
+**Integración US-16:** registrar acuerdo sigue modificando solo Story Points; no altera estimación de horas ni esfuerzo. Las horas se pueden editar aun con definitivo y la edición concurrente del Backlog conserva acuerdo y compleción vigentes. Véase [SDD-US-16](SDD-US-16-registrar-horas-esfuerzo.md).
+
 Registrar los Story Points acordados para una historia a partir de una ronda de Planning Poker finalizada y unánime, conservando el valor actual si la ronda no alcanzó consenso.
 
 ## Inputs

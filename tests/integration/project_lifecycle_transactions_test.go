@@ -203,7 +203,7 @@ func TestProjectFinalizationClockSurvivesCommitRetry(t *testing.T) {
 	}
 }
 
-func TestProjectSprintCreationWinsBeforeFinalization(t *testing.T) {
+func TestProjectSprintCreationAndFinalizationSerializeAcrossRetries(t *testing.T) {
 	path, db := openMigratedProjectDB(t)
 	other, err := sqlite.OpenPath(context.Background(), path)
 	if err != nil {
@@ -216,6 +216,7 @@ func TestProjectSprintCreationWinsBeforeFinalization(t *testing.T) {
 		t.Fatal(err)
 	}
 	entered, release := make(chan struct{}), make(chan struct{})
+	var enteredOnce sync.Once
 	created := make(chan error, 1)
 	value, err := sprint.New(p.ID, "First")
 	if err != nil {
@@ -223,7 +224,7 @@ func TestProjectSprintCreationWinsBeforeFinalization(t *testing.T) {
 	}
 	go func() {
 		_, err := sqlite.NewSprintRepository(db).Create(context.Background(), value, func(current project.Project) (project.Project, error) {
-			close(entered)
+			enteredOnce.Do(func() { close(entered) })
 			<-release
 			if err := current.CanCreateSprint(); err != nil {
 				return project.Project{}, err
@@ -239,15 +240,24 @@ func TestProjectSprintCreationWinsBeforeFinalization(t *testing.T) {
 		response <- performJSON(t, lifecycleHandler(other, "2026-10-20T15:00:00Z"), "POST", "/api/projects/"+p.ID+"/finalize", `{"confirmed":true}`)
 	}()
 	close(release)
-	if err := <-created; err != nil {
-		t.Fatal(err)
+	createErr := <-created
+	if createErr != nil && !errors.Is(createErr, project.ErrFinalized) {
+		t.Fatal(createErr)
 	}
 	if w := <-response; w.Code != 200 {
 		t.Fatalf("%d %s", w.Code, w.Body)
 	}
-	got := lifeRequest(t, lifecycleHandler(db, "2026-10-20T15:00:00Z"), "GET", "/api/projects/"+p.ID+"/sprints/1", "", 200)
-	if got["goal"] != "First" {
+	code := 200
+	if createErr != nil {
+		code = 404
+	}
+	got := lifeRequest(t, lifecycleHandler(db, "2026-10-20T15:00:00Z"), "GET", "/api/projects/"+p.ID+"/sprints/1", "", code)
+	if createErr == nil && got["goal"] != "First" {
 		t.Fatal("created Sprint not preserved")
+	}
+	final, err := service.Get(context.Background(), p.ID)
+	if err != nil || final.Status != project.Finalized || final.EndDate != "2026-10-20" {
+		t.Fatal(final, err)
 	}
 }
 
@@ -260,10 +270,11 @@ func TestProjectConcurrentFutureStartAndFinalization(t *testing.T) {
 		url := "/api/projects/" + p["id"].(string)
 		repo := sqlite.NewProjectRepository(db)
 		entered, release := make(chan struct{}), make(chan struct{})
+		var enteredOnce sync.Once
 		done := make(chan error, 1)
 		go func() {
 			_, err := repo.Mutate(context.Background(), p["id"].(string), func(current project.Project) (project.Project, error) {
-				close(entered)
+				enteredOnce.Do(func() { close(entered) })
 				<-release
 				if editFirst {
 					return current.Edit(project.Patch{HasStartDate: true, StartDate: project.Date("2026-10-21")})
@@ -282,24 +293,38 @@ func TestProjectConcurrentFutureStartAndFinalization(t *testing.T) {
 			response <- performJSON(t, h, method, url+suffix, body)
 		}()
 		close(release)
-		if err := <-done; err != nil {
-			t.Fatal(err)
-		}
+		firstErr := <-done
 		w := <-response
-		want := 400
-		if editFirst {
-			want = 409
+		firstWon := firstErr == nil
+		want := 200
+		if firstWon {
+			want = 400
+			if editFirst {
+				want = 409
+			}
+		} else {
+			expected := project.ErrStartAfterToday
+			if editFirst {
+				expected = project.ErrDateRange
+			}
+			if !errors.Is(firstErr, expected) {
+				t.Fatalf("unexpected first operation error: %v", firstErr)
+			}
 		}
 		if w.Code != want {
-			t.Fatalf("%d %s", w.Code, w.Body)
+			t.Fatalf("firstErr=%v, second=%d %s, want %d", firstErr, w.Code, w.Body, want)
 		}
 		got := lifeRequest(t, h, "GET", url, "", 200)
-		if editFirst {
-			if got["status"] != "Planificado" || got["end_date"] != nil {
+		// Acquiring a lock first does not fix commit order: a confirmed rollback
+		// may retry and serialize after the competing request. Assert the exact
+		// outcome of the successful writer, never an inconsistent combined state.
+		editWon := editFirst == firstWon
+		if editWon {
+			if got["status"] != "Planificado" || got["end_date"] != nil || got["start_date"] != "2026-10-21" {
 				t.Fatal(got)
 			}
 		} else {
-			if got["status"] != "Finalizado" || got["start_date"] != nil {
+			if got["status"] != "Finalizado" || got["start_date"] != nil || got["end_date"] != "2026-10-20" {
 				t.Fatal(got)
 			}
 		}

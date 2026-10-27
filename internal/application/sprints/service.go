@@ -95,6 +95,15 @@ func (s Service) AssignBacklogItem(ctx context.Context, projectID string, sprint
 	if err := s.repository.AssignBacklogItem(ctx, projectID, sprintID, planned); err != nil {
 		return sprint.PlannedBacklogItem{}, err
 	}
+	values, err := s.repository.ListPlannedBacklogItems(ctx, projectID, sprintID)
+	if err != nil {
+		return sprint.PlannedBacklogItem{}, err
+	}
+	for _, v := range values {
+		if v.BacklogItemID == itemID {
+			return v, nil
+		}
+	}
 	return planned, nil
 }
 

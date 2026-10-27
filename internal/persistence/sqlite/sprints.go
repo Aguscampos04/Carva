@@ -108,10 +108,10 @@ func (r *SprintRepository) Close(ctx context.Context, projectID string, sprintID
 			_, err = conn.ExecContext(ctx, `
 				INSERT OR IGNORE INTO sprint_backlog_items (
 					sprint_id, backlog_item_id, title, description, priority, status,
-					provisional_story_points, story_points, acceptance_criteria
+					provisional_story_points, story_points, acceptance_criteria, estimated_hours_hundredths
 				)
 				SELECT ?, backlog_item_id, title, description, priority, status,
-					provisional_story_points, story_points, acceptance_criteria
+					provisional_story_points, story_points, acceptance_criteria, estimated_hours_hundredths
 				FROM sprint_backlog_items
 				WHERE sprint_id = ? AND completion_verified = 0`, nextSprintID, sprintID)
 			if err != nil {
@@ -140,59 +140,57 @@ func (r *SprintRepository) Close(ctx context.Context, projectID string, sprintID
 }
 
 func (r *SprintRepository) AssignBacklogItem(ctx context.Context, projectID string, sprintID int64, value sprint.PlannedBacklogItem) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin Sprint Backlog assignment: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
+	return withImmediate(ctx, r.db, func(conn *sql.Conn) error {
+		var closed bool
+		err := conn.QueryRowContext(ctx,
+			`SELECT closed FROM sprints WHERE project_id = ? AND id = ?`, projectID, sprintID,
+		).Scan(&closed)
+		if errors.Is(err, sql.ErrNoRows) {
+			return sprint.ErrNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("check Sprint for Backlog assignment: %w", err)
+		}
+		if closed {
+			return sprint.ErrClosed
+		}
 
-	var closed bool
-	err = tx.QueryRowContext(ctx,
-		`SELECT closed FROM sprints WHERE project_id = ? AND id = ?`, projectID, sprintID,
-	).Scan(&closed)
-	if errors.Is(err, sql.ErrNoRows) {
-		return sprint.ErrNotFound
-	}
-	if err != nil {
-		return fmt.Errorf("check Sprint for Backlog assignment: %w", err)
-	}
-	if closed {
-		return sprint.ErrClosed
-	}
-
-	criteria, err := json.Marshal(value.AcceptanceCriteria)
-	if err != nil {
-		return fmt.Errorf("encode planned acceptance criteria: %w", err)
-	}
-	result, err := tx.ExecContext(ctx, `
+		current, err := findBacklog(ctx, conn, projectID, value.BacklogItemID)
+		if err != nil {
+			return err
+		}
+		value.EstimatedHours = current.EstimatedHours
+		criteria, err := json.Marshal(value.AcceptanceCriteria)
+		if err != nil {
+			return fmt.Errorf("encode planned acceptance criteria: %w", err)
+		}
+		result, err := conn.ExecContext(ctx, `
 		INSERT OR IGNORE INTO sprint_backlog_items (
 			sprint_id, backlog_item_id, title, description, priority, status,
-			provisional_story_points, story_points, acceptance_criteria
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		value.SprintID, value.BacklogItemID, value.Title, value.Description, value.Priority, value.Status,
-		value.ProvisionalStoryPoints, value.StoryPoints, string(criteria),
-	)
-	if err != nil {
-		return fmt.Errorf("insert Sprint Backlog snapshot: %w", err)
-	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("count Sprint Backlog assignments: %w", err)
-	}
-	if rows == 0 {
-		return sprint.ErrBacklogItemAlreadyAssigned
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit Sprint Backlog assignment: %w", err)
-	}
-	return nil
+			provisional_story_points, story_points, acceptance_criteria, estimated_hours_hundredths
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			value.SprintID, value.BacklogItemID, value.Title, value.Description, value.Priority, value.Status,
+			value.ProvisionalStoryPoints, value.StoryPoints, string(criteria), value.EstimatedHours,
+		)
+		if err != nil {
+			return fmt.Errorf("insert Sprint Backlog snapshot: %w", err)
+		}
+		rows, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("count Sprint Backlog assignments: %w", err)
+		}
+		if rows == 0 {
+			return sprint.ErrBacklogItemAlreadyAssigned
+		}
+		return nil
+	})
 }
 
 func (r *SprintRepository) ListPlannedBacklogItems(ctx context.Context, projectID string, sprintID int64) ([]sprint.PlannedBacklogItem, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT planned.sprint_id, planned.backlog_item_id, planned.title, planned.description,
 			planned.priority, planned.status, planned.completion_verified, planned.provisional_story_points,
-			planned.story_points, planned.acceptance_criteria
+			planned.story_points, planned.acceptance_criteria, planned.estimated_hours_hundredths
 		FROM sprint_backlog_items AS planned
 		JOIN sprints ON sprints.id = planned.sprint_id
 		WHERE sprints.project_id = ? AND planned.sprint_id = ?
@@ -210,7 +208,7 @@ func (r *SprintRepository) ListPlannedBacklogItems(ctx context.Context, projectI
 		var criteria string
 		if err := rows.Scan(
 			&value.SprintID, &value.BacklogItemID, &value.Title, &value.Description,
-			&value.Priority, &value.PlannedStatus, &completionVerified, &provisional, &definitive, &criteria,
+			&value.Priority, &value.PlannedStatus, &completionVerified, &provisional, &definitive, &criteria, &value.EstimatedHours,
 		); err != nil {
 			return nil, fmt.Errorf("scan Sprint Backlog snapshot: %w", err)
 		}
@@ -266,13 +264,13 @@ func (r *SprintRepository) CompleteBacklogItem(ctx context.Context, projectID st
 		var criteria string
 		err = conn.QueryRowContext(ctx, `
 			SELECT planned.title, planned.description, planned.priority, planned.status,
-				planned.provisional_story_points, planned.story_points, planned.acceptance_criteria
+				planned.provisional_story_points, planned.story_points, planned.acceptance_criteria, planned.estimated_hours_hundredths
 			FROM sprint_backlog_items AS planned
 			JOIN sprints ON sprints.id = planned.sprint_id
 			WHERE sprints.project_id = ? AND planned.sprint_id = ? AND planned.backlog_item_id = ?`,
 			projectID, sprintID, itemID,
 		).Scan(&completed.Title, &completed.Description, &completed.Priority, &completed.PlannedStatus,
-			&provisional, &definitive, &criteria)
+			&provisional, &definitive, &criteria, &completed.EstimatedHours)
 		if errors.Is(err, sql.ErrNoRows) {
 			return sprint.ErrBacklogItemNotAssigned
 		}

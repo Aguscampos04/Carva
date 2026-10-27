@@ -2,13 +2,14 @@ package backlog
 
 import (
 	"errors"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"reflect"
 	"testing"
 )
 
 func TestNewCreatesPendingBacklogItemWithIndependentStoryPointValues(t *testing.T) {
 	provisional := 5
-	got, err := New("item-1", "project-1", Input{
+	got, err := New("item-1", "project-1", Input{EstimatedHours: hours.Ptr(800),
 		Title:                  "  Login  ",
 		Description:            "  User can sign in  ",
 		Priority:               PriorityHigh,
@@ -89,7 +90,7 @@ func TestUpdateChangesEditableFieldsAndPreservesControlledFields(t *testing.T) {
 	item.Status = InProgress
 	definitive := 8
 	item.StoryPoints = &definitive
-	updatedInput := Input{
+	updatedInput := Input{EstimatedHours: hours.Ptr(800),
 		Title: "Updated title", Description: "Updated description", Priority: PriorityLow,
 		AcceptanceCriteria: []string{"Updated criterion"},
 	}
@@ -147,7 +148,7 @@ func TestCompleteRequiresExplicitAcceptanceCriteriaVerification(t *testing.T) {
 }
 
 func validInput() Input {
-	return Input{
+	return Input{EstimatedHours: hours.Ptr(800),
 		Title: "Login", Description: "User can sign in", Priority: PriorityMedium,
 		AcceptanceCriteria: []string{"Valid credentials grant access"},
 	}

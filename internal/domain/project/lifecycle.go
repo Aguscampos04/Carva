@@ -113,3 +113,16 @@ func (p Project) CanCreateSprint() error {
 	}
 	return nil
 }
+
+// ValidateEffortDates protects active effort when project dates change (US-16 D-31).
+var ErrEffortDates = errors.New("project dates conflict with active effort")
+
+func (p Project) ValidateEffortDates(minimum, maximum Date) error {
+	if minimum != "" && p.StartDate != "" && p.StartDate > minimum {
+		return ErrEffortDates
+	}
+	if maximum != "" && p.Status == Finalized && p.EndDate != "" && maximum > p.EndDate {
+		return ErrEffortDates
+	}
+	return nil
+}

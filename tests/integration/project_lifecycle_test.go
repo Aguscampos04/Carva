@@ -62,7 +62,7 @@ func TestProjectLifecyclePersistenceAndCompatibility(t *testing.T) {
 	}
 	sprint := lifeRequest(t, h, "POST", url+"/sprints", `{"goal":"MVP"}`, 201)
 	sprint2 := lifeRequest(t, h, "POST", url+"/sprints", `{"goal":"UI"}`, 201)
-	itemBody := `{"title":"PDF","description":"Informe","priority":"Alta","acceptance_criteria":["Descargable"]}`
+	itemBody := `{"title":"PDF","description":"Informe","priority":"Alta","estimated_hours":8,"acceptance_criteria":["Descargable"]}`
 	item := lifeRequest(t, h, "POST", url+"/backlog", itemBody, 201)
 	sprintURL := url + "/sprints/1"
 	lifeRequest(t, h, "POST", sprintURL+"/backlog-items", `{"backlog_item_id":"`+item["id"].(string)+`"}`, 201)

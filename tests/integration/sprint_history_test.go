@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"net/http"
 	"reflect"
 	"testing"
@@ -77,7 +78,7 @@ func TestUS11HistorySurvivesTransferAndLaterChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 	points := 8
-	if _, err := f.backlog.Update(ctx, f.projectID, incomplete.ID, backlog.Input{Title: "Changed title", Description: "Changed description", Priority: backlog.PriorityLow, ProvisionalStoryPoints: &points, AcceptanceCriteria: []string{"Changed criterion"}}); err != nil {
+	if _, err := f.backlog.Update(ctx, f.projectID, incomplete.ID, backlog.Input{EstimatedHours: hours.Ptr(800), Title: "Changed title", Description: "Changed description", Priority: backlog.PriorityLow, ProvisionalStoryPoints: &points, AcceptanceCriteria: []string{"Changed criterion"}}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := f.service.CompleteBacklogItem(ctx, f.projectID, f.next.ID, incomplete.ID, true); err != nil {

@@ -154,6 +154,14 @@ Estas decisiones pendientes no deben convertirse en reglas funcionales por infer
 
 ## 8. Trazabilidad
 
+### Incremento US-16 autorizado
+
+El responsable aprobó las 31 decisiones y PT-01…PT-06 de [SDD-US-16](../sdd/SDD-US-16-registrar-horas-esfuerzo.md). Se agregan `domain/hours` (centésimas exactas), `domain/effort` y `application/effort`, con adaptador SQLite, REST y formulario embebido desde el detalle del Product Backlog. `cmd/carva` compone el servicio con reloj y repositorio existentes; no se agregan frameworks ni dependencias.
+
+La migración aditiva `000012_effort.sql` conserva NULL históricos de estimación y agrega `effort_entries` con relaciones de proyecto/miembro/historia/Sprint y marca de baja lógica. Los totales se calculan desde activos, sin multiplicarlos por snapshots. `BacklogRepository.Mutate` lee el registro vigente, actualiza campos editables y propaga exclusivamente horas estimadas a asignaciones abiertas/cerradas en la misma transacción inmediata. Acuerdos y resultados no se sobrescriben.
+
+Esfuerzo y cambios de fechas se coordinan mediante `withImmediate`: fechas, relaciones y cupo se validan sobre datos vigentes. El cambio de inicio considera solo activos (D-31); el Finalizado con fin NULL conserva sus datos y solo permite consulta/baja de esfuerzo (D-30). La API de esfuerzo se agrega con `httpapi.WithEffort` sin sustituir los constructores previos. Evidencia de TDD, compatibilidad, concurrencia y CI: [US-16](evidencia-ia-us-16.md). Revisión final e integración pendientes del responsable.
+
 ### Incremento US-02 autorizado el 2026-10-20
 
 La [SDD-US-02](../sdd/SDD-US-02-modificar-proyecto.md) y PT-01 a PT-05 fueron

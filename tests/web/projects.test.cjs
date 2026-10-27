@@ -77,7 +77,7 @@ test("app wiring: a refresh started before finalization cannot discard its resul
   }
   const project = { id: "demo", name: "Demo", status: "Planificado", start_date: null, end_date: null };
   let resolveRefresh, resolveFinalize;
-  const response = data => ({ ok: true, json: async () => data });
+  const response = data => ({ ok: true, status:200, text:async()=>JSON.stringify(data), json: async () => data });
   const context = vm.createContext({
     document: { querySelector: element }, encodeURIComponent,
     window: { confirm: () => true },
@@ -90,7 +90,7 @@ test("app wiring: a refresh started before finalization cannot discard its resul
       return new Promise(resolve => { resolveRefresh = data => resolve(response(data)); });
     },
   });
-  for (const file of ["projects.js", "planning-poker.js", "app.js"]) vm.runInContext(fs.readFileSync(path.join(__dirname, "../../web/static/js", file), "utf8"), context);
+  for (const file of ["projects.js", "planning-poker.js", "effort.js", "app.js"]) vm.runInContext(fs.readFileSync(path.join(__dirname, "../../web/static/js", file), "utf8"), context);
   await element("#create-project-form").listeners.submit(event);
   const refresh = element("#refresh-project").listeners.click();
   const finish = element("#finalize-project").listeners.click();

@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"net/http"
 	"strconv"
 	"testing"
@@ -25,7 +26,7 @@ func TestSprintBacklogAssignmentPreservesPlanningSnapshot(t *testing.T) {
 	backlogRepository := sqlite.NewBacklogRepository(db)
 	backlogService := appbacklog.NewService(backlogRepository)
 	provisionalPoints := 5
-	item, err := backlogService.Create(context.Background(), projectValue.ID, backlogdomain.Input{
+	item, err := backlogService.Create(context.Background(), projectValue.ID, backlogdomain.Input{EstimatedHours: hours.Ptr(800),
 		Title: "Plan inicial", Description: "Descripción original", Priority: backlogdomain.PriorityHigh,
 		ProvisionalStoryPoints: &provisionalPoints, AcceptanceCriteria: []string{"Criterio original"},
 	})
@@ -47,7 +48,7 @@ func TestSprintBacklogAssignmentPreservesPlanningSnapshot(t *testing.T) {
 
 	updated := performJSONRequest(handler, http.MethodPut, "/api/projects/"+projectValue.ID+"/backlog/"+item.ID, map[string]any{
 		"title": "Título actualizado", "description": "Descripción actualizada", "priority": "Baja",
-		"provisional_story_points": 8, "acceptance_criteria": []string{"Criterio actualizado"},
+		"provisional_story_points": 8, "estimated_hours": 8, "acceptance_criteria": []string{"Criterio actualizado"},
 	})
 	if updated.Code != http.StatusOK {
 		t.Fatalf("update backlog status = %d, body = %s; want %d", updated.Code, updated.Body, http.StatusOK)
@@ -94,7 +95,7 @@ func TestSprintBacklogAssignmentRejectsForeignAndDuplicateStories(t *testing.T) 
 	}
 	backlogRepository := sqlite.NewBacklogRepository(db)
 	backlogService := appbacklog.NewService(backlogRepository)
-	item, err := backlogService.Create(context.Background(), secondProject.ID, backlogdomain.Input{
+	item, err := backlogService.Create(context.Background(), secondProject.ID, backlogdomain.Input{EstimatedHours: hours.Ptr(800),
 		Title: "Foreign story", Description: "Description", Priority: backlogdomain.PriorityMedium,
 		AcceptanceCriteria: []string{"Criterion"},
 	})
@@ -114,7 +115,7 @@ func TestSprintBacklogAssignmentRejectsForeignAndDuplicateStories(t *testing.T) 
 		t.Fatalf("foreign item assignment status = %d, want %d", foreign.Code, http.StatusNotFound)
 	}
 
-	localItem, err := backlogService.Create(context.Background(), firstProject.ID, backlogdomain.Input{
+	localItem, err := backlogService.Create(context.Background(), firstProject.ID, backlogdomain.Input{EstimatedHours: hours.Ptr(800),
 		Title: "Local story", Description: "Description", Priority: backlogdomain.PriorityMedium,
 		AcceptanceCriteria: []string{"Criterion"},
 	})
@@ -149,7 +150,7 @@ func TestCompleteStoryRequiresVerificationAndUpdatesSprintAndBacklog(t *testing.
 	}
 	backlogRepository := sqlite.NewBacklogRepository(db)
 	backlogService := appbacklog.NewService(backlogRepository)
-	item, err := backlogService.Create(context.Background(), projectValue.ID, backlogdomain.Input{
+	item, err := backlogService.Create(context.Background(), projectValue.ID, backlogdomain.Input{EstimatedHours: hours.Ptr(800),
 		Title: "Historia", Description: "Descripción", Priority: backlogdomain.PriorityHigh,
 		AcceptanceCriteria: []string{"Criterio verificado"},
 	})
@@ -242,7 +243,7 @@ func TestCompleteStoryRequiresSprintAssignmentAndRollsBackOnFailure(t *testing.T
 	}
 	backlogRepository := sqlite.NewBacklogRepository(db)
 	backlogService := appbacklog.NewService(backlogRepository)
-	item, err := backlogService.Create(context.Background(), projectValue.ID, backlogdomain.Input{
+	item, err := backlogService.Create(context.Background(), projectValue.ID, backlogdomain.Input{EstimatedHours: hours.Ptr(800),
 		Title: "Historia", Description: "Descripción", Priority: backlogdomain.PriorityHigh,
 		AcceptanceCriteria: []string{"Criterio"},
 	})

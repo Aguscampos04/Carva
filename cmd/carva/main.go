@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	appeffort "github.com/Aguscampos04/Carva/internal/application/effort"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/Aguscampos04/Carva/internal/application/backlog"
 	"github.com/Aguscampos04/Carva/internal/application/members"
@@ -33,7 +35,7 @@ func main() {
 	mux := http.NewServeMux()
 	memberService := members.NewService(sqlite.NewMemberRepository(db))
 	planningPokerService := planningpoker.NewService(sqlite.NewPlanningPokerRepository(db), backlogRepository, memberService)
-	mux.Handle("/api/", httpapi.NewHandlerWithPlanningPoker(projectService, backlogService, sprintService, planningPokerService, memberService))
+	mux.Handle("/api/", httpapi.WithEffort(httpapi.NewHandlerWithPlanningPoker(projectService, backlogService, sprintService, planningPokerService, memberService), appeffort.NewService(sqlite.NewEffortRepository(db), time.Now)))
 	mux.Handle("/", http.FileServer(http.FS(static.Files)))
 
 	log.Print("Carva listening on http://localhost:8080")

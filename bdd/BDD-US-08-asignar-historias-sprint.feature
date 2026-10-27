@@ -1,5 +1,7 @@
 # US-08 / Issue #8 — Asignar historias y preservar lo planificado
 # Fuente: SDD-US-08 y criterios de aceptación de Issue #8.
+# US-16 D-21: únicamente estimated_hours refleja la estimación vigente sincronizada;
+# los demás datos planificados permanecen inmutables. BDD-US-16-06/29/34/36.
 
 Feature: Asignar historias del Product Backlog a un Sprint
 

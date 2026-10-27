@@ -1,0 +1,31 @@
+name: Calidad de Carva
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, 'codex/**']
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Formato
+        run: test -z "$(gofmt -l .)"
+      - name: Tests y cobertura
+        run: go test -count=1 -coverpkg=./internal/... -coverprofile=coverage.out ./...
+      - name: Análisis estático
+        run: go vet ./...
+      - name: Build
+        run: go build ./...
+      - name: Frontend
+        run: node --test tests/web/*.test.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-go
+          path: coverage.out

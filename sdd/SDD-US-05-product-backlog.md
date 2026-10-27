@@ -20,6 +20,9 @@ Permitir registrar una User Story en el Backlog de un proyecto y actualizar sus 
 | `provisional_story_points` | Opcional al crear; si se informa, entero no negativo. Se puede editar mediante US-05 hasta que US-15 registre la estimación definitiva. |
 | `story_points` | Estimación definitiva, separada del valor provisional. US-05 no la establece ni modifica; corresponde a US-15. |
 | `acceptance_criteria` | Lista requerida con al menos un texto no vacío. Los espacios exteriores se recortan para validar; se conserva el texto ingresado. |
+| `estimated_hours` | US-16 aprobada: requerido en alta y toda edición, positivo y hasta dos decimales. NULL solo al consultar historias históricas pendientes de regularización. Independiente de Story Points. |
+
+Integración US-16: POST/PUT incorporan `estimated_hours` al conjunto de campos editables; GET agrega `estimated_hours` y `actual_hours` (total activo). Una edición histórica sin estimación válida se rechaza completa. Actualización y propagación de horas a snapshots son atómicas y no sobrescriben estados ni acuerdos concurrentes. Véase [SDD-US-16](SDD-US-16-registrar-horas-esfuerzo.md); los demás campos y sus restricciones se conservan.
 
 El identificador sigue la convención aprobada en US-01. Los textos requeridos se validan en Go, no solamente en la interfaz.
 

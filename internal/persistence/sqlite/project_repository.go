@@ -83,6 +83,13 @@ func (r *ProjectRepository) Mutate(ctx context.Context, id string, change func(p
 		if err != nil {
 			return err
 		}
+		var minimum, maximum sql.NullString
+		if err := conn.QueryRowContext(ctx, `SELECT MIN(work_date),MAX(work_date) FROM effort_entries WHERE project_id=? AND deleted_at IS NULL`, id).Scan(&minimum, &maximum); err != nil {
+			return err
+		}
+		if err := next.ValidateEffortDates(project.Date(minimum.String), project.Date(maximum.String)); err != nil {
+			return err
+		}
 		if next == current {
 			return nil
 		}

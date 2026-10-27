@@ -254,6 +254,54 @@ Trazabilidad: enunciado §2.1 → EP-01 → [US-03 / Issue #3](https://github.co
 
 El responsable autorizó el 2026-10-16 implementar la SDD y los escenarios con los ajustes de revisión: JSON estricto, integridad referencial efectiva en SQLite, claridad de BDD 07/17 y UUID completo presentado como dato secundario. Esta autorización de la etapa no implica aprobación final de la historia por el equipo ni evidencia de tests; la implementación deberá conservar evidencia TDD y entregarse por PR sin merge ni cierre de #3.
 
+### Horas estimadas y esfuerzo real — US-16 / Issue #16
+
+Decisiones funcionales **aprobadas explícitamente por el responsable**: D-01…D-29 en la solicitud del 2026-10-26 y D-30/D-31 junto a la corrección de D-26 en la actualización solicitada del PR #45. Los 31 identificadores tienen alcance local a US-16; no reemplazan las decisiones homónimas de otras historias. El responsable aprobó posteriormente de forma expresa las 31 decisiones y PT-01…PT-06 y autorizó implementar completamente US-16 mediante SDD → BDD → TDD en la misma rama del PR #45, con commits y push; sin merge ni cierre de #16. Aceptación final pendiente.
+
+| ID | Decisión aprobada | AC de SDD-US-16 |
+| --- | --- | --- |
+| D-01 | Se pueden registrar horas estimadas para cualquier User Story del Product Backlog, aunque no esté asignada a un Sprint. | AC-01 |
+| D-02 | Las horas estimadas pueden modificarse en cualquier momento, incluso cuando existen registros de esfuerzo real. Se conserva el valor actualizado como estimación vigente. | AC-01 |
+| D-03 | Cada registro debe asociarse obligatoriamente a una User Story del proyecto. No existen registros generales sin historia. | AC-04 |
+| D-04 | Se pueden registrar horas reales para historias asignadas o no a un Sprint. | AC-04 |
+| D-05 | Las horas trabajadas deben ser mayores que cero y admitir hasta dos decimales. | AC-05 |
+| D-06 | Las horas estimadas admiten hasta dos decimales. | AC-01, AC-02 |
+| D-07 | Toda User Story nueva requiere horas estimadas mayores que cero desde su creación. | AC-02 |
+| D-08 | Las historias existentes sin estimación se conservan como pendientes de regularización. Se pueden consultar, pero al editarlas se exige completar una estimación válida. | AC-03 |
+| D-09 | La fecha de trabajo puede ser actual o pasada, nunca futura. | AC-07 |
+| D-10 | La actividad es un texto libre obligatorio, no vacío ni compuesto únicamente por espacios. | AC-05 |
+| D-11 | Los registros pueden editarse después de guardarse: miembro, fecha, actividad, horas e historia asociada, conservando su identificador. | AC-10 |
+| D-12 | Los registros pueden eliminarse únicamente después de una confirmación del usuario. | AC-11 |
+| D-13 | La eliminación es lógica (*soft delete*). Los registros eliminados permanecen almacenados para trazabilidad, pero no aparecen en las consultas normales ni participan de las sumatorias. No se requiere interfaz para consultar eliminados. | AC-11, AC-12 |
+| D-14 | Se permite registrar, editar y eliminar lógicamente esfuerzo para historias completadas, sin modificar su estado. | AC-13 |
+| D-15 | Se permite registrar, editar y eliminar lógicamente esfuerzo en proyectos finalizados, sin cambiar su estado ni sus fechas. | AC-08, AC-13 |
+| D-16 | Un miembro puede tener múltiples registros independientes el mismo día para la misma historia. Sus horas se acumulan. | AC-09 |
+| D-17 | En proyectos finalizados, la fecha de trabajo no puede ser posterior a la fecha real de finalización, aunque el registro se cargue después. | AC-08 |
+| D-18 | Si existe fecha de inicio del proyecto, no se permite esfuerzo anterior a ella. Los cambios posteriores de esa fecha deben rechazarse cuando generen inconsistencias con los registros existentes; nunca modificar automáticamente sus fechas. | AC-07 |
+| D-19 | Cada User Story muestra sus horas estimadas, el total de horas reales de sus registros activos y permite consultar el detalle. | AC-12 |
+| D-20 | El registro y la administración del esfuerzo real se realizan desde el detalle de cada User Story del Product Backlog. | AC-12 |
+| D-21 | Cuando cambian las horas estimadas de una historia, se actualiza también ese valor en todos los Sprints a los que está asignada, incluidos los cerrados. Los demás datos históricos se conservan. | AC-16 |
+| D-22 | Cada registro puede asociarse opcionalmente a un Sprint al que pertenezca la historia. También puede permanecer sin Sprint. | AC-14 |
+| D-23 | Se permite registrar, editar y eliminar lógicamente esfuerzo asociado a Sprints cerrados, sin reabrirlos ni alterar sus historias planificadas. | AC-15 |
+| D-24 | Un miembro puede acumular como máximo 24 horas reales por fecha dentro de su proyecto, considerando todas sus historias y Sprints. Los registros eliminados lógicamente no se contabilizan. | AC-09 |
+| D-25 | Las horas reales acumuladas pueden superar las estimadas, sin modificar automáticamente la estimación. | AC-09 |
+| D-26 | Al cambiar la User Story de un registro, conservar el Sprint anterior si sigue siendo válido. Si es incompatible, exigir seleccionar otro Sprint válido o quitar explícitamente la asociación. Nunca modificar la asociación automáticamente. | AC-10, AC-14 |
+| D-27 | Un registro de esfuerzo solo puede reasignarse a historias del mismo proyecto. Para corregir un proyecto equivocado, debe eliminarse lógicamente el registro y crearse otro en el proyecto correcto. | AC-06, AC-10 |
+| D-28 | Se permite registrar esfuerzo en historias históricas sin estimación, mostrando «Pendiente de regularización» hasta completar ese dato. | AC-03 |
+| D-29 | El formulario de esfuerzo debe completar por defecto la fecha actual, permitiendo modificarla según las restricciones establecidas. | AC-07, AC-12 |
+| D-30 | Proyectos finalizados sin fecha de fin: bloquear altas y ediciones de esfuerzo si `end_date = NULL`. Permitir consultas y eliminación lógica. No inventar fechas ni modificar el estado del proyecto. | AC-19 |
+| D-31 | Cambio de fecha de inicio: validar D-18 únicamente contra registros de esfuerzo activos. Los eliminados lógicamente no bloquean el cambio y conservan sus datos históricos. Garantizar atomicidad de la operación. | AC-07, AC-18 |
+
+Integración aprobada con US-03: seleccionar miembros desde la lista del proyecto mediante UUID, nunca nombre libre; validar siempre su pertenencia. Cada esfuerzo conserva como mínimo miembro, fecha, actividad, horas y User Story, además de Sprint opcional y datos técnicos de identidad/eliminación lógica. Horas estimadas y reales son independientes: **no convertir Story Points en horas ni viceversa**. El día actual reutiliza la zona ya aprobada de US-02, `America/Argentina/Buenos_Aires`.
+
+Trazabilidad: [enunciado](enunciado.md) §2.5 y datos para §2.7 → EP-05 → [US-16 / Issue #16](https://github.com/Aguscampos04/Carva/issues/16) → D-01…D-31 → [SDD-US-16](../sdd/SDD-US-16-registrar-horas-esfuerzo.md) → AC-01…AC-19 y su matriz → [BDD-US-16](../bdd/BDD-US-16-registrar-horas-esfuerzo.feature), escenarios BDD-US-16-01…46 → pruebas Go/Node, ciclos TDD y código implementados → [evidencia US-16](evidencia-ia-us-16.md); revisión y aceptación final pendientes. D-30 → AC-19 → BDD-43/44; D-31 → AC-07/18 → BDD-15/16/33/45; D-26 corregida → AC-10/14 → BDD-26/46. La evidencia distingue pruebas automatizadas Go/Node de la especificación feature, sin atribuirle ejecución por un runner Gherkin.
+
+Impactos implementados y cubiertos por regresión (véase evidencia US-16): US-05 requiere estimación en altas/ediciones, con NULL histórico consultable; US-02 debe proteger cambios de inicio frente al esfuerzo; US-03 aporta identidades; US-08 y US-11 incorporan la excepción explícita D-21 únicamente para horas estimadas vigentes, preservando los demás datos históricos; US-10 conserva esfuerzo en su asociación elegida al trasladar historias y sincroniza estimación; US-15 conserva su actualización independiente de Story Points. Estas precisiones no reescriben otras decisiones funcionales.
+
+R-01 y R-02 quedan **resueltos** por D-30 y D-31 y se retiran de los pendientes funcionales. La excepción de D-30 precisa D-15 para Finalizado sin fin; no permite completar esa fecha desde esfuerzo ni bloquea consultas/baja. D-31 precisa D-18: el cambio de inicio se coordina atómicamente contra activos, sin alterar eliminados aunque conserven fechas anteriores al nuevo inicio. D-26 corregida conserva Sprint válido o asociación nula al cambiar historia; solo una incompatibilidad exige resolución explícita, sin sustitución automática.
+
+Las propuestas técnicas PT-01…PT-06 de la SDD (representación exacta, API/errores, esquema, mecanismo transaccional, migración e interfaz) quedan aprobadas formalmente para implementar; ni estas ni las reglas funcionales siguen pendientes de decisión. Se autoriza implementación y automatización con evidencia real, conservando fuera de alcance métricas/reportes. Sin merge, cierre de #16 ni aceptación final implícita.
+
 ### Decisiones pendientes
 
 Todavía deben definirse y documentarse, entre otras:
@@ -263,7 +311,7 @@ Todavía deben definirse y documentarse, entre otras:
 - Esquema SQLite y configuración de concurrencia/transacciones más allá de las tablas mínimas descritas en esas SDD.
 - Estrategia para servir los archivos estáticos del frontend y configurar su acceso a la API.
 - Configuración completa de los entornos de desarrollo y pruebas, más allá de la ruta base aprobada.
-- Integración de la selección de miembros en votos y esfuerzo, a especificar en US-12 y US-16. El mecanismo funcional está aprobado (D-05), sin autenticación ni permisos (D-07); el alta/listado de US-03 está implementado según su SDD autorizada, pendiente de revisión final del equipo.
+- Revisión final de la integración de selección de miembros en votos y esfuerzo. US-16 implementa selección por UUID y validación de proyecto según su SDD autorizada; véase evidencia US-16. El mecanismo funcional está aprobado (D-05), sin autenticación ni permisos (D-07); el alta/listado de US-03 está implementado según su SDD autorizada, pendiente de revisión final del equipo.
 - Si se requiere autenticación en una etapa posterior.
 - Estrategia de despliegue, si corresponde.
 - Diseño visual de la interfaz.

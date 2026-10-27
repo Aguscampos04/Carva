@@ -1,5 +1,7 @@
 # US-05 — Registrar y mantener elementos del Product Backlog
 # Fuente: Issue #5, docs/enunciado.md §2.2 y SDD-US-05.
+# Integración aprobada US-16: todo alta/edición válida incluye estimated_hours
+# positivo con hasta dos decimales. Los casos históricos y rechazos se detallan en BDD-US-16.
 
 Feature: Registrar y mantener elementos del Product Backlog
   Como integrante del equipo

@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -28,7 +29,7 @@ func TestPlanningPokerVotesAreAttributedAndHiddenUntilFinalization(t *testing.T)
 	}
 	backlogRepository := sqlite.NewBacklogRepository(db)
 	backlogService := appbacklog.NewService(backlogRepository)
-	item, err := backlogService.Create(ctx, projectValue.ID, domainbacklog.Input{
+	item, err := backlogService.Create(ctx, projectValue.ID, domainbacklog.Input{EstimatedHours: hours.Ptr(800),
 		Title: "Login", Description: "A member can sign in", Priority: domainbacklog.PriorityHigh,
 		AcceptanceCriteria: []string{"A valid login succeeds"},
 	})
@@ -215,7 +216,7 @@ func TestPlanningPokerCannotStartWithoutProjectMembers(t *testing.T) {
 	}
 	backlogRepository := sqlite.NewBacklogRepository(db)
 	backlogService := appbacklog.NewService(backlogRepository)
-	item, err := backlogService.Create(context.Background(), projectValue.ID, domainbacklog.Input{
+	item, err := backlogService.Create(context.Background(), projectValue.ID, domainbacklog.Input{EstimatedHours: hours.Ptr(800),
 		Title: "Story", Description: "Description", Priority: domainbacklog.PriorityMedium,
 		AcceptanceCriteria: []string{"Criterion"},
 	})
@@ -243,7 +244,7 @@ func TestPlanningPokerRegistersOnlyFinalizedUnanimousAgreement(t *testing.T) {
 	backlogRepository := sqlite.NewBacklogRepository(db)
 	backlogService := appbacklog.NewService(backlogRepository)
 	provisional := 2
-	item, err := backlogService.Create(ctx, projectValue.ID, domainbacklog.Input{
+	item, err := backlogService.Create(ctx, projectValue.ID, domainbacklog.Input{EstimatedHours: hours.Ptr(800),
 		Title: "Search", Description: "A member can search", Priority: domainbacklog.PriorityHigh,
 		ProvisionalStoryPoints: &provisional, AcceptanceCriteria: []string{"A result is shown"},
 	})

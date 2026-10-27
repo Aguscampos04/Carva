@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Aguscampos04/Carva/internal/domain/project"
 
 	appbacklog "github.com/Aguscampos04/Carva/internal/application/backlog"
 	domain "github.com/Aguscampos04/Carva/internal/domain/backlog"
@@ -41,10 +42,10 @@ func (r *BacklogRepository) Create(ctx context.Context, item domain.Item) error 
 	_, err = r.db.ExecContext(ctx, `
 		INSERT INTO backlog_items (
 			id, project_id, title, description, priority, status,
-			provisional_story_points, story_points, acceptance_criteria
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			provisional_story_points, story_points, acceptance_criteria, estimated_hours_hundredths
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		item.ID, item.ProjectID, item.Title, item.Description, item.Priority, item.Status,
-		item.ProvisionalStoryPoints, item.StoryPoints, string(criteria),
+		item.ProvisionalStoryPoints, item.StoryPoints, string(criteria), item.EstimatedHours,
 	)
 	if err != nil {
 		return fmt.Errorf("insert backlog item: %w", err)
@@ -52,70 +53,66 @@ func (r *BacklogRepository) Create(ctx context.Context, item domain.Item) error 
 	return nil
 }
 
-// FindByID retrieves an item that belongs to projectID.
-func (r *BacklogRepository) FindByID(ctx context.Context, projectID, id string) (domain.Item, error) {
-	item, err := scanBacklogItem(r.db.QueryRowContext(ctx, `
-		SELECT id, project_id, title, description, priority, status,
-			provisional_story_points, story_points, acceptance_criteria
-		FROM backlog_items WHERE project_id = ? AND id = ?`, projectID, id))
+// Reads use a correlated aggregate, never a join that duplicates effort across Sprints.
+const backlogSelect = `SELECT b.id,b.project_id,b.title,b.description,b.priority,b.status,
+ b.provisional_story_points,b.story_points,b.acceptance_criteria,b.estimated_hours_hundredths,
+ COALESCE((SELECT SUM(e.hours_hundredths) FROM effort_entries e WHERE e.project_id=b.project_id AND e.backlog_item_id=b.id AND e.deleted_at IS NULL),0)
+ FROM backlog_items b `
+
+func findBacklog(ctx context.Context, q projectReader, pid, id string) (domain.Item, error) {
+	value, err := scanBacklogItem(q.QueryRowContext(ctx, backlogSelect+`WHERE b.project_id=? AND b.id=?`, pid, id))
 	if errors.Is(err, sql.ErrNoRows) {
-		return domain.Item{}, domain.ErrNotFound
+		return value, domain.ErrNotFound
 	}
-	if err != nil {
-		return domain.Item{}, fmt.Errorf("select backlog item: %w", err)
-	}
-	return item, nil
+	return value, err
 }
-
-// Update replaces one item's editable and preserved fields.
-func (r *BacklogRepository) Update(ctx context.Context, item domain.Item) error {
-	criteria, err := json.Marshal(item.AcceptanceCriteria)
-	if err != nil {
-		return fmt.Errorf("encode acceptance criteria: %w", err)
-	}
-	result, err := r.db.ExecContext(ctx, `
-		UPDATE backlog_items SET title = ?, description = ?, priority = ?, status = ?,
-			provisional_story_points = ?, story_points = ?, acceptance_criteria = ?
-		WHERE project_id = ? AND id = ?`,
-		item.Title, item.Description, item.Priority, item.Status,
-		item.ProvisionalStoryPoints, item.StoryPoints, string(criteria), item.ProjectID, item.ID,
-	)
-	if err != nil {
-		return fmt.Errorf("update backlog item: %w", err)
-	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("count updated backlog items: %w", err)
-	}
-	if rows == 0 {
-		return domain.ErrNotFound
-	}
-	return nil
+func (r *BacklogRepository) FindByID(ctx context.Context, pid, id string) (domain.Item, error) {
+	return findBacklog(ctx, r.db, pid, id)
 }
-
-// ListByProject returns every Backlog item for projectID.
-func (r *BacklogRepository) ListByProject(ctx context.Context, projectID string) ([]domain.Item, error) {
-	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, project_id, title, description, priority, status,
-			provisional_story_points, story_points, acceptance_criteria
-		FROM backlog_items WHERE project_id = ?`, projectID)
+func (r *BacklogRepository) Mutate(ctx context.Context, pid, id string, change func(domain.Item) (domain.Item, error)) (domain.Item, error) {
+	var next domain.Item
+	err := withImmediate(ctx, r.db, func(conn *sql.Conn) error {
+		if _, err := findProject(ctx, conn, pid); errors.Is(err, project.ErrNotFound) {
+			return domain.ErrProjectNotFound
+		} else if err != nil {
+			return err
+		}
+		current, err := findBacklog(ctx, conn, pid, id)
+		if err != nil {
+			return err
+		}
+		next, err = change(current)
+		if err != nil {
+			return err
+		}
+		criteria, err := json.Marshal(next.AcceptanceCriteria)
+		if err != nil {
+			return err
+		}
+		_, err = conn.ExecContext(ctx, `UPDATE backlog_items SET title=?,description=?,priority=?,provisional_story_points=?,acceptance_criteria=?,estimated_hours_hundredths=? WHERE project_id=? AND id=?`, next.Title, next.Description, next.Priority, next.ProvisionalStoryPoints, string(criteria), next.EstimatedHours, pid, id)
+		if err != nil {
+			return err
+		}
+		_, err = conn.ExecContext(ctx, `UPDATE sprint_backlog_items SET estimated_hours_hundredths=? WHERE backlog_item_id=? AND sprint_id IN (SELECT id FROM sprints WHERE project_id=?)`, next.EstimatedHours, id, pid)
+		return err
+	})
+	return next, err
+}
+func (r *BacklogRepository) ListByProject(ctx context.Context, pid string) ([]domain.Item, error) {
+	rows, err := r.db.QueryContext(ctx, backlogSelect+`WHERE b.project_id=?`, pid)
 	if err != nil {
-		return nil, fmt.Errorf("query backlog items: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
-
-	items := make([]domain.Item, 0)
+	result := []domain.Item{}
 	for rows.Next() {
-		item, err := scanBacklogItem(rows)
+		v, err := scanBacklogItem(rows)
 		if err != nil {
-			return nil, fmt.Errorf("scan backlog item: %w", err)
+			return nil, err
 		}
-		items = append(items, item)
+		result = append(result, v)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate backlog items: %w", err)
-	}
-	return items, nil
+	return result, rows.Err()
 }
 
 type rowScanner interface {
@@ -128,7 +125,7 @@ func scanBacklogItem(scanner rowScanner) (domain.Item, error) {
 	var provisional, definitive sql.NullInt64
 	if err := scanner.Scan(
 		&item.ID, &item.ProjectID, &item.Title, &item.Description, &priority, &status,
-		&provisional, &definitive, &criteria,
+		&provisional, &definitive, &criteria, &item.EstimatedHours, &item.ActualHours,
 	); err != nil {
 		return domain.Item{}, err
 	}

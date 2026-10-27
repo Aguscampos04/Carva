@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/Aguscampos04/Carva/internal/application/projects"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"io"
 	"net/http"
 
@@ -15,6 +17,7 @@ type BacklogService interface {
 	Create(context.Context, string, domain.Input) (domain.Item, error)
 	Update(context.Context, string, string, domain.Input) (domain.Item, error)
 	List(context.Context, string) ([]domain.Item, error)
+	Get(context.Context, string, string) (domain.Item, error)
 }
 
 type backlogErrorResponse struct {
@@ -22,6 +25,12 @@ type backlogErrorResponse struct {
 }
 
 func registerBacklogRoutes(mux *http.ServeMux, service BacklogService) {
+	mux.HandleFunc("GET /api/projects/{projectID}/backlog/{itemID}", func(w http.ResponseWriter, r *http.Request) {
+		v, err := service.Get(r.Context(), r.PathValue("projectID"), r.PathValue("itemID"))
+		if !writeBacklogServiceError(w, err) {
+			writeJSON(w, 200, v)
+		}
+	})
 	mux.HandleFunc("POST /api/projects/{projectID}/backlog", createBacklogItem(service))
 	mux.HandleFunc("PUT /api/projects/{projectID}/backlog/{itemID}", updateBacklogItem(service))
 	mux.HandleFunc("GET /api/projects/{projectID}/backlog", listBacklogItems(service))
@@ -85,7 +94,9 @@ func writeBacklogServiceError(w http.ResponseWriter, err error) bool {
 	switch {
 	case errors.Is(err, domain.ErrProjectNotFound), errors.Is(err, domain.ErrNotFound):
 		writeBacklogError(w, http.StatusNotFound, "backlog project or item not found")
-	case errors.Is(err, domain.ErrInvalidID), errors.Is(err, domain.ErrInvalidProjectID),
+	case errors.Is(err, projects.ErrBusy):
+		writeBacklogError(w, 503, projects.ErrBusy.Error())
+	case errors.Is(err, hours.ErrInvalid), errors.Is(err, domain.ErrInvalidID), errors.Is(err, domain.ErrInvalidProjectID),
 		errors.Is(err, domain.ErrInvalidTitle), errors.Is(err, domain.ErrInvalidDescription),
 		errors.Is(err, domain.ErrInvalidPriority), errors.Is(err, domain.ErrInvalidProvisionalStoryPoints),
 		errors.Is(err, domain.ErrInvalidAcceptanceCriteria), errors.Is(err, domain.ErrEstimateFinalized):

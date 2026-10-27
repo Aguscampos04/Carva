@@ -115,6 +115,62 @@ go test ./internal/application/sprints ./tests/integration -run 'TestListClosed|
 node --test tests/web/*.test.cjs
 ```
 
+## Horas estimadas y esfuerzo real (US-16)
+
+La implementación se entrega en [PR #45](https://github.com/Aguscampos04/Carva/pull/45)
+para aceptación final. Reglas y contratos: [SDD](sdd/SDD-US-16-registrar-horas-esfuerzo.md),
+[46 escenarios BDD](bdd/BDD-US-16-registrar-horas-esfuerzo.feature) y
+[evidencia TDD, matriz y verificaciones](docs/evidencia-ia-us-16.md).
+
+Para probar sin tocar la base habitual, en PowerShell:
+
+```powershell
+$env:CARVA_DB_PATH = '.local/prueba-us16.db'
+go run ./cmd/carva
+```
+
+Abrí [Carva local](http://localhost:8080). Creá un proyecto y registrá al menos
+un miembro. Creá una User Story con todos sus campos y **Horas estimadas**
+(por ejemplo 2.50). En su tarjeta, **Registrar y consultar esfuerzo** abre
+el detalle con total y formulario. Elegí el miembro por nombre y UUID, fecha,
+actividad y horas; Sprint es opcional y solo ofrece asignaciones existentes.
+Registrar 3.25 muestra real 3.25 y conserva estimación 2.50.
+
+Desde el detalle podés editar una entrada o eliminarla con confirmación.
+Cancelar no guarda ni elimina. Al cambiar historia se conserva Sprint compatible;
+si no lo es, elegí otro válido o **Sin Sprint** explícitamente. Las historias
+históricas sin estimación muestran **Pendiente de regularización**: pueden
+recibir esfuerzo, pero editar sus datos exige completar estimación válida.
+
+Se permite esfuerzo en Completadas, Sprints cerrados y proyectos Finalizados
+con fecha de fin conocida, respetando inicio/fin y el día actual de Buenos Aires.
+Un Finalizado histórico con fin desconocido permite consulta/baja y bloquea
+alta/edición de esfuerzo. Cambiar inicio considera únicamente entradas activas.
+El máximo diario es 24 horas por miembro/proyecto entre todas sus historias;
+horas y Story Points son independientes. La migración se aplica al arrancar y
+conserva datos históricos sin inventar estimaciones ni fechas.
+
+API nueva: GET de detalle `/api/projects/{projectID}/backlog/{itemID}`;
+POST/GET `.../backlog/{itemID}/effort`; GET `.../backlog/{itemID}/effort-context`;
+GET/PUT `.../effort/{entryID}` y POST `.../effort/{entryID}/delete` con
+`{"confirmed":true}`. POST/PUT de historias requieren ahora `estimated_hours`.
+El contrato completo y cuerpos de esfuerzo están en la SDD.
+
+Verificaciones reproducibles en PowerShell:
+
+```powershell
+gofmt -l .
+go test ./... -count=1
+go test ./... -count=1 '-coverpkg=./internal/...' '-coverprofile=.local/us16-coverage.out'
+go tool cover '-func=.local/us16-coverage.out'
+go vet ./...
+go build ./...
+node --test (Get-ChildItem tests/web/*.test.cjs).FullName
+```
+
+CI ejecuta las mismas verificaciones en Linux y conserva el perfil de cobertura
+como artefacto. No se hace merge ni se cierra la Issue #16 automáticamente.
+
 ## Integrantes y Roles Scrum
 
 | Nombre y apellido |       GitHub     | Rol Scrum |
