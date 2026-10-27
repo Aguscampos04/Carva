@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	domain "github.com/Aguscampos04/Carva/internal/domain/metrics"
 	"github.com/Aguscampos04/Carva/internal/domain/project"
 	"github.com/Aguscampos04/Carva/internal/domain/sprint"
@@ -74,6 +75,80 @@ func (r *MetricsRepository) GetSprintSnapshot(ctx context.Context, projectID str
 		}
 	}
 	return domain.SprintSnapshot{}, sprint.ErrNotFound
+}
+
+func (r *MetricsRepository) ProjectHoursData(ctx context.Context, projectID string) (domain.ProjectHoursData, error) {
+	if err := projectExists(ctx, r.db, projectID); err != nil {
+		return domain.ProjectHoursData{}, err
+	}
+	result := domain.ProjectHoursData{Sprints: make([]domain.SprintHoursData, 0)}
+
+	storyRows, err := r.db.QueryContext(ctx, `SELECT estimated_hours_hundredths FROM backlog_items WHERE project_id=? ORDER BY id`, projectID)
+	if err != nil {
+		return domain.ProjectHoursData{}, fmt.Errorf("query backlog estimates for hour metrics: %w", err)
+	}
+	for storyRows.Next() {
+		var estimate sql.NullInt64
+		if err := storyRows.Scan(&estimate); err != nil {
+			storyRows.Close()
+			return domain.ProjectHoursData{}, fmt.Errorf("scan backlog estimate for hour metrics: %w", err)
+		}
+		result.Estimates = append(result.Estimates, nullableHours(estimate))
+	}
+	if err := storyRows.Err(); err != nil {
+		storyRows.Close()
+		return domain.ProjectHoursData{}, fmt.Errorf("iterate backlog estimates for hour metrics: %w", err)
+	}
+	if err := storyRows.Close(); err != nil {
+		return domain.ProjectHoursData{}, fmt.Errorf("close backlog estimate query for hour metrics: %w", err)
+	}
+
+	if err := r.db.QueryRowContext(ctx, `SELECT COALESCE(SUM(hours_hundredths),0) FROM effort_entries WHERE project_id=? AND deleted_at IS NULL`, projectID).Scan(&result.ActualHours); err != nil {
+		return domain.ProjectHoursData{}, fmt.Errorf("sum project effort for hour metrics: %w", err)
+	}
+
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT s.id, s.goal, s.closed, planned.backlog_item_id, planned.estimated_hours_hundredths,
+			COALESCE((SELECT SUM(e.hours_hundredths) FROM effort_entries e WHERE e.project_id=s.project_id AND e.sprint_id=s.id AND e.deleted_at IS NULL),0)
+		FROM sprints s
+		LEFT JOIN sprint_backlog_items AS planned ON planned.sprint_id=s.id
+		WHERE s.project_id=?
+		ORDER BY s.id, planned.backlog_item_id`, projectID)
+	if err != nil {
+		return domain.ProjectHoursData{}, fmt.Errorf("query Sprint snapshots for hour metrics: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var sprintID int64
+		var goal string
+		var closed bool
+		var storyID sql.NullString
+		var estimate sql.NullInt64
+		var actual int64
+		if err := rows.Scan(&sprintID, &goal, &closed, &storyID, &estimate, &actual); err != nil {
+			return domain.ProjectHoursData{}, fmt.Errorf("scan Sprint snapshot for hour metrics: %w", err)
+		}
+		if len(result.Sprints) == 0 || result.Sprints[len(result.Sprints)-1].ID != sprintID {
+			result.Sprints = append(result.Sprints, domain.SprintHoursData{ID: sprintID, Goal: goal, Closed: closed, Estimates: make([]*hours.Value, 0)})
+			result.Sprints[len(result.Sprints)-1].ActualHours = hours.Value(actual)
+		}
+		if storyID.Valid {
+			last := len(result.Sprints) - 1
+			result.Sprints[last].Estimates = append(result.Sprints[last].Estimates, nullableHours(estimate))
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return domain.ProjectHoursData{}, fmt.Errorf("iterate Sprint snapshots for hour metrics: %w", err)
+	}
+	return result, nil
+}
+
+func nullableHours(value sql.NullInt64) *hours.Value {
+	if !value.Valid {
+		return nil
+	}
+	result := hours.Value(value.Int64)
+	return &result
 }
 
 func projectExists(ctx context.Context, db *sql.DB, projectID string) error {

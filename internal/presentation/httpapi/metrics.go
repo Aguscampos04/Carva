@@ -14,6 +14,23 @@ import (
 func WithMetrics(base http.Handler, service *appmetrics.Service) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/", base)
+	mux.HandleFunc("GET /api/projects/{projectID}/metrics/hours", func(w http.ResponseWriter, r *http.Request) {
+		result, err := service.ProjectHours(r.Context(), r.PathValue("projectID"))
+		if !writeMetricsError(w, err) {
+			writeJSON(w, http.StatusOK, result)
+		}
+	})
+	mux.HandleFunc("GET /api/projects/{projectID}/sprints/{sprintID}/metrics/hours", func(w http.ResponseWriter, r *http.Request) {
+		sprintID, err := strconv.ParseInt(r.PathValue("sprintID"), 10, 64)
+		if err != nil || sprintID < 1 {
+			writeError(w, http.StatusBadRequest, "Sprint ID must be a positive integer")
+			return
+		}
+		result, err := service.SprintHours(r.Context(), r.PathValue("projectID"), sprintID)
+		if !writeMetricsError(w, err) {
+			writeJSON(w, http.StatusOK, result)
+		}
+	})
 	mux.HandleFunc("GET /api/projects/{projectID}/metrics/story-points", func(w http.ResponseWriter, r *http.Request) {
 		result, err := service.ProjectStoryPoints(r.Context(), r.PathValue("projectID"))
 		if !writeMetricsError(w, err) {

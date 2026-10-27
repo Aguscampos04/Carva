@@ -52,6 +52,8 @@ const metricsUI = createMetricsSection({
   projectMetrics: document.querySelector("#project-metrics"),
   sprintSelect: document.querySelector("#metrics-sprint-select"),
   sprintMetrics: document.querySelector("#sprint-metrics"),
+  projectHours: document.querySelector("#project-hours"),
+  sprintHours: document.querySelector("#sprint-hours"),
   requestJSON,
 });
 
