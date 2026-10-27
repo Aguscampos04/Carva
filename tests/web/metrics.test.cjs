@@ -12,7 +12,7 @@ class Element {
 }
 
 function setup(requestJSON) {
-  const elements = Object.fromEntries(["section", "message", "projectMetrics", "sprintSelect", "sprintMetrics", "projectHours", "sprintHours"].map(name => [name, new Element()]));
+  const elements = Object.fromEntries(["section", "message", "projectMetrics", "sprintSelect", "sprintMetrics", "projectHours", "sprintHours", "projectDefects", "sprintDefects"].map(name => [name, new Element()]));
   const context = vm.createContext({ document: { createElement: () => new Element() }, encodeURIComponent, Intl });
   vm.runInContext(fs.readFileSync(path.join(__dirname, "../../web/static/js/metrics.js"), "utf8"), context);
   return { ...elements, ui: context.createMetricsSection({ ...elements, requestJSON }) };
@@ -67,4 +67,29 @@ test("metric request errors stay visible and can be retried", async () => {
   fail = false;
   await e.ui.showProject("project");
   assert.match(e.message.textContent, /Métricas calculadas/);
+});
+
+test("BDD-US-22-01: project and selected Sprint show defect counts independently", async () => {
+  const calls = [];
+  const defectMetrics = { detected_defects: 3, resolved_defects: null };
+  const e = setup(async url => {
+    calls.push(url);
+    if (url.endsWith("/metrics/defects")) {
+      return url.includes("/sprints/") ? defectMetrics : { metrics: defectMetrics, sprints: [{ id: 3, goal: "Goal", closed: true }] };
+    }
+    if (url.endsWith("/metrics/hours")) return { metrics: hours, sprints: [{ id: 3, goal: "Goal", closed: true }] };
+    return { metrics, sprints: [{ id: 3, goal: "Goal", closed: true }] };
+  });
+
+  await e.ui.showProject("project");
+  assert.equal(e.projectDefects.children[0].textContent, "Defectos detectados");
+  assert.equal(e.projectDefects.children[1].textContent, "3");
+  assert.equal(e.projectDefects.children[3].textContent, "No disponible");
+  assert.ok(calls.some(url => url === "/api/projects/project/metrics/defects"));
+
+  e.sprintSelect.value = "3";
+  await e.sprintSelect.listeners.change();
+  assert.equal(e.sprintDefects.children[1].textContent, "3");
+  assert.equal(e.sprintDefects.children[3].textContent, "No disponible");
+  assert.ok(calls.some(url => url === "/api/projects/project/sprints/3/metrics/defects"));
 });
