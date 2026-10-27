@@ -2,7 +2,7 @@
 
 - **Issue:** [#18 — Registrar defecto](https://github.com/Aguscampos04/Carva/issues/18)
 - **Rama:** `codex/issue-18`
-- **Base:** `main` con US-16 integrada. US-17 no se incluye porque aún no está mergeada y no es dependencia de esta historia.
+- **Base:** `main` con US-16 y US-17 (PR #46) integradas. Los cambios propios de esta rama corresponden a US-18.
 ## Resultado
 
 - Registro de defectos desde cada User Story del Product Backlog y consulta de la lista asociada.
