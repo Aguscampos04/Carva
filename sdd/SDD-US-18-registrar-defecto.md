@@ -1,11 +1,10 @@
 # SDD-US-18 — Registrar defecto
 
-**Issue:** [#18 — US-18](https://github.com/Aguscampos04/Carva/issues/18)  
-**Épica:** EP-06 — Gestión de defectos  
-**Requisito:** `docs/enunciado.md` §2.6  
-**Dependencia:** US-05 — User Stories del Product Backlog  
-**Trazabilidad:** §2.6 → EP-06 → US-18 → #18 → esta SDD → BDD → tests → Go/API/SQLite/UI.
-
+- **Issue:** [#18 — US-18](https://github.com/Aguscampos04/Carva/issues/18)
+- **Épica:** EP-06 — Gestión de defectos
+- **Requisito:** `docs/enunciado.md` §2.6
+- **Dependencia:** US-05 — User Stories del Product Backlog
+- **Trazabilidad:** §2.6 → EP-06 → US-18 → #18 → esta SDD → BDD → tests → Go/API/SQLite/UI.
 ## 1. Objetivo
 
 Registrar un defecto del proyecto asociado a una User Story. El defecto puede comenzar sin Sprint; cuando se conoce el Sprint de detección, se guarda en el campo correspondiente, sin inventar un valor.
