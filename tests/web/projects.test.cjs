@@ -83,6 +83,7 @@ test("app wiring: a refresh started before finalization cannot discard its resul
     window: { confirm: () => true },
     createMembersSection: () => ({ showProject() {} }),
     createSprintHistory: () => ({ showProject() {} }),
+    createMetricsSection: () => ({ showProject() {} }),
     fetch: async (url, options = {}) => {
       if (url === "/api/projects") return response(project);
       if (url.endsWith("/backlog")) return response([]);

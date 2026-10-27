@@ -11,6 +11,7 @@
     <script src="/js/planning-poker.js" defer></script>
     <script src="/js/effort.js" defer></script>
     <script src="/js/defects.js" defer></script>
+    <script src="/js/metrics.js" defer></script>
     <script src="/js/app.js" defer></script>
   </head>
   <body>
@@ -73,6 +74,17 @@
         <select id="closed-sprint-select" disabled></select>
         <h3 id="historical-sprint-goal"></h3>
         <div id="historical-sprint-items" class="backlog-items"></div>
+      </section>
+
+      <section id="metrics-section" aria-labelledby="metrics-title" hidden>
+        <h2 id="metrics-title">Métricas de avance</h2>
+        <p id="metrics-message" aria-live="polite"></p>
+        <h3>Métricas del proyecto</h3>
+        <dl id="project-metrics"></dl>
+        <label for="metrics-sprint-select">Sprint</label>
+        <select id="metrics-sprint-select" disabled></select>
+        <h3>Métricas del Sprint</h3>
+        <dl id="sprint-metrics"></dl>
       </section>
 
       <section id="backlog-section" aria-labelledby="backlog-title" hidden>

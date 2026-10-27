@@ -46,6 +46,14 @@ const membersUI = createMembersSection({
 const effortUI = createEffort({requestJSON,confirmDelete: text => window.confirm(text),onChanged: () => loadBacklog()});
 const defectsUI = createDefects({requestJSON});
 const planningPokerUI = createPlanningPoker({ requestJSON, onEstimateRegistered: () => loadBacklog() });
+const metricsUI = createMetricsSection({
+  section: document.querySelector("#metrics-section"),
+  message: document.querySelector("#metrics-message"),
+  projectMetrics: document.querySelector("#project-metrics"),
+  sprintSelect: document.querySelector("#metrics-sprint-select"),
+  sprintMetrics: document.querySelector("#sprint-metrics"),
+  requestJSON,
+});
 
 function showProject(project) {
   ++projectRequest;
@@ -63,6 +71,7 @@ function showProject(project) {
   message.textContent = "Proyecto disponible.";
   membersUI.showProject(project.id);
   sprintHistory.showProject(project.id);
+  metricsUI.showProject(project.id);
   loadBacklog();
 }
 
@@ -238,6 +247,7 @@ form.addEventListener("submit", async (event) => {
   backlogSection.hidden = true;
   membersUI.showProject("");
   sprintHistory.showProject("");
+  metricsUI.showProject("");
 
   try {
     const result = await requestJSON("/api/projects", {
