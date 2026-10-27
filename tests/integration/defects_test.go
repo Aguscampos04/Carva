@@ -38,15 +38,16 @@ func defectRequest(handler http.Handler, method, path, body string) *httptest.Re
 func TestUS18RegisterAndListDefectsWithOptionalSprints(t *testing.T) {
 	_, db := openMigratedProjectDB(t)
 	seedEffort(t, db)
-	result, err := db.Exec(`INSERT INTO sprints(project_id,goal) VALUES('p','Sprint de Carva'),('q','Sprint ajeno')`)
-	if err != nil {
+	if _, err := db.Exec(`INSERT INTO sprints(project_id,goal) VALUES('p','Sprint de Carva'),('q','Sprint ajeno')`); err != nil {
 		t.Fatal(err)
 	}
-	firstSprint, err := result.LastInsertId()
-	if err != nil {
+	var firstSprint, secondSprint int64
+	if err := db.QueryRow(`SELECT id FROM sprints WHERE project_id='p'`).Scan(&firstSprint); err != nil {
 		t.Fatal(err)
 	}
-	secondSprint := firstSprint + 1
+	if err := db.QueryRow(`SELECT id FROM sprints WHERE project_id='q'`).Scan(&secondSprint); err != nil {
+		t.Fatal(err)
+	}
 	handler := defectHandler(db)
 
 	withoutSprint := `{"description":"  No guarda cambios  ","severity":"Alta","status":"Abierto"}`

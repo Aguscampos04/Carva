@@ -8,6 +8,7 @@ import (
 
 	app "github.com/Aguscampos04/Carva/internal/application/defects"
 	domain "github.com/Aguscampos04/Carva/internal/domain/defect"
+	"github.com/Aguscampos04/Carva/internal/domain/project"
 )
 
 type DefectRepository struct{ db *sql.DB }
@@ -20,7 +21,7 @@ func scanDefect(row rowScanner) (domain.Defect, error) {
 	var item domain.Defect
 	var detection, resolution sql.NullInt64
 	err := row.Scan(&item.ID, &item.ProjectID, &item.BacklogItemID, &item.Description, &item.Severity, &item.Status, &detection, &resolution)
-	if errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, project.ErrNotFound) {
 		return item, domain.ErrBacklogItemNotFound
 	}
 	if err != nil {
@@ -37,7 +38,7 @@ func scanDefect(row rowScanner) (domain.Defect, error) {
 
 func (r *DefectRepository) Create(ctx context.Context, item domain.Defect) error {
 	return withImmediate(ctx, r.db, func(conn *sql.Conn) error {
-		if _, err := findProject(ctx, conn, item.ProjectID); errors.Is(err, sql.ErrNoRows) {
+		if _, err := findProject(ctx, conn, item.ProjectID); errors.Is(err, project.ErrNotFound) {
 			return domain.ErrProjectNotFound
 		} else if err != nil {
 			return fmt.Errorf("find defect project: %w", err)
