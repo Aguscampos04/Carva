@@ -172,6 +172,18 @@ aprobados se validan en Go y la API `WithDefects` permite registrar y consultar
 por historia. La interfaz ofrece la operación desde cada tarjeta del Backlog;
 la edición del estado y la asociación posterior de Sprints queda en US-19.
 Trazabilidad: Issue #18 → SDD → BDD → tests Go/Node → dominio, SQLite, REST y UI.
+
+### Incremento US-20 — Métricas de Story Points y avance
+
+La [SDD-US-20](../sdd/SDD-US-20-metricas-story-points-avance.md) define las
+fórmulas aprobadas para Story Points planificados/completados, velocidad y
+porcentaje de historias terminadas. El dominio calcula desde snapshots de
+`sprint_backlog_items`; SQLite los lee sin migraciones y `httpapi.WithMetrics`
+expone resultados por Sprint y proyecto. El frontend muestra valores faltantes
+como «No disponible» y permite seleccionar un Sprint. Los agregados suman
+snapshots, por lo que una historia trasladada cuenta en cada Sprint en el que
+fue planificada. Trazabilidad: Issue #20 → SDD → BDD → tests Go/Node → dominio,
+SQLite, REST y UI. Véase [evidencia de US-20](evidencia-ia-us-20.md).
 ### Incremento US-02 autorizado el 2026-10-20
 
 La [SDD-US-02](../sdd/SDD-US-02-modificar-proyecto.md) y PT-01 a PT-05 fueron

@@ -10,6 +10,7 @@ import (
 	"github.com/Aguscampos04/Carva/internal/application/backlog"
 	"github.com/Aguscampos04/Carva/internal/application/defects"
 	"github.com/Aguscampos04/Carva/internal/application/members"
+	appmetrics "github.com/Aguscampos04/Carva/internal/application/metrics"
 	"github.com/Aguscampos04/Carva/internal/application/planningpoker"
 	"github.com/Aguscampos04/Carva/internal/application/projects"
 	"github.com/Aguscampos04/Carva/internal/application/sprints"
@@ -39,6 +40,7 @@ func main() {
 	api := httpapi.NewHandlerWithPlanningPoker(projectService, backlogService, sprintService, planningPokerService, memberService)
 	api = httpapi.WithEffort(api, appeffort.NewService(sqlite.NewEffortRepository(db), time.Now))
 	api = httpapi.WithDefects(api, defects.NewService(sqlite.NewDefectRepository(db)))
+	api = httpapi.WithMetrics(api, appmetrics.NewService(sqlite.NewMetricsRepository(db)))
 	mux.Handle("/api/", api)
 	mux.Handle("/", http.FileServer(http.FS(static.Files)))
 
