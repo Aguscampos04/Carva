@@ -83,6 +83,16 @@ func TestHoursMetricsJSONPreservesExactSignedDecimalsAndUnavailableValues(t *tes
 	}
 }
 
+func TestDecimalHoursJSONFormatsNegativeFractions(t *testing.T) {
+	encoded, err := json.Marshal(DecimalHours(-50))
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	if got, want := string(encoded), `-0.50`; got != want {
+		t.Fatalf("json.Marshal() = %s, want %s", got, want)
+	}
+}
+
 func decimalHours(value int64) *DecimalHours {
 	result := DecimalHours(value)
 	return &result

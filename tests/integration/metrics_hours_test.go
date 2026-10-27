@@ -107,6 +107,17 @@ func TestUS21HoursMetricsUseSprintAssociationAndDistinctProjectStories(t *testin
 	if got := performJSON(t, handler, http.MethodGet, "/api/projects/"+projectValue.ID+"/sprints/nope/metrics/hours", "").Code; got != http.StatusBadRequest {
 		t.Fatalf("invalid Sprint ID status = %d, want 400", got)
 	}
+	if got := performJSON(t, handler, http.MethodGet, "/api/projects/"+projectValue.ID+"/sprints/0/metrics/hours", "").Code; got != http.StatusBadRequest {
+		t.Fatalf("zero Sprint ID status = %d, want 400", got)
+	}
+	for _, target := range []string{
+		"/api/projects/missing/metrics/hours",
+		"/api/projects/" + projectValue.ID + "/sprints/999999/metrics/hours",
+	} {
+		if got := performJSON(t, handler, http.MethodGet, target, "").Code; got != http.StatusNotFound {
+			t.Fatalf("GET %s status = %d, want 404", target, got)
+		}
+	}
 }
 
 func TestUS21MissingEstimateIsUnavailableAndDeletedEffortIsExcluded(t *testing.T) {
@@ -146,6 +157,15 @@ func TestUS21MissingEstimateIsUnavailableAndDeletedEffortIsExcluded(t *testing.T
 	}
 	if result.EstimatedHours != nil || result.Deviation != nil || result.ActualHours == nil || *result.ActualHours != 200 {
 		t.Fatalf("metrics with missing estimate = %+v", result)
+	}
+	projectResponse := performJSON(t, handler, http.MethodGet, "/api/projects/"+projectValue.ID+"/metrics/hours", "")
+	var projectResult struct {
+		Metrics domain.HoursMetrics `json:"metrics"`
+	}
+	if projectResponse.Code != http.StatusOK || json.Unmarshal(projectResponse.Body.Bytes(), &projectResult) != nil ||
+		projectResult.Metrics.EstimatedHours != nil || projectResult.Metrics.Deviation != nil ||
+		projectResult.Metrics.ActualHours == nil || *projectResult.Metrics.ActualHours != 200 {
+		t.Fatalf("project metrics with missing estimate = %d %s", projectResponse.Code, projectResponse.Body)
 	}
 }
 
