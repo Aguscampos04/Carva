@@ -5,11 +5,13 @@ import (
 	"context"
 
 	domain "github.com/Aguscampos04/Carva/internal/domain/metrics"
+	"github.com/Aguscampos04/Carva/internal/domain/sprint"
 )
 
 type Repository interface {
 	ListProjectSprintSnapshots(context.Context, string) ([]domain.SprintSnapshot, error)
 	GetSprintSnapshot(context.Context, string, int64) (domain.SprintSnapshot, error)
+	ProjectHoursData(context.Context, string) (domain.ProjectHoursData, error)
 }
 
 type Service struct{ repository Repository }
@@ -41,4 +43,44 @@ func (s *Service) SprintStoryPoints(ctx context.Context, projectID string, sprin
 		return domain.StoryPointMetrics{}, err
 	}
 	return domain.CalculateSprintStoryPoints(snapshot.Closed, snapshot.Items), nil
+}
+
+func (s *Service) ProjectHours(ctx context.Context, projectID string) (domain.ProjectHoursMetrics, error) {
+	data, err := s.repository.ProjectHoursData(ctx, projectID)
+	if err != nil {
+		return domain.ProjectHoursMetrics{}, err
+	}
+	result := domain.ProjectHoursMetrics{
+		Sprints: make([]domain.SprintHoursMetrics, 0, len(data.Sprints)),
+	}
+	result.Metrics, err = domain.CalculateHours(data.Estimates, data.ActualHours)
+	if err != nil {
+		return domain.ProjectHoursMetrics{}, err
+	}
+	for _, sprintData := range data.Sprints {
+		metrics, err := domain.CalculateHours(sprintData.Estimates, sprintData.ActualHours)
+		if err != nil {
+			return domain.ProjectHoursMetrics{}, err
+		}
+		result.Sprints = append(result.Sprints, domain.SprintHoursMetrics{
+			ID: sprintData.ID, Goal: sprintData.Goal, Closed: sprintData.Closed, Metrics: metrics,
+		})
+	}
+	return result, nil
+}
+
+func (s *Service) SprintHours(ctx context.Context, projectID string, sprintID int64) (domain.HoursMetrics, error) {
+	if sprintID < 1 {
+		return domain.HoursMetrics{}, sprint.ErrNotFound
+	}
+	data, err := s.repository.ProjectHoursData(ctx, projectID)
+	if err != nil {
+		return domain.HoursMetrics{}, err
+	}
+	for _, sprintData := range data.Sprints {
+		if sprintData.ID == sprintID {
+			return domain.CalculateHours(sprintData.Estimates, sprintData.ActualHours)
+		}
+	}
+	return domain.HoursMetrics{}, sprint.ErrNotFound
 }
