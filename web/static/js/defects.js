@@ -1,5 +1,5 @@
 // US-18: the backend owns defect validation; this widget scopes registration to one story.
-function createDefects({ requestJSON }) {
+function createDefects({ requestJSON, sprintOptions }) {
   let generation = 0;
   let fieldNumber = 0;
   const statusValues = ["Abierto", "En progreso", "Resuelto", "Cerrado"];
@@ -27,14 +27,31 @@ function createDefects({ requestJSON }) {
         const option = element("option", value); option.value = value; select.append(option);
       }
     }
+    let availableSprints = [];
+    function sprintField(form, name, title, value = null) {
+      const input = addField(form, name, title, sprintOptions ? 'select' : 'input');
+      if (!sprintOptions) { input.type = 'number'; input.min = '1'; input.step = '1'; input.value = value == null ? '' : String(value); }
+      else fillSprintOptions(input, value);
+      return input;
+    }
+    function fillSprintOptions(input, value) {
+      input.replaceChildren();
+      const none = element('option', 'Sin Sprint'); none.value = ''; input.append(none);
+      for (const sprint of availableSprints) {
+        const option = element('option', `Sprint ${sprint.id} — ${sprint.goal}${sprint.closed ? ' (cerrado)' : ''}`);
+        option.value = String(sprint.id); input.append(option);
+      }
+      if (value != null && !availableSprints.some(s => String(s.id) === String(value))) {
+        const existing = element('option', `Sprint ${value} — asociación actual`); existing.value = String(value); input.append(existing);
+      }
+      input.value = value == null ? '' : String(value);
+    }
     const form = element("form");
     const description = addField(form, "description", "Descripción", "textarea"); description.required = true;
     const severity = addField(form, "severity", "Severidad", "select"); severity.required = true; fillSelect(severity, severityValues);
     const status = addField(form, "status", "Estado", "select"); status.required = true; fillSelect(status, statusValues);
-    const detection = addField(form, "detection_sprint_id", "Sprint de detección (ID, opcional)");
-    detection.type = "number"; detection.min = "1"; detection.step = "1";
-    const resolution = addField(form, "resolution_sprint_id", "Sprint de resolución (ID, opcional)");
-    resolution.type = "number"; resolution.min = "1"; resolution.step = "1";
+    const detection = sprintField(form, "detection_sprint_id", "Sprint de detección (opcional)");
+    const resolution = sprintField(form, "resolution_sprint_id", "Sprint de resolución (opcional)");
     const submit = element("button", "Registrar defecto"); submit.type = "submit"; form.append(submit);
     const list = element("ul");
     let records = [];
@@ -46,11 +63,8 @@ function createDefects({ requestJSON }) {
       const editor = element("form");
       const state = addField(editor, "status", "Estado", "select");
       fillSelect(state, statusValues); state.value = defect.status;
-      const detected = addField(editor, "detection_sprint_id", "Sprint de detección (ID, opcional)");
-      const resolved = addField(editor, "resolution_sprint_id", "Sprint de resolución (ID, opcional)");
-      for (const [field, value] of [[detected, defect.detection_sprint_id], [resolved, defect.resolution_sprint_id]]) {
-        field.type = "number"; field.min = "1"; field.step = "1"; field.value = value == null ? "" : String(value);
-      }
+      const detected = sprintField(editor, "detection_sprint_id", "Sprint de detección (opcional)", defect.detection_sprint_id);
+      const resolved = sprintField(editor, "resolution_sprint_id", "Sprint de resolución (opcional)", defect.resolution_sprint_id);
       const save = element("button", "Guardar cambios"); save.type = "submit";
       const cancel = element("button", "Cancelar"); cancel.type = "button";
       editor.append(save, cancel); row.append(editor);
@@ -109,8 +123,10 @@ function createDefects({ requestJSON }) {
       if (!current() || editing || open.disabled) return;
       open.disabled = true; message.textContent = "Consultando defectos…";
       try {
-        const items = await requestJSON(base);
+        const [items, sprintList] = await Promise.all([requestJSON(base), sprintOptions ? sprintOptions() : Promise.resolve([])]);
         if (!current()) return;
+        availableSprints = sprintList;
+        if (sprintOptions) { fillSprintOptions(detection, detection.value || null); fillSprintOptions(resolution, resolution.value || null); }
         render(items);
         content.replaceChildren(form, list);
         message.textContent = items.length ? `${items.length} defectos registrados.` : "Todavía no hay defectos para esta historia.";

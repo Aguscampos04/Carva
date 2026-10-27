@@ -6,10 +6,10 @@ class Element {
  append(...nodes){this.children.push(...nodes)} replaceChildren(...nodes){this.children=[...nodes]}
  addEventListener(event,fn){this.listeners[event]=fn} setAttribute(){} focus(){this.focused=true}
 }
-function setup(requestJSON,confirmDelete=()=>true){
+function setup(requestJSON,confirmDelete=()=>true,options={}){
  const c=vm.createContext({document:{createElement:tag=>new Element(tag)},encodeURIComponent});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../../web/static/js/effort.js'),'utf8'),c);
- let changes=0;const ui=c.createEffort({requestJSON,confirmDelete,onChanged:()=>{changes++}});
+ let changes=0;const ui=c.createEffort({requestJSON,confirmDelete,onChanged:()=>{changes++},...options});
  const widget=ui.createWidget({id:'p'}, {id:'a'});
  return {ui,widget,c,changed:()=>changes};
 }
@@ -34,6 +34,44 @@ test('US16 exact decimal payloads do not round cents or huge estimates',()=>{
  assert.equal(c.exactHoursJSON({estimated_hours:'92233720368547758.07',title:'A'},['estimated_hours']),'{"estimated_hours":92233720368547758.07,"title":"A"}');
  assert.throws(()=>c.exactHoursJSON({hours:'1.001'},['hours']));
 });
+
+test('Sprint embedded effort preselects the compatible Sprint',async()=>{
+ const api=fakeAPI();const e=setup(api.api);
+ const embedded=e.ui.createWidget({id:'p'},{id:'a'},1);
+ await button(embedded,'Registrar y consultar esfuerzo').listeners.click();
+ assert.equal(fields(embedded).sprint_id.value,'1');
+});
+
+test('Sprint entry-only mode shows a loading action and form without consultation; saves exact hours',async()=>{
+ const api=fakeAPI();const e=setup(api.api,()=>true,{entryOnly:true});
+ const embedded=e.ui.createWidget({id:'p'},{id:'a'},1);
+ const open=button(embedded,'Cargar horas trabajadas');
+ await open.listeners.click();
+ assert.equal(open.hidden,true);
+ assert.equal(all(embedded).some(n=>n.textContent==='Comparación de esfuerzo'),false);
+ const f=fields(embedded);assert.equal(f.sprint_id.hidden,true);assert.equal(f.backlog_item_id.hidden,true);
+ f.member_id.value='m';f.activity.value='Desarrollo';f.hours.value='1.25';
+ await all(embedded).find(n=>n.tagName==='form').listeners.submit({preventDefault(){}});
+ assert.equal(open.hidden,false);assert.equal(all(embedded).some(n=>n.tagName==='form'),false);
+ const saved=JSON.parse(api.calls.find(c=>c.method==='POST').body);assert.equal(saved.hours,1.25);assert.equal(saved.sprint_id,1);
+ assert(all(embedded).some(n=>n.textContent==='Horas trabajadas guardadas.'));
+});
+
+test('Hours entry can close and reopen; cancelling discard preserves draft without saving',async()=>{
+ const api=fakeAPI();let allow=false,prompts=0;
+ const e=setup(api.api,()=>true,{entryOnly:true,confirmDiscard:()=>{prompts++;return allow;}});
+ const widget=e.ui.createWidget({id:'p'},{id:'a'},1);
+ const open=button(widget,'Cargar horas trabajadas');await open.listeners.click();
+ button(widget,'Cerrar').listeners.click();
+ assert.equal(open.hidden,false);assert.equal(prompts,0);assert.equal(open.focused,true);
+ await open.listeners.click();fields(widget).activity.value='Trabajo sin guardar';
+ button(widget,'Cerrar').listeners.click();
+ assert.equal(prompts,1);assert.equal(fields(widget).activity.value,'Trabajo sin guardar');assert.equal(open.hidden,true);
+ allow=true;button(widget,'Cerrar').listeners.click();
+ assert.equal(open.hidden,false);assert.equal(all(widget).some(n=>n.tagName==='form'),false);
+ assert.equal(api.calls.some(c=>c.method),false);
+ await open.listeners.click();assert.equal(fields(widget).activity.value,'');assert.equal(fields(widget).sprint_id.value,'1');
+});
 test('US16 parsing preserves decimal tokens and cannot reinterpret activity text',()=>{
  const {c}=setup(async()=>{});
  const raw='{"estimated_hours":92233720368547758.07,"activity":"text \\"hours\\":123", "hours":1.25}'.replace('text \\"hours\\":123','text');
@@ -49,6 +87,7 @@ test('BDD 05/07/11/13: detail, missing estimate, server date, homonym UUID and e
  f.member_id.value='n';f.activity.value='Review';f.hours.value='1.25';
  await all(e.widget).find(n=>n.tagName==='form').listeners.submit({preventDefault(){}});
  const post=api.calls.find(c=>c.method==='POST');assert.equal(JSON.parse(post.body).member_id,'n');assert.equal(JSON.parse(post.body).hours,1.25);assert.equal(e.changed(),1);
+ assert.equal(button(e.widget,'Guardar esfuerzo').disabled,false,'the refreshed form must allow a subsequent entry');
 });
 test('AC-US17-01/02: comparison exposes separate estimates and related real hours',async()=>{
  const api=fakeAPI({detail:{id:'a',estimated_hours:2.5,actual_hours:3.75,story_points:5}});
