@@ -65,45 +65,25 @@ test("late mutations from another project cannot replace selection or reset draf
   assert.equal(e.finalizeButton.hidden, false);
 });
 
-test("app wiring: a refresh started before finalization cannot discard its result", async () => {
-  const dashboardProjects = [];
-  let dashboardConfig;
-  const elements = new Map();
-  function element(id) {
-    if (!elements.has(id)) elements.set(id, {
-      value: "", textContent: "", hidden: true, disabled: false, listeners: {},
-      addEventListener(event, callback) { this.listeners[event] = callback; },
-      replaceChildren() {},
-    });
-    return elements.get(id);
-  }
-  const project = { id: "demo", name: "Demo", status: "Planificado", start_date: null, end_date: null };
-  let resolveRefresh, resolveFinalize;
-  const response = data => ({ ok: true, status:200, text:async()=>JSON.stringify(data), json: async () => data });
-  const context = vm.createContext({
-    document: { querySelector: element }, encodeURIComponent,
-    window: { confirm: () => true },
-    createMembersSection: () => ({ showProject() {} }),
-    createSprintHistory: () => ({ showProject() {} }),
-    createMetricsSection: config => { dashboardConfig = config; return { showProject(id, project) { dashboardProjects.push({id, project}); } }; },
-    fetch: async (url, options = {}) => {
-      if (url === "/api/projects") return response(project);
-      if (url.endsWith("/backlog")) return response([]);
-      if (url.endsWith("/finalize")) return new Promise(resolve => { resolveFinalize = data => resolve(response(data)); });
-      return new Promise(resolve => { resolveRefresh = data => resolve(response(data)); });
-    },
+test("app wiring: pending mutation blocks navigation; refresh preserves confirmed finalization", async () => {
+  const {createApp}=require('./app-harness.cjs');
+  let resolveFinalize;
+  const project={id:'demo',name:'Demo',status:'Planificado',start_date:null,end_date:null};
+  let current=project;
+  const response=data=>({ok:true,status:200,text:async()=>JSON.stringify(data)});
+  const e=createApp(async(url,options={})=>{
+    if(url.endsWith('/finalize'))return new Promise(resolve=>{resolveFinalize=()=>{current={...project,status:'Finalizado',end_date:'2026-10-20'};resolve(response(current));};});
+    return response(current);
   });
-  for (const file of ["projects.js", "planning-poker.js", "effort.js", "defects.js", "app.js"]) vm.runInContext(fs.readFileSync(path.join(__dirname, "../../web/static/js", file), "utf8"), context);
-  await element("#create-project-form").listeners.submit(event);
-  const refresh = element("#refresh-project").listeners.click();
-  const finish = element("#finalize-project").listeners.click();
-  resolveRefresh(project); await refresh;
-  resolveFinalize({ ...project, status: "Finalizado", end_date: "2026-10-20" }); await finish;
-  assert.equal(element("#project-status-result").textContent, "Finalizado");
-  assert.equal(element("#finalize-project").hidden, true);
-  assert.equal(element("#members-section").hidden, true); // stub does not render members
-  assert.equal(element("#backlog-section").hidden, false);
-  assert.equal(dashboardConfig.dashboard.identity, element("#dashboard-identity"));
-  assert.equal(dashboardProjects.at(-1).id, "demo");
-  assert.equal(dashboardProjects.at(-1).project.status, "Finalizado");
+  e.location.hash='#/proyecto/demo/datos';await e.run('navigate()');
+  const pending=e.get('#finalize-project').listeners.click();
+  e.run("go('#/proyecto/other/datos')");
+  assert.equal(e.location.hash,'#/proyecto/demo/datos');
+  assert.match(e.get('#app-message').textContent,/operación en curso/);
+  resolveFinalize();await pending;
+  await e.run('navigate()');
+  assert.equal(e.get('#project-status-result').textContent,'Finalizado');
+  assert.equal(e.get('#finalize-project').hidden,true);
+  assert.equal(e.get('#project-end-result').textContent,'2026-10-20');
+  assert.equal(e.pages.filter(p=>!p.hidden)[0].dataset.page,'datos');
 });

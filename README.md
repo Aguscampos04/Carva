@@ -12,7 +12,35 @@ La aplicación queda disponible en <http://localhost:8080>. La base se crea por
 defecto en `.local/carva.db`; para usar otra ubicación, configurá
 `CARVA_DB_PATH`.
 
-La pantalla inicial permite crear un proyecto y volver a consultarlo. La API de
+La vista local de UX muestra **todos los proyectos creados** en Inicio y permite
+abrirlos por nombre, crear otro o usar opcionalmente su UUID. `GET /api/projects`
+lee la base existente; no depende de un historial del navegador.
+Dentro del proyecto, el menú ofrece Resumen, Backlog, Sprints, Equipo y
+Datos del proyecto. La URL conserva proyecto y sección al recargar.
+
+En Backlog, usá búsqueda/filtros y abrí una historia para consultar Información,
+Planning Poker, Esfuerzo o Defectos. Sprints permite crear, asignar historias,
+confirmar la verificación de sus criterios, completar y cerrar; el Historial
+conserva los resultados de cierre y distingue las horas estimadas vigentes.
+El detalle del Sprint y cada historia se pueden plegar; guardar conserva la
+posición de lectura. Los criterios quedan visibles dentro de la HU abierta. Cada historia
+del Sprint muestra solo su título mientras está plegada. Dentro del Sprint,
+**En proceso** y **Finalizadas** separan las historias según su verificación;
+completar una HU la mueve a Finalizadas sin cambiar de sección.
+**Cargar horas trabajadas** abre un formulario de alta en la HU, con el Sprint
+compatible preseleccionado. **Cerrar** permite plegarlo y volver a abrirlo;
+si hay cambios, solicita confirmación antes de descartarlos. La consulta,
+comparación, edición y eliminación siguen en Backlog → HU → Esfuerzo.
+**Miembro responsable** permite elegir un único miembro
+opcional del proyecto y guardarlo; se conserva entre Sprints y no determina quién
+puede registrar horas. En un Sprint cerrado se consulta el responsable actual.
+El Inicio presenta los formularios antes del listado de proyectos.
+Resumen alterna Proyecto/Sprint. La interfaz conserva las reglas de las SDD y
+no incorpora reportes de US-24. La mejora se sigue en la
+[issue #53](https://github.com/Aguscampos04/Carva/issues/53).
+Referencia: [SDD de UX](sdd/SDD-UX-local.md).
+
+La API de
 US-01 expone `POST /api/projects` con `{"name":"..."}` y
 `GET /api/projects/{id}`. El servidor genera el UUID y establece el estado
 `Planificado`.

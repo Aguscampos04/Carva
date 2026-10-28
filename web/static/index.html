@@ -1,131 +1,85 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Carva · Product Backlog</title>
-    <link rel="stylesheet" href="/css/app.css">
-    <script src="/js/members.js" defer></script>
-    <script src="/js/projects.js" defer></script>
-    <script src="/js/sprint-history.js" defer></script>
-    <script src="/js/planning-poker.js" defer></script>
-    <script src="/js/effort.js" defer></script>
-    <script src="/js/defects.js" defer></script>
-    <script src="/js/metrics.js" defer></script>
-    <script src="/js/app.js" defer></script>
-  </head>
-  <body>
-    <main>
-      <h1>Carva</h1>
-      <section aria-labelledby="create-title">
-        <h2 id="create-title">Crear proyecto</h2>
-        <form id="create-project-form">
-          <label for="project-name">Nombre del proyecto</label>
-          <input id="project-name" name="name" autocomplete="off" required>
-          <button type="submit">Crear proyecto</button>
-        </form>
-      </section>
-      <section aria-labelledby="result-title" aria-live="polite">
-        <h2 id="result-title">Proyecto</h2>
-        <p id="message">Completá el nombre para registrar un proyecto.</p>
-        <dl id="project-details" hidden>
-          <dt>Nombre</dt><dd id="project-name-result"></dd>
-          <dt>Identificador</dt><dd id="project-id-result"></dd>
-          <dt>Estado</dt><dd id="project-status-result"></dd>
-          <dt>Fecha de inicio</dt><dd id="project-start-result"></dd>
-          <dt>Fecha de finalización</dt><dd id="project-end-result"></dd>
-        </dl>
-        <button id="refresh-project" type="button" hidden>Consultar de nuevo</button>
-        <form id="edit-project-form" hidden>
-          <h3>Editar proyecto</h3>
-          <label for="edit-project-name">Nombre del proyecto</label>
-          <input id="edit-project-name" name="name" required>
-          <label for="edit-project-start">Fecha de inicio (opcional)</label>
-          <input id="edit-project-start" name="start_date" type="date" min="0001-01-01" max="9999-12-31">
-          <div class="project-form-actions">
-            <button id="save-project" type="submit">Guardar cambios</button>
-            <button id="finalize-project" type="button" hidden>Finalizar proyecto</button>
-          </div>
-        </form>
-        <p id="project-edit-message" aria-live="polite"></p>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#182f28">
+  <title>Carva · Tu espacio de trabajo</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/workspace.js" defer></script>
+  <script src="/js/members.js" defer></script>
+  <script src="/js/projects.js" defer></script>
+  <script src="/js/planning-poker.js" defer></script>
+  <script src="/js/effort.js" defer></script>
+  <script src="/js/defects.js" defer></script>
+  <script src="/js/metrics.js" defer></script>
+  <script src="/js/sprints.js" defer></script>
+  <script src="/js/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Ir al contenido</a>
+  <aside class="sidebar">
+    <a href="#/" class="brand" aria-label="Carva, inicio"><span class="brand-mark" aria-hidden="true">c</span>carva<span class="brand-dot">.</span></a>
+    <p class="sidebar-label">ESPACIO DE TRABAJO</p>
+    <div class="sidebar-project"><span class="project-avatar" aria-hidden="true">C</span><div><strong id="sidebar-project-name">Tu próximo proyecto</strong><small id="sidebar-project-status">Todo empieza con una idea</small></div></div>
+    <button id="menu-toggle" class="secondary-button mobile-menu" type="button" aria-expanded="false" aria-controls="project-navigation">Menú del proyecto</button>
+    <nav id="project-navigation" aria-label="Secciones del proyecto" hidden>
+      <a data-view="resumen" href="#/"><span aria-hidden="true">◫</span> Resumen</a>
+      <a data-view="backlog" href="#/"><span aria-hidden="true">☷</span> Backlog</a>
+      <a data-view="sprints" href="#/"><span aria-hidden="true">↗</span> Sprints</a>
+      <a data-view="equipo" href="#/"><span aria-hidden="true">♧</span> Equipo</a>
+      <a data-view="datos" href="#/"><span aria-hidden="true">⚙</span> Datos del proyecto</a>
+    </nav>
+    <div class="sidebar-footer"><a href="#/">↶ Cambiar de proyecto</a><span>MENOS RUIDO, MÁS AVANCE.</span><small>Planificá. Construí. Medí.</small></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><div><span class="breadcrumb">Espacio de trabajo</span><span class="breadcrumb-separator">/</span><strong id="breadcrumb-view">Inicio</strong></div><span class="local-label"><i></i> Entorno local</span></header>
+    <main id="main-content" tabindex="-1">
+      <div id="app-message" class="notice" role="status" hidden></div>
+      <section id="home-section" data-page="inicio" aria-labelledby="home-title">
+        <div class="hero"><span class="eyebrow">DEL PLAN AL PROGRESO</span><h1 id="home-title">Grandes proyectos.<br><em>Un paso a la vez.</em></h1><p>Un lugar para organizar las historias, alinear al equipo y entender cómo avanza tu proyecto.</p><div class="hero-tags"><span>Backlog y Sprints</span><span>Estimación en equipo</span><span>Métricas claras</span></div></div>
+
+        <div class="home-grid">
+          <section class="panel" aria-labelledby="open-title"><span class="step-label">CONTINUÁ DONDE QUEDASTE</span><h2 id="open-title">Abrir por identificador</h2><p class="muted">También podés abrir un proyecto pegando su identificador.</p><form id="open-project-form"><label for="open-project-id">Identificador del proyecto</label><input id="open-project-id" required placeholder="Pegá el UUID de tu proyecto" autocomplete="off"><button type="submit">Abrir proyecto <span aria-hidden="true">↗</span></button></form></section>
+          <section class="panel" aria-labelledby="create-title"><span class="step-label">EMPEZÁ ALGO NUEVO</span><h2 id="create-title">Crear un proyecto</h2><p class="muted">Dale un nombre. Después podrás sumar al equipo y planificar el trabajo.</p><form id="create-project-form"><label for="project-name">Nombre del proyecto</label><input id="project-name" name="name" required placeholder="Por ejemplo, Plataforma de reservas" autocomplete="off"><button type="submit" class="secondary-button">Crear proyecto <span aria-hidden="true">+</span></button></form></section>
+        </div>
+        <section class="home-projects" aria-labelledby="saved-projects-title">
+          <div class="section-title"><div><span class="step-label">TUS ESPACIOS DE TRABAJO</span><h2 id="saved-projects-title">Proyectos creados</h2></div><button id="refresh-projects" type="button" class="secondary-button">↻ Actualizar</button></div>
+          <p id="projects-message" class="muted" role="status"></p><div id="projects-list" class="projects-grid"></div>
+        </section>
+        <p class="home-footnote">Tu información se guarda en la base local de Carva. Los proyectos guardados aparecen en la lista de arriba.</p>
       </section>
 
-      <section id="members-section" aria-labelledby="members-title" hidden>
-        <h2 id="members-title">Miembros del proyecto</h2>
-        <form id="create-member-form">
-          <label for="member-name">Nombre del miembro</label>
-          <input id="member-name" name="name" autocomplete="off" required>
-          <button id="register-member" type="submit">Registrar miembro</button>
-        </form>
-        <p id="members-message" aria-live="polite"></p>
-        <button id="refresh-members" type="button" class="secondary-button">Consultar miembros</button>
-        <ul id="members-list" aria-label="Miembros registrados"></ul>
+      <section id="metrics-section" data-page="resumen" hidden aria-labelledby="metrics-title">
+        <div class="page-heading"><div><p class="eyebrow">UNA MIRADA AL PROYECTO</p><h1 id="metrics-title">Resumen</h1><p id="dashboard-identity" class="muted"></p></div><button id="refresh-metrics" type="button" class="secondary-button">↻ Actualizar métricas</button></div>
+        <div class="panel overview-strip"><div><span class="step-label">PROYECTO ACTIVO</span><h2 id="overview-name"></h2></div><span id="overview-status" class="badge"></span><div><span class="muted">Inicio</span><strong id="overview-start"></strong></div><div><span class="muted">Finalización</span><strong id="overview-end"></strong></div></div>
+        <div class="section-toolbar"><div class="scope-controls" aria-label="Alcance del resumen"><button type="button" id="scope-project" aria-pressed="true">Proyecto</button><button type="button" id="scope-sprint" aria-pressed="false">Sprint</button></div><div id="metrics-sprint-picker" hidden><label for="metrics-sprint-select">Seleccionar Sprint</label><select id="metrics-sprint-select" disabled></select></div></div>
+        <p id="metrics-message" class="muted" aria-live="polite"></p>
+        <div id="project-summary"><div id="dashboard-project-charts" class="metric-charts"></div><details class="panel metric-details"><summary>Ver todos los valores del proyecto</summary><h3>Avance</h3><dl id="project-metrics"></dl><h3>Esfuerzo</h3><dl id="project-hours"></dl><h3>Defectos</h3><dl id="project-defects"></dl></details></div>
+        <div id="sprint-summary" hidden><h2 id="dashboard-sprint-title">Seleccioná un Sprint para ver sus gráficos.</h2><div id="dashboard-sprint-charts" class="metric-charts"></div><details class="panel metric-details"><summary>Ver todos los valores del Sprint</summary><h3>Avance</h3><dl id="sprint-metrics"></dl><h3>Esfuerzo</h3><dl id="sprint-hours"></dl><h3>Defectos</h3><dl id="sprint-defects"></dl></details></div>
+        <a class="text-link" data-go="sprints" href="#/">Ir a la planificación de Sprints →</a>
       </section>
 
-      <section id="sprint-history-section" aria-labelledby="sprint-history-title">
-        <h2 id="sprint-history-title">Sprints anteriores</h2>
-        <form id="sprint-history-form">
-          <label for="history-project-id">Identificador del proyecto</label>
-          <input id="history-project-id" name="projectID" required autocomplete="off">
-          <button type="submit">Consultar Sprints cerrados</button>
-        </form>
-        <p id="sprint-history-message" aria-live="polite">Ingresá el identificador de un proyecto.</p>
-        <label for="closed-sprint-select">Sprint cerrado</label>
-        <select id="closed-sprint-select" disabled></select>
-        <h3 id="historical-sprint-goal"></h3>
-        <div id="historical-sprint-items" class="backlog-items"></div>
+      <section id="backlog-section" data-page="backlog" hidden aria-labelledby="backlog-title">
+        <div class="page-heading"><div><p class="eyebrow">DEL OBJETIVO A LAS HISTORIAS</p><h1 id="backlog-title">Product Backlog</h1><p class="muted">Definí qué construir y prepará el próximo paso.</p></div><button id="new-story" type="button">+ Nueva historia</button></div>
+        <div id="story-create-panel" class="panel" hidden><div class="section-title"><h2>Nueva User Story</h2><button type="button" id="cancel-new-story" class="secondary-button">Cancelar</button></div>
+          <form id="create-backlog-form" class="wide-form">
+            <label for="backlog-title-input">Título</label><input id="backlog-title-input" name="title" required>
+            <label for="backlog-description-input">Descripción</label><textarea id="backlog-description-input" name="description" rows="3" required></textarea>
+            <div class="form-columns"><div><label for="backlog-priority-input">Prioridad</label><select id="backlog-priority-input" name="priority"><option>Alta</option><option selected>Media</option><option>Baja</option></select></div><div><label for="backlog-hours-input">Horas estimadas</label><input id="backlog-hours-input" name="estimated_hours" type="number" min="0.01" step="0.01" required></div><div><label for="backlog-points-input">Story Points provisionales <small>(opcional)</small></label><input id="backlog-points-input" name="provisional_story_points" type="number" min="0" step="1"></div></div>
+            <label for="backlog-criteria-input">Criterios de aceptación</label><textarea id="backlog-criteria-input" name="acceptance_criteria" rows="4" placeholder="Escribí un criterio por línea" required></textarea><button type="submit">Agregar al Backlog</button>
+          </form><p id="story-create-message" role="status"></p>
+        </div>
+        <div id="backlog-list-view"><div class="filters panel"><div class="search-field"><label for="backlog-search">Buscar historia</label><input id="backlog-search" type="search" placeholder="Buscar por título…"></div><div><label for="filter-priority">Prioridad</label><select id="filter-priority"><option value="">Todas</option><option>Alta</option><option>Media</option><option>Baja</option></select></div><div><label for="filter-status">Estado</label><select id="filter-status"><option value="">Todos</option><option>Pendiente</option><option>En progreso</option><option>Completada</option></select></div><button id="refresh-backlog" type="button" class="secondary-button">Actualizar</button></div><p id="backlog-message" class="muted" aria-live="polite"></p><div id="backlog-items" class="backlog-items"></div></div>
+        <div id="story-detail" hidden><a id="back-to-backlog" class="text-link" href="#/">← Volver al Backlog</a><div class="panel story-detail-panel"><div id="story-heading"></div><nav id="story-tabs" class="detail-tabs" aria-label="Secciones de la historia"></nav><div id="story-content"></div></div></div>
       </section>
 
-      <section id="metrics-section" aria-labelledby="metrics-title" hidden>
-        <h2 id="metrics-title">Dashboard del proyecto</h2>
-        <p id="dashboard-identity"></p>
-        <p id="metrics-message" aria-live="polite"></p>
-        <button id="refresh-metrics" type="button" class="secondary-button">Actualizar métricas</button>
-        <h3>Gráficos del proyecto</h3>
-        <div id="dashboard-project-charts" class="metric-charts"></div>
-        <h3>Avance</h3>
-        <dl id="project-metrics"></dl>
-        <label for="metrics-sprint-select">Sprint</label>
-        <select id="metrics-sprint-select" disabled></select>
-        <h3 id="dashboard-sprint-title">Seleccioná un Sprint para ver sus gráficos.</h3>
-        <div id="dashboard-sprint-charts" class="metric-charts"></div>
-        <h3>Avance del Sprint</h3>
-        <dl id="sprint-metrics"></dl>
-        <h3>Esfuerzo en horas del proyecto</h3>
-        <dl id="project-hours"></dl>
-        <h3>Esfuerzo en horas del Sprint</h3>
-        <dl id="sprint-hours"></dl>
-        <h3>Defectos del proyecto</h3>
-        <dl id="project-defects"></dl>
-        <h3>Defectos del Sprint</h3>
-        <dl id="sprint-defects"></dl>
-      </section>
+      <section id="sprints-section" data-page="sprints" hidden aria-labelledby="sprints-title"><div class="page-heading"><div><p class="eyebrow">UN OBJETIVO, UN INCREMENTO</p><h1 id="sprints-title">Sprints</h1><p class="muted">Planificá el trabajo y conservá la historia de cada entrega.</p></div><button id="new-sprint" type="button">+ Nuevo Sprint</button></div><div id="sprint-create-panel" class="panel" hidden><form id="create-sprint-form"><h2>Crear Sprint</h2><label for="sprint-goal">Sprint Goal</label><textarea id="sprint-goal" rows="2" required placeholder="¿Qué quieren lograr en este Sprint?"></textarea><div class="actions"><button type="submit">Crear Sprint</button><button id="cancel-sprint" type="button" class="secondary-button">Cancelar</button></div></form></div><p id="sprints-message" role="status"></p><div class="section-toolbar"><div class="scope-controls"><button id="show-open-sprints" type="button" aria-pressed="true">Abiertos</button><button id="show-closed-sprints" type="button" aria-pressed="false">Historial</button></div><button id="refresh-sprints" class="secondary-button" type="button">↻ Actualizar</button></div><div id="sprints-list" class="sprints-grid"></div><div id="sprint-detail" class="panel" hidden></div></section>
 
-      <section id="backlog-section" aria-labelledby="backlog-title" hidden>
-        <h2 id="backlog-title">Product Backlog</h2>
-        <p id="backlog-message" aria-live="polite"></p>
-        <form id="create-backlog-form">
-          <h3>Agregar User Story</h3>
-          <label for="backlog-title-input">Título</label>
-          <input id="backlog-title-input" name="title" required>
-          <label for="backlog-description-input">Descripción</label>
-          <textarea id="backlog-description-input" name="description" rows="3" required></textarea>
-          <label for="backlog-priority-input">Prioridad</label>
-          <select id="backlog-priority-input" name="priority" required>
-            <option value="Alta">Alta</option>
-            <option value="Media">Media</option>
-            <option value="Baja">Baja</option>
-          </select>
-          <label for="backlog-hours-input">Horas estimadas</label>
-          <input id="backlog-hours-input" name="estimated_hours" type="number" min="0.01" step="0.01" required>
-          <label for="backlog-points-input">Story Points provisionales (opcional)</label>
-          <input id="backlog-points-input" name="provisional_story_points" type="number" min="0" step="1">
-          <label for="backlog-criteria-input">Criterios de aceptación (uno por línea)</label>
-          <textarea id="backlog-criteria-input" name="acceptance_criteria" rows="4" required></textarea>
-          <button type="submit">Agregar al Backlog</button>
-        </form>
-        <div id="backlog-items" class="backlog-items"></div>
-      </section>
-    </main>
-  </body>
+      <section id="members-section" data-page="equipo" hidden aria-labelledby="members-title"><div class="page-heading"><div><p class="eyebrow">EL TRABAJO ES EN EQUIPO</p><h1 id="members-title">Equipo</h1><p class="muted">Las personas detrás de cada estimación y cada avance.</p></div><button id="refresh-members" type="button" class="secondary-button">↻ Actualizar equipo</button></div><div class="team-layout"><section class="panel"><h2>Miembros del proyecto</h2><p id="members-message" class="muted" aria-live="polite"></p><ul id="members-list" aria-label="Miembros registrados"></ul></section><section class="panel"><h2>Sumar un miembro</h2><p class="muted">Su identidad permitirá atribuir votos y registros de esfuerzo.</p><form id="create-member-form"><label for="member-name">Nombre del miembro</label><input id="member-name" name="name" required autocomplete="off" placeholder="Nombre y apellido"><button id="register-member" type="submit">+ Registrar miembro</button></form></section></div></section>
+
+      <section id="project-data-section" data-page="datos" hidden aria-labelledby="data-title"><div class="page-heading"><div><p class="eyebrow">LOS DATOS QUE DAN CONTEXTO</p><h1 id="data-title">Datos del proyecto</h1><p class="muted">Consultá la información general y mantenela actualizada.</p></div><button id="refresh-project" class="secondary-button" type="button">↻ Consultar de nuevo</button></div><div class="data-layout"><div class="panel"><h2>Información general</h2><dl id="project-details"><dt>Nombre</dt><dd id="project-name-result"></dd><dt>Identificador</dt><dd><span id="project-id-result"></span> <button id="copy-project-id" type="button" class="text-button">Copiar</button></dd><dt>Estado</dt><dd id="project-status-result"></dd><dt>Inicio</dt><dd id="project-start-result"></dd><dt>Finalización</dt><dd id="project-end-result"></dd></dl></div><div class="panel"><form id="edit-project-form"><h2>Editar información</h2><label for="edit-project-name">Nombre del proyecto</label><input id="edit-project-name" name="name" required><label for="edit-project-start">Fecha de inicio <small>(opcional)</small></label><input id="edit-project-start" name="start_date" type="date" min="0001-01-01" max="9999-12-31"><button id="save-project" type="submit">Guardar cambios</button></form></div></div><p id="project-edit-message" role="status"></p><div class="panel danger-zone"><div><h2>Finalizar proyecto</h2><p class="muted">Registra la fecha de finalización y conserva los Sprints. Confirmá esta acción cuando el proyecto haya terminado.</p></div><button id="finalize-project" type="button" class="danger-button">Finalizar proyecto</button></div></section>
+    </main><footer class="workspace-footer"><span>Carva · Un paso a la vez.</span><span>Gestión de proyectos de software</span></footer>
+  </div>
+</body>
 </html>

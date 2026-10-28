@@ -13,6 +13,7 @@ import (
 // ProjectService contains the application operations required by the HTTP API.
 type ProjectService interface {
 	Create(ctx context.Context, name string) (project.Project, error)
+	List(context.Context) ([]project.Project, error)
 	Get(ctx context.Context, id string) (project.Project, error)
 	Update(context.Context, string, project.Patch) (project.Project, error)
 	Finalize(context.Context, string) (project.Project, error)
@@ -30,6 +31,14 @@ func NewHandlerWithPlanningPoker(service ProjectService, backlogService BacklogS
 
 func newHandler(service ProjectService, backlogService BacklogService, sprintService SprintService, planningPokerService PlanningPokerService, memberServices ...MemberService) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/projects", func(w http.ResponseWriter, r *http.Request) {
+		values, err := service.List(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "could not list projects")
+			return
+		}
+		writeJSON(w, http.StatusOK, values)
+	})
 	mux.HandleFunc("POST /api/projects", createProject(service))
 	mux.HandleFunc("GET /api/projects/{id}", getProject(service))
 	registerProjectMutationRoutes(mux, service)

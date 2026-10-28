@@ -70,6 +70,14 @@ type memoryRepository struct {
 	saveErr  error
 }
 
+func (r *memoryRepository) List(_ context.Context) ([]project.Project, error) {
+	values := make([]project.Project, 0, len(r.projects))
+	for _, value := range r.projects {
+		values = append(values, value)
+	}
+	return values, r.saveErr
+}
+
 func newMemoryRepository() *memoryRepository {
 	return &memoryRepository{projects: make(map[string]project.Project)}
 }
