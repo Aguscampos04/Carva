@@ -1,5 +1,29 @@
 # Carva
 
+## Reportes de proyecto y Sprint (US-24)
+
+Dentro de un proyecto, abrir **Reportes**, seleccionar **Proyecto completo** o un
+Sprint y pulsar **Actualizar reporte** o **Descargar PDF**. La descarga se genera
+en Go; no requiere imprimir desde el navegador ni instalar software adicional.
+
+- `GET /api/projects/{projectID}/reports/project`: reporte JSON del proyecto.
+- `GET /api/projects/{projectID}/reports/sprints/{sprintID}`: reporte JSON del Sprint.
+- Las mismas rutas con sufijo `.pdf` descargan el documento PDF correspondiente.
+
+Se incluyen datos generales, estado, miembros, historias, estimaciones, resultados,
+esfuerzo activo, métricas y defectos según el alcance. Las métricas sin datos se
+muestran como **No disponible**. El historial mantiene sus snapshots, con la
+excepción aprobada de horas estimadas vigentes de US-16. El reporte de proyecto
+incluye esfuerzo sin Sprint; el de Sprint solo esfuerzo explícitamente asociado.
+
+El PDF puede consultarse en cualquier estado del proyecto; exportarlo no significa
+finalizarlo ni aprobar su entrega. Las fuentes se leen al generar cada reporte,
+sin promesa de snapshot atómico entre consultas concurrentes. Los caracteres
+sin glifo en la fuente PDF aparecen como `[U+XXXX]`; acentos españoles se conservan.
+
+SDD: [US-24](sdd/SDD-US-24-reportes-pdf.md). Evidencia técnica y TDD:
+[US-24](docs/evidencia-ia-us-24.md). Licencias PDF/fuentes: [directorio](docs/licencias).
+
 ## Ejecutar la aplicación
 
 Requiere Go 1.26 o posterior. Desde la raíz del repositorio:

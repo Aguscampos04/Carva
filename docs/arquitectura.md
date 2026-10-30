@@ -1,5 +1,20 @@
 # Arquitectura de Carva
 
+## Incremento US-24 — Reportes y PDF
+
+Propuesta de SDD/BDD y biblioteca PDF aprobada por el Agile Enabler el 2026-10-30.
+`application/reports` compone datos existentes y métricas de US-20/21/22 mediante
+puertos de lectura; `sqlite.ReportSource` reutiliza repositorios del proyecto,
+Backlog, Sprints, miembros, esfuerzo y defectos. No agrega tablas ni migraciones.
+El reporte de Sprint conserva snapshots y limita esfuerzo/defectos al alcance
+documentado, sin reconstruir el pasado desde el Backlog.
+
+`presentation/httpapi.WithReports` expone JSON y PDF, y `presentation/reportpdf`
+prepara secciones textuales compartidas por la UI y el documento. Se usan
+`gopdf v0.38.3` y la fuente Go Regular de `golang.org/x/image v0.47.0`, embebida
+en el binario. Licencias en `docs/licencias`. No requiere navegador externo,
+servicios remotos ni CGO. `cmd/carva` compone estos adaptadores.
+
 ## 1. Estado de las decisiones
 
 El equipo aprobó las decisiones arquitectónicas de la sección 2 y la estructura de carpetas y paquetes de la sección 3 para Sprint 1. Esta estructura inicial ya está creada en el repositorio. Los detalles técnicos que el equipo no aprobó expresamente permanecen pendientes y no se consideran definidos por la creación del esqueleto.

@@ -36,8 +36,9 @@ SDD de US-24 ni PR equivalente detectados al iniciar.
 | `/api/projects/{projectID}/reports/project.pdf` | PDF descargable con el contenido del reporte de proyecto; satisface el PDF final. |
 | `/api/projects/{projectID}/reports/sprints/{sprintID}.pdf` | PDF del mismo reporte de Sprint, reutilizando el generador. |
 
-JSON/PDF deben usar el mismo modelo de reporte en Go. PDF: `application/pdf`,
-`Content-Disposition: attachment` con nombre seguro basado en identificadores.
+JSON/PDF usan el mismo modelo de reporte en Go. JSON incluye además `sections`,
+proyección textual utilizada por la UI y el generador. PDF: `application/pdf`,
+`Content-Disposition: attachment` con nombre seguro por alcance y número de Sprint.
 Documento paginado, encabezados, acentos legibles, texto largo sin recortes,
 listas vacías explícitas y unidades claras; sin depender de imprimir el navegador.
 
@@ -68,11 +69,14 @@ listas vacías explícitas y unidades claras; sin depender de imprimir el navega
 - PT-02: caso de uso `application/reports` que reúne datos existentes y devuelve
   un modelo compartido. Persistencia de solo lectura y reutilización de cálculos
   Go existentes. Sin nuevas tablas ni modificaciones de migraciones previas.
-- PT-03: incorporar `github.com/signintech/gopdf` para generación PDF en Go,
-  con versión fijada tras revisión de su go.mod y dependencias. Biblioteca MIT;
-  fuente TTF redistribuible embebida con su licencia. Evitar ejecutables externos,
-  navegador headless o servicios de terceros. **Requiere aprobación nueva.**
+- PT-03 aprobada: `github.com/signintech/gopdf v0.38.3` para PDF en Go,
+  junto a `golang.org/x/image v0.47.0/font/gofont/goregular` para la fuente
+  TTF redistribuible embebida. Licencias MIT/Go en `docs/licencias`.
+  Evitar ejecutables externos, navegador headless o servicios de terceros.
+  Se conservan Go mínimo 1.26.0 y el driver SQLite aprobado.
   Referencia primaria: https://github.com/signintech/gopdf.
+- La fuente admite acentos españoles; caracteres sin glifo se representan como
+  `[U+XXXX]` para no perderlos silenciosamente. JSON y UI conservan el texto original.
 - PT-04: integrar sección Reportes en la navegación del proyecto de UX #53;
   elegir proyecto completo o Sprint, consultar y descargar PDF. Carga/error/vacío,
   reintento y descarte de respuestas de un contexto anterior. No rediseñar toda
@@ -106,11 +110,13 @@ documento antes de enviar los headers de éxito.
 | AC-03 concordancia con fuentes y No disponible | BDD-02/04/05; comparación con casos de uso existentes y null frente a cero. |
 
 SDD → BDD → RED real → implementación mínima → GREEN → refactor con regresión.
-No hay pruebas nuevas ejecutadas ni evidencia TDD todavía. Publicación/PR
-requieren autorización específica; merge siempre manual por el responsable.
+Evidencia de pruebas y TDD ejecutados en `docs/evidencia-ia-us-24.md`.
+Publicación/PR requieren autorización específica; merge siempre manual por el responsable.
 
-## 9. Decisiones pendientes
+## 9. Estado de implementación
 
-Aprobar P-01…P-04 y PT-01…PT-04, en especial las reglas de alcance de defectos,
-los cuatro contratos GET, navegación y biblioteca PDF/fuente redistribuible.
-La solicitud de implementación no se registra como aprobación de estas decisiones.
+P-01…P-04 y PT-01…PT-04 aprobadas explícitamente antes de implementar, mediante
+«sisi» en este chat el 2026-10-30. Implementación local de los cuatro GET, modelos,
+generación PDF e integración web terminada; validación técnica documentada.
+Revisión humana, confirmación final de DoD y publicación pendientes. No se
+modificaron responsable, milestone, estado ni otros campos de la Issue #24.
