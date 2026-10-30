@@ -14,6 +14,7 @@
   <script src="/js/defects.js" defer></script>
   <script src="/js/metrics.js" defer></script>
   <script src="/js/sprints.js" defer></script>
+  <script src="/js/reports.js" defer></script>
   <script src="/js/app.js" defer></script>
 </head>
 <body>
@@ -27,6 +28,7 @@
       <a data-view="resumen" href="#/"><span aria-hidden="true">◫</span> Resumen</a>
       <a data-view="backlog" href="#/"><span aria-hidden="true">☷</span> Backlog</a>
       <a data-view="sprints" href="#/"><span aria-hidden="true">↗</span> Sprints</a>
+      <a data-view="reportes" href="#/"><span aria-hidden="true">▤</span> Reportes</a>
       <a data-view="equipo" href="#/"><span aria-hidden="true">♧</span> Equipo</a>
       <a data-view="datos" href="#/"><span aria-hidden="true">⚙</span> Datos del proyecto</a>
     </nav>
@@ -79,6 +81,11 @@
       <section id="members-section" data-page="equipo" hidden aria-labelledby="members-title"><div class="page-heading"><div><p class="eyebrow">EL TRABAJO ES EN EQUIPO</p><h1 id="members-title">Equipo</h1><p class="muted">Las personas detrás de cada estimación y cada avance.</p></div><button id="refresh-members" type="button" class="secondary-button">↻ Actualizar equipo</button></div><div class="team-layout"><section class="panel"><h2>Miembros del proyecto</h2><p id="members-message" class="muted" aria-live="polite"></p><ul id="members-list" aria-label="Miembros registrados"></ul></section><section class="panel"><h2>Sumar un miembro</h2><p class="muted">Su identidad permitirá atribuir votos y registros de esfuerzo.</p><form id="create-member-form"><label for="member-name">Nombre del miembro</label><input id="member-name" name="name" required autocomplete="off" placeholder="Nombre y apellido"><button id="register-member" type="submit">+ Registrar miembro</button></form></section></div></section>
 
       <section id="project-data-section" data-page="datos" hidden aria-labelledby="data-title"><div class="page-heading"><div><p class="eyebrow">LOS DATOS QUE DAN CONTEXTO</p><h1 id="data-title">Datos del proyecto</h1><p class="muted">Consultá la información general y mantenela actualizada.</p></div><button id="refresh-project" class="secondary-button" type="button">↻ Consultar de nuevo</button></div><div class="data-layout"><div class="panel"><h2>Información general</h2><dl id="project-details"><dt>Nombre</dt><dd id="project-name-result"></dd><dt>Identificador</dt><dd><span id="project-id-result"></span> <button id="copy-project-id" type="button" class="text-button">Copiar</button></dd><dt>Estado</dt><dd id="project-status-result"></dd><dt>Inicio</dt><dd id="project-start-result"></dd><dt>Finalización</dt><dd id="project-end-result"></dd></dl></div><div class="panel"><form id="edit-project-form"><h2>Editar información</h2><label for="edit-project-name">Nombre del proyecto</label><input id="edit-project-name" name="name" required><label for="edit-project-start">Fecha de inicio <small>(opcional)</small></label><input id="edit-project-start" name="start_date" type="date" min="0001-01-01" max="9999-12-31"><button id="save-project" type="submit">Guardar cambios</button></form></div></div><p id="project-edit-message" role="status"></p><div class="panel danger-zone"><div><h2>Finalizar proyecto</h2><p class="muted">Registra la fecha de finalización y conserva los Sprints. Confirmá esta acción cuando el proyecto haya terminado.</p></div><button id="finalize-project" type="button" class="danger-button">Finalizar proyecto</button></div></section>
+      <section id="reports-section" data-page="reportes" hidden aria-labelledby="reports-title">
+        <div class="page-heading"><div><p class="eyebrow">RESULTADOS PARA COMPARTIR</p><h1 id="reports-title">Reportes</h1><p class="muted">Consultá el proyecto completo o un Sprint y descargá su PDF.</p></div></div>
+        <div class="panel"><label for="report-scope">Alcance del reporte</label><select id="report-scope" disabled></select><div class="actions"><button id="refresh-report" type="button" class="secondary-button">Actualizar reporte</button><button id="download-report" type="button" disabled>Descargar PDF</button></div><p id="report-message" role="status"></p></div>
+        <div id="report-content" class="report-content"></div>
+      </section>
     </main><footer class="workspace-footer"><span>Carva · Un paso a la vez.</span><span>Gestión de proyectos de software</span></footer>
   </div>
 </body>
