@@ -5,12 +5,16 @@ import (
 	"fmt"
 	app "github.com/Aguscampos04/Carva/internal/application/reports"
 	"github.com/signintech/gopdf"
+	"github.com/signintech/gopdf/fontmaker/core"
 	"golang.org/x/image/font/gofont/goregular"
 	"strings"
-	"unicode"
 )
 
 func Render(report app.Report) ([]byte, error) {
+	var font core.TTFParser
+	if err := font.ParseFontData(goregular.TTF); err != nil {
+		return nil, err
+	}
 	var pdf gopdf.GoPdf
 	pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
 	if err := pdf.AddTTFFontData("Go", goregular.TTF); err != nil {
@@ -37,16 +41,7 @@ func Render(report app.Report) ([]byte, error) {
 		if err := pdf.SetFont("Go", "", size); err != nil {
 			return err
 		}
-		// Preserve newlines; normalize control characters unsuitable for PDF text.
-		text = strings.Map(func(r rune) rune {
-			if r == '\t' {
-				return ' '
-			}
-			if r != '\n' && unicode.IsControl(r) {
-				return -1
-			}
-			return r
-		}, text)
+		text = safeText(font.Chars(), text)
 		for _, paragraph := range strings.Split(text, "\n") {
 			lines, err := pdf.SplitTextWithWordWrap(paragraph, 510)
 			if err != nil {
