@@ -1306,3 +1306,6 @@ dd {
 .assignee-form [role=status] { margin: 0; font-size: .76rem; }
 .sprint-hours-entry { margin: 16px 0; }
 @media (max-width:420px) { .assignee-controls { gap: 6px; } .assignee-controls button { padding: .6rem; font-size: .7rem; } }
+.report-content { display: grid; gap: 1rem; margin-top: 1rem; }
+.report-section { overflow-wrap: anywhere; }
+.report-section p { white-space: pre-wrap; }

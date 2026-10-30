@@ -49,13 +49,15 @@ func (r *ReportSource) Load(ctx context.Context, pid string) (app.Data, error) {
 		}
 		data.Sprints = append(data.Sprints, app.SprintReport{Sprint: item, Stories: stories})
 	}
+	effortRepository := NewEffortRepository(r.db)
+	defectRepository := NewDefectRepository(r.db)
 	for _, story := range data.Stories {
-		entries, err := NewEffortRepository(r.db).List(ctx, pid, story.ID)
+		entries, err := effortRepository.List(ctx, pid, story.ID)
 		if err != nil {
 			return app.Data{}, err
 		}
 		data.Effort = append(data.Effort, entries...)
-		defects, err := NewDefectRepository(r.db).ListByStory(ctx, pid, story.ID)
+		defects, err := defectRepository.ListByStory(ctx, pid, story.ID)
 		if err != nil {
 			return app.Data{}, err
 		}

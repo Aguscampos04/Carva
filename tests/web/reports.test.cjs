@@ -37,3 +37,11 @@ test('US24: failed PDF is visible and does not save a false file',async()=>{
  const e=setup(async()=>sample,async()=>{throw new Error('Error al generar PDF')});await e.ui.showProject({id:'p'});
  await e.download.listeners.click();assert.equal(e.saved.length,0);assert.match(e.message.textContent,/Error al generar PDF/);assert.equal(e.download.disabled,false);
 });
+test('US24: app navigation opens reports with the selected project context',async()=>{
+ const {createApp}=require('./app-harness.cjs');const calls=[];
+ const e=createApp(async url=>{calls.push(url);return {ok:true,status:200,text:async()=>JSON.stringify(url.endsWith('/reports/project')?sample:{id:'p',name:'Proyecto',status:'Planificado'})}});
+ e.location.hash='#/proyecto/p/reportes';await e.run('navigate()');
+ assert.equal(e.pages.filter(page=>!page.hidden)[0].dataset.page,'reportes');
+ assert(calls.includes('/api/projects/p/reports/project'));
+ assert.equal(e.get('#download-report').disabled,false);
+});
