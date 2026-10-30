@@ -16,12 +16,12 @@ class Element {
 // The application modules are injected separately so tests can control async reads.
 function createApp(fetch){
   const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
-  const pages=['inicio','resumen','backlog','sprints','equipo','datos'].map(view=>{const e=new Element();e.dataset.page=view;return e;});
+  const pages=['inicio','resumen','backlog','sprints','equipo','datos','reportes'].map(view=>{const e=new Element();e.dataset.page=view;return e;});
   const document={activeElement:null,listeners:{},querySelector:get,querySelectorAll:selector=>selector==='[data-page]'?pages:[],createElement:tag=>new Element(tag),addEventListener(event,cb){this.listeners[event]=cb;}};
   const location={hash:'#/'},window={confirm:()=>true,addEventListener(){}};
   const c=vm.createContext({document,window,location,history:{pushState(a,b,hash){location.hash=hash;}},fetch,encodeURIComponent,URL,Intl,console,
     createMembersSection:()=>({showProject(){}}),createMetricsSection:()=>({showProject(){}}),createSprintWorkspace:()=>({invalidate(){},showProject(){}})});
-  for(const name of ['workspace','projects','effort','app'])vm.runInContext(fs.readFileSync(path.join(__dirname,`../../web/static/js/${name}.js`),'utf8'),c);
+  for(const name of ['workspace','projects','effort','reports','app'])vm.runInContext(fs.readFileSync(path.join(__dirname,`../../web/static/js/${name}.js`),'utf8'),c);
   return {context:c,get,document,location,window,pages,run:code=>vm.runInContext(code,c)};
 }
 module.exports={Element,createApp};

@@ -1,6 +1,6 @@
 // Presentation helpers. Business decisions remain in Go.
 const CarvaWorkspace = (() => {
-  const views = ['resumen', 'backlog', 'sprints', 'equipo', 'datos'];
+  const views = ['resumen', 'backlog', 'sprints', 'equipo', 'datos', 'reportes'];
   const tabs = ['info', 'poker', 'effort', 'defects'];
   function route(project, view = 'resumen', story = '', tab = 'info') {
     return project ? `#/proyecto/${encodeURIComponent(project)}/${view}${story ? `/${encodeURIComponent(story)}/${tab}` : ''}` : '#/';

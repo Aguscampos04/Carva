@@ -13,6 +13,7 @@ import (
 	appmetrics "github.com/Aguscampos04/Carva/internal/application/metrics"
 	"github.com/Aguscampos04/Carva/internal/application/planningpoker"
 	"github.com/Aguscampos04/Carva/internal/application/projects"
+	"github.com/Aguscampos04/Carva/internal/application/reports"
 	"github.com/Aguscampos04/Carva/internal/application/sprints"
 	"github.com/Aguscampos04/Carva/internal/persistence/sqlite"
 	"github.com/Aguscampos04/Carva/internal/presentation/httpapi"
@@ -41,6 +42,7 @@ func main() {
 	api = httpapi.WithEffort(api, appeffort.NewService(sqlite.NewEffortRepository(db), time.Now))
 	api = httpapi.WithDefects(api, defects.NewService(sqlite.NewDefectRepository(db)))
 	api = httpapi.WithMetrics(api, appmetrics.NewService(sqlite.NewMetricsRepository(db)))
+	api = httpapi.WithReports(api, reports.NewService(sqlite.NewReportSource(db), appmetrics.NewService(sqlite.NewMetricsRepository(db))))
 	api = httpapi.WithAssignees(api, backlog.NewAssigneeService(sqlite.NewAssigneeRepository(db)))
 	mux.Handle("/api/", api)
 	mux.Handle("/", http.FileServer(http.FS(static.Files)))

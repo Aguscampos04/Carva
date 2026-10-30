@@ -10,7 +10,11 @@ let backlogGeneration = 0;
 let homeGeneration = 0;
 let busy = 0;
 const dirtyForms = new Set();
-const names = {inicio:'Inicio', resumen:'Resumen', backlog:'Backlog', sprints:'Sprints', equipo:'Equipo', datos:'Datos del proyecto'};
+const names = {inicio:'Inicio', resumen:'Resumen', backlog:'Backlog', sprints:'Sprints', equipo:'Equipo', datos:'Datos del proyecto', reportes:'Reportes'};
+const reportsUI = createReports({
+  select: $('#report-scope'), refresh: $('#refresh-report'), download: $('#download-report'),
+  message: $('#report-message'), content: $('#report-content'), requestJSON,
+});
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -145,6 +149,7 @@ async function navigate() {
   ++backlogGeneration;
   ++homeGeneration;
   sprintsUI.invalidate();
+  reportsUI.invalidate();
   membersUI.showProject(''); metricsUI.showProject(''); projectEditor.showProject(null);
   $('#story-content').replaceChildren(); $('#story-heading').replaceChildren();
   $('#story-create-panel').hidden = true; $('#sprint-create-panel').hidden = true;
@@ -173,6 +178,7 @@ async function navigate() {
     if (next.view === 'resumen') { setScope(false); await metricsUI.showProject(project.id, project); }
     if (next.view === 'backlog') await loadBacklog(token);
     if (next.view === 'sprints') await sprintsUI.showProject(project);
+    if (next.view === 'reportes') await reportsUI.showProject(project);
   } catch (error) {
     if (!routeGate.current(token)) return;
     currentProject = null; updateIdentity(); showPage('inicio');
