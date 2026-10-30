@@ -80,3 +80,52 @@ func TestUS24MissingInvalidAndUnavailableSources(t *testing.T) {
 		t.Fatal("error reported as PDF")
 	}
 }
+
+func TestUS24HistoricalPlanningAndEffortAreNotRebuiltOrDoubleCounted(t *testing.T) {
+	f := newDefectUpdateFixture(t)
+	for _, query := range []string{
+		`UPDATE backlog_items SET title='Changed current title',status='Completada',story_points=5,estimated_hours_hundredths=500 WHERE id='a'`,
+		`INSERT INTO sprint_backlog_items(sprint_id,backlog_item_id,title,description,priority,status,acceptance_criteria,story_points,completion_verified,estimated_hours_hundredths) VALUES(1,'a','Original planning','Original description','Alta','Pendiente','["Original criterion"]',5,0,500),(2,'a','Next planning','Next description','Alta','Pendiente','["Next criterion"]',5,1,500)`,
+		`INSERT INTO effort_entries(id,project_id,backlog_item_id,member_id,work_date,activity,hours_hundredths,sprint_id,deleted_at) VALUES('active','p','a','m','2026-10-20','Active work',375,1,NULL),('unassigned','p','a','m','2026-10-20','Without Sprint',125,NULL,NULL),('removed','p','a','m','2026-10-20','Deleted work',200,1,'2026-10-21')`,
+	} {
+		if _, err := f.db.Exec(query); err != nil {
+			t.Fatal(err)
+		}
+	}
+	handler := httpapi.WithReports(f.handler, app.NewService(sqlite.NewReportSource(f.db), appmetrics.NewService(sqlite.NewMetricsRepository(f.db))))
+	get := func(path string) app.Report {
+		t.Helper()
+		r := performJSON(t, handler, "GET", path, "")
+		expectCode(t, r, 200)
+		var result app.Report
+		if err := json.Unmarshal(r.Body.Bytes(), &result); err != nil {
+			t.Fatal(err)
+		}
+		return result
+	}
+	project := get("/api/projects/p/reports/project")
+	if len(project.Effort) != 2 || *project.Metrics.Hours.ActualHours != 500 {
+		t.Fatal("duplicate, missing or deleted effort", project.Effort, project.Metrics.Hours)
+	}
+	first := get("/api/projects/p/reports/sprints/1")
+	if len(first.Effort) != 1 || *first.Metrics.Hours.ActualHours != 375 {
+		t.Fatal("incorrect scoped effort")
+	}
+	planned := first.Sprints[0].Stories[0]
+	if planned.Title != "Original planning" || planned.AcceptanceCriteriaVerified || planned.AcceptanceCriteria[0] != "Original criterion" || *first.Metrics.Points.CompletedStoryPoints != 0 {
+		t.Fatal("history overwritten", planned)
+	}
+	next := get("/api/projects/p/reports/sprints/2")
+	if !next.Sprints[0].Stories[0].AcceptanceCriteriaVerified || *next.Metrics.Points.CompletedStoryPoints != 5 || len(next.Effort) != 0 {
+		t.Fatal("destination or scope incorrect")
+	}
+	for _, path := range []string{"/api/projects/p/reports/1", "/api/projects/p/reports/unknown.pdf"} {
+		expectCode(t, performJSON(t, handler, "GET", path, ""), 404)
+	}
+	expectCode(t, performJSON(t, handler, "GET", "/api/projects/p/reports/sprints/project", ""), 400)
+	// Repeat consultation to verify persisted original data remains unchanged.
+	again := get("/api/projects/p/reports/sprints/1")
+	if again.Sprints[0].Stories[0].Title != planned.Title {
+		t.Fatal("consultation changed planning")
+	}
+}
