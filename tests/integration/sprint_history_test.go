@@ -67,6 +67,7 @@ func TestUS11HistorySurvivesTransferAndLaterChanges(t *testing.T) {
 	completed := f.createStory(t, "Original completed")
 	f.assign(t, f.current, incomplete.ID)
 	f.assign(t, f.current, completed.ID)
+	f.recordEffort(t, f.current, completed.ID)
 	if _, err := f.service.CompleteBacklogItem(ctx, f.projectID, f.current.ID, completed.ID, true); err != nil {
 		t.Fatal(err)
 	}
@@ -81,6 +82,7 @@ func TestUS11HistorySurvivesTransferAndLaterChanges(t *testing.T) {
 	if _, err := f.backlog.Update(ctx, f.projectID, incomplete.ID, backlog.Input{EstimatedHours: hours.Ptr(800), Title: "Changed title", Description: "Changed description", Priority: backlog.PriorityLow, ProvisionalStoryPoints: &points, AcceptanceCriteria: []string{"Changed criterion"}}); err != nil {
 		t.Fatal(err)
 	}
+	f.recordEffort(t, f.next, incomplete.ID)
 	if _, err := f.service.CompleteBacklogItem(ctx, f.projectID, f.next.ID, incomplete.ID, true); err != nil {
 		t.Fatal(err)
 	}

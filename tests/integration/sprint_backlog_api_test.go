@@ -190,11 +190,19 @@ func TestCompleteStoryRequiresVerificationAndUpdatesSprintAndBacklog(t *testing.
 		t.Fatalf("Backlog status after rejected completion = %q, want %q", backlogBeforeItems[0].Status, backlogdomain.Pending)
 	}
 
-	completed := performJSONRequest(handler, http.MethodPost, completionPath, map[string]any{"acceptance_criteria_verified": true})
+	withoutEffort := performJSONRequest(handler, http.MethodPost, completionPath, map[string]any{"acceptance_criteria_verified": true})
+	if withoutEffort.Code != http.StatusConflict {
+		t.Fatalf("completion without effort status = %d, want conflict", withoutEffort.Code)
+	}
+	if _, err := db.Exec(`INSERT INTO members(id,project_id,name) VALUES('member-1',?,'Ana')`, projectValue.ID); err != nil {
+		t.Fatal(err)
+	}
+	completion := map[string]any{"acceptance_criteria_verified": true, "effort": map[string]any{"member_id": "member-1", "work_date": us56Today(t), "activity": "Validación", "hours": 1.25}}
+	completed := performJSONRequest(handler, http.MethodPost, completionPath, completion)
 	if completed.Code != http.StatusOK {
 		t.Fatalf("complete story status = %d, body = %s", completed.Code, completed.Body)
 	}
-	retried := performJSONRequest(handler, http.MethodPost, completionPath, map[string]any{"acceptance_criteria_verified": true})
+	retried := performJSONRequest(handler, http.MethodPost, completionPath, completion)
 	if retried.Code != http.StatusOK {
 		t.Fatalf("retry completed story status = %d, body = %s", retried.Code, retried.Body)
 	}
@@ -209,6 +217,10 @@ func TestCompleteStoryRequiresVerificationAndUpdatesSprintAndBacklog(t *testing.
 	}
 	if sprintStory.Status != string(backlogdomain.Completed) || sprintStory.PlannedStatus != string(backlogdomain.Pending) || !sprintStory.Verified || sprintStory.Title != "Historia" {
 		t.Fatalf("completion response = %+v, want current completed status and original plan", sprintStory)
+	}
+	var effortCount int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM effort_entries WHERE backlog_item_id=? AND deleted_at IS NULL`, item.ID).Scan(&effortCount); err != nil || effortCount != 1 {
+		t.Fatalf("active effort count = %d, error %v; want one", effortCount, err)
 	}
 
 	planned := performJSONRequest(handler, http.MethodGet, basePath, nil)
@@ -271,10 +283,13 @@ func TestCompleteStoryRequiresSprintAssignmentAndRollsBackOnFailure(t *testing.T
 	if assigned := performJSONRequest(handler, http.MethodPost, assignmentPath, map[string]any{"backlog_item_id": item.ID}); assigned.Code != http.StatusCreated {
 		t.Fatalf("assign story status = %d, body = %s", assigned.Code, assigned.Body)
 	}
+	if _, err := db.Exec(`INSERT INTO members(id,project_id,name) VALUES('member-1',?,'Ana')`, projectValue.ID); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := db.Exec(`CREATE TRIGGER reject_sprint_completion BEFORE UPDATE OF completion_verified ON sprint_backlog_items BEGIN SELECT RAISE(ABORT, 'forced failure'); END`); err != nil {
 		t.Fatal(err)
 	}
-	failed := performJSONRequest(handler, http.MethodPost, basePath, map[string]any{"acceptance_criteria_verified": true})
+	failed := performJSONRequest(handler, http.MethodPost, basePath, map[string]any{"acceptance_criteria_verified": true, "effort": map[string]any{"member_id": "member-1", "work_date": us56Today(t), "activity": "Validación", "hours": 1}})
 	if failed.Code != http.StatusInternalServerError {
 		t.Fatalf("forced persistence failure status = %d, body = %s", failed.Code, failed.Body)
 	}
