@@ -10,6 +10,8 @@ import (
 	"strconv"
 
 	"github.com/Aguscampos04/Carva/internal/domain/backlog"
+	effortdomain "github.com/Aguscampos04/Carva/internal/domain/effort"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"github.com/Aguscampos04/Carva/internal/domain/project"
 	"github.com/Aguscampos04/Carva/internal/domain/sprint"
 )
@@ -23,6 +25,7 @@ type SprintService interface {
 	AssignBacklogItem(context.Context, string, int64, string) (sprint.PlannedBacklogItem, error)
 	ListPlannedBacklogItems(context.Context, string, int64) ([]sprint.PlannedBacklogItem, error)
 	CompleteBacklogItem(context.Context, string, int64, string, bool) (sprint.PlannedBacklogItem, error)
+	CompleteBacklogItemWithEffort(context.Context, string, int64, string, bool, *effortdomain.Input) (sprint.PlannedBacklogItem, error)
 }
 
 type createSprintRequest struct {
@@ -34,7 +37,15 @@ type assignBacklogItemRequest struct {
 }
 
 type completeBacklogItemRequest struct {
-	AcceptanceCriteriaVerified *bool `json:"acceptance_criteria_verified"`
+	AcceptanceCriteriaVerified *bool                         `json:"acceptance_criteria_verified"`
+	Effort                     *completeBacklogEffortRequest `json:"effort,omitempty"`
+}
+
+type completeBacklogEffortRequest struct {
+	MemberID string       `json:"member_id"`
+	WorkDate project.Date `json:"work_date"`
+	Activity string       `json:"activity"`
+	Hours    hours.Value  `json:"hours"`
 }
 
 func registerSprintRoutes(mux *http.ServeMux, service SprintService) {
@@ -150,7 +161,14 @@ func registerSprintRoutes(mux *http.ServeMux, service SprintService) {
 			writeError(w, http.StatusBadRequest, "request must contain one JSON value")
 			return
 		}
-		completed, err := service.CompleteBacklogItem(r.Context(), r.PathValue("projectID"), sprintID, r.PathValue("backlogItemID"), *input.AcceptanceCriteriaVerified)
+		var effortInput *effortdomain.Input
+		if input.Effort != nil {
+			effortInput = &effortdomain.Input{
+				MemberID: input.Effort.MemberID, StoryID: r.PathValue("backlogItemID"),
+				WorkDate: input.Effort.WorkDate, Activity: input.Effort.Activity, Hours: input.Effort.Hours,
+			}
+		}
+		completed, err := service.CompleteBacklogItemWithEffort(r.Context(), r.PathValue("projectID"), sprintID, r.PathValue("backlogItemID"), *input.AcceptanceCriteriaVerified, effortInput)
 		if err != nil {
 			writeSprintError(w, err)
 			return
@@ -181,8 +199,18 @@ func writeSprintError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "resource not found")
 	case errors.Is(err, sprint.ErrBacklogItemAlreadyAssigned):
 		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, sprint.ErrEffortRequired):
+		writeErrorWithCode(w, http.StatusConflict, "effort_required", "Registrá horas trabajadas para completar esta historia")
+	case errors.Is(err, sprint.ErrEffortAlreadyRegistered):
+		writeErrorWithCode(w, http.StatusConflict, "effort_already_registered", "La historia ya tiene horas activas. Actualizá la vista antes de reintentar")
 	case errors.Is(err, backlog.ErrAcceptanceCriteriaUnverified):
 		writeError(w, http.StatusConflict, "acceptance criteria must be verified before completing the story")
+	case errors.Is(err, effortdomain.ErrDateRange), errors.Is(err, effortdomain.ErrUnknownEnd), errors.Is(err, effortdomain.ErrDailyLimit), errors.Is(err, effortdomain.ErrSprint):
+		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, effortdomain.ErrInvalid), errors.Is(err, hours.ErrInvalid):
+		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, effortdomain.ErrNotFound):
+		writeError(w, http.StatusNotFound, "effort member not found in project")
 	case errors.Is(err, sprint.ErrBacklogItemNotAssigned):
 		writeError(w, http.StatusNotFound, "resource not found")
 	default:

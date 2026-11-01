@@ -2,10 +2,15 @@ package sprints
 
 import (
 	"context"
+	"time"
 
 	"github.com/Aguscampos04/Carva/internal/domain/backlog"
+	effortdomain "github.com/Aguscampos04/Carva/internal/domain/effort"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"github.com/Aguscampos04/Carva/internal/domain/project"
 	"github.com/Aguscampos04/Carva/internal/domain/sprint"
+	"github.com/google/uuid"
+	_ "time/tzdata"
 )
 
 type Repository interface {
@@ -17,6 +22,7 @@ type Repository interface {
 	AssignBacklogItem(context.Context, string, int64, sprint.PlannedBacklogItem) error
 	ListPlannedBacklogItems(context.Context, string, int64) ([]sprint.PlannedBacklogItem, error)
 	CompleteBacklogItem(context.Context, string, int64, string, bool) (sprint.PlannedBacklogItem, error)
+	CompleteBacklogItemWithEffort(context.Context, string, int64, string, bool, *effortdomain.Entry, func(project.Project, hours.Value) error) (sprint.PlannedBacklogItem, error)
 }
 
 // BacklogRepository supplies the current item values to snapshot at assignment time.
@@ -118,6 +124,38 @@ func (s Service) ListPlannedBacklogItems(ctx context.Context, projectID string, 
 }
 
 func (s Service) CompleteBacklogItem(ctx context.Context, projectID string, sprintID int64, itemID string, verified bool) (sprint.PlannedBacklogItem, error) {
+	return s.completeBacklogItem(ctx, projectID, sprintID, itemID, verified, nil)
+}
+
+// CompleteBacklogItemWithEffort records a required new effort entry and completes
+// the story atomically when it has no previously active effort.
+func (s Service) CompleteBacklogItemWithEffort(ctx context.Context, projectID string, sprintID int64, itemID string, verified bool, effortInput *effortdomain.Input) (sprint.PlannedBacklogItem, error) {
+	var entry *effortdomain.Entry
+	var check func(project.Project, hours.Value) error
+	if effortInput != nil {
+		effortInput.StoryID = itemID
+		effortInput.SprintID = &sprintID
+		effortInput.HasSprint = true
+		if err := effortInput.Validate(); err != nil {
+			return sprint.PlannedBacklogItem{}, err
+		}
+		entry = &effortdomain.Entry{ID: uuid.NewString(), ProjectID: projectID, Input: *effortInput}
+		check = func(value project.Project, other hours.Value) error {
+			location, err := time.LoadLocation("America/Argentina/Buenos_Aires")
+			if err != nil {
+				return err
+			}
+			today := project.Date(time.Now().In(location).Format(time.DateOnly))
+			if err := effortdomain.ValidateDate(value, today, effortInput.WorkDate); err != nil {
+				return err
+			}
+			return effortdomain.ValidateDaily(other, effortInput.Hours)
+		}
+	}
+	return s.completeBacklogItem(ctx, projectID, sprintID, itemID, verified, entry, check)
+}
+
+func (s Service) completeBacklogItem(ctx context.Context, projectID string, sprintID int64, itemID string, verified bool, entry *effortdomain.Entry, validateEffort ...func(project.Project, hours.Value) error) (sprint.PlannedBacklogItem, error) {
 	if projectID == "" || sprintID < 1 {
 		return sprint.PlannedBacklogItem{}, sprint.ErrNotFound
 	}
@@ -137,5 +175,9 @@ func (s Service) CompleteBacklogItem(ctx context.Context, projectID string, spri
 	if _, err := item.Complete(verified); err != nil {
 		return sprint.PlannedBacklogItem{}, err
 	}
-	return s.repository.CompleteBacklogItem(ctx, projectID, sprintID, itemID, verified)
+	var check func(project.Project, hours.Value) error
+	if len(validateEffort) > 0 {
+		check = validateEffort[0]
+	}
+	return s.repository.CompleteBacklogItemWithEffort(ctx, projectID, sprintID, itemID, verified, entry, check)
 }

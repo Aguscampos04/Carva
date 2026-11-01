@@ -8,6 +8,8 @@ import (
 	"fmt"
 
 	"github.com/Aguscampos04/Carva/internal/domain/backlog"
+	effortdomain "github.com/Aguscampos04/Carva/internal/domain/effort"
+	"github.com/Aguscampos04/Carva/internal/domain/hours"
 	"github.com/Aguscampos04/Carva/internal/domain/project"
 	"github.com/Aguscampos04/Carva/internal/domain/sprint"
 )
@@ -232,6 +234,11 @@ func (r *SprintRepository) ListPlannedBacklogItems(ctx context.Context, projectI
 
 // CompleteBacklogItem updates the Backlog and its Sprint execution state atomically.
 func (r *SprintRepository) CompleteBacklogItem(ctx context.Context, projectID string, sprintID int64, itemID string, verified bool) (sprint.PlannedBacklogItem, error) {
+	return r.CompleteBacklogItemWithEffort(ctx, projectID, sprintID, itemID, verified, nil, nil)
+}
+
+// CompleteBacklogItemWithEffort stores a required effort entry and completion together.
+func (r *SprintRepository) CompleteBacklogItemWithEffort(ctx context.Context, projectID string, sprintID int64, itemID string, verified bool, entry *effortdomain.Entry, validateEffort func(project.Project, hours.Value) error) (sprint.PlannedBacklogItem, error) {
 	var completed sprint.PlannedBacklogItem
 	if !verified {
 		return completed, backlog.ErrAcceptanceCriteriaUnverified
@@ -284,6 +291,48 @@ func (r *SprintRepository) CompleteBacklogItem(ctx context.Context, projectID st
 		completed.BacklogItemID = itemID
 		completed.ProvisionalStoryPoints = nullInt(provisional)
 		completed.StoryPoints = nullInt(definitive)
+
+		var activeHours hours.Value
+		if err := conn.QueryRowContext(ctx, `SELECT COALESCE(SUM(hours_hundredths),0) FROM effort_entries WHERE project_id=? AND backlog_item_id=? AND deleted_at IS NULL`, projectID, itemID).Scan(&activeHours); err != nil {
+			return fmt.Errorf("check active effort before story completion: %w", err)
+		}
+		if activeHours == 0 {
+			if entry == nil {
+				return sprint.ErrEffortRequired
+			}
+			if entry.ProjectID != projectID || entry.StoryID != itemID || entry.SprintID == nil || *entry.SprintID != sprintID || validateEffort == nil {
+				return effortdomain.ErrInvalid
+			}
+			value, err := findProject(ctx, conn, projectID)
+			if err != nil {
+				return err
+			}
+			var belongs bool
+			if err := conn.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM members WHERE project_id=? AND id=?)`, projectID, entry.MemberID).Scan(&belongs); err != nil {
+				return fmt.Errorf("check effort member for story completion: %w", err)
+			}
+			if !belongs {
+				return effortdomain.ErrNotFound
+			}
+			var other hours.Value
+			if err := conn.QueryRowContext(ctx, `SELECT COALESCE(SUM(hours_hundredths),0) FROM effort_entries WHERE project_id=? AND member_id=? AND work_date=? AND deleted_at IS NULL AND id<>?`, projectID, entry.MemberID, entry.WorkDate, entry.ID).Scan(&other); err != nil {
+				return fmt.Errorf("sum daily effort for story completion: %w", err)
+			}
+			if err := validateEffort(value, other); err != nil {
+				return err
+			}
+			if _, err := conn.ExecContext(ctx, `INSERT INTO effort_entries(id,project_id,backlog_item_id,member_id,work_date,activity,hours_hundredths,sprint_id) VALUES(?,?,?,?,?,?,?,?)`, entry.ID, entry.ProjectID, entry.StoryID, entry.MemberID, entry.WorkDate, entry.Activity, entry.Hours, entry.SprintID); err != nil {
+				return fmt.Errorf("save effort for story completion: %w", err)
+			}
+		} else if entry != nil {
+			var repeated bool
+			if err := conn.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM effort_entries WHERE project_id=? AND backlog_item_id=? AND member_id=? AND work_date=? AND activity=? AND hours_hundredths=? AND sprint_id=? AND deleted_at IS NULL)`, projectID, itemID, entry.MemberID, entry.WorkDate, entry.Activity, entry.Hours, entry.SprintID).Scan(&repeated); err != nil {
+				return fmt.Errorf("check repeated completion effort: %w", err)
+			}
+			if !repeated {
+				return sprint.ErrEffortAlreadyRegistered
+			}
+		}
 
 		if _, err := conn.ExecContext(ctx,
 			`UPDATE backlog_items SET status = ? WHERE project_id = ? AND id = ?`, backlog.Completed, projectID, itemID,
