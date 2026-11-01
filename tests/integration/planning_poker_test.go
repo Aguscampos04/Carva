@@ -95,6 +95,17 @@ func TestPlanningPokerVotesAreAttributedAndHiddenUntilFinalization(t *testing.T)
 	finalizePath := base + "/" + round.ID + "/finalize?member_id=" + url.QueryEscape(first.ID)
 	if response := performJSONRequest(handler, http.MethodPost, finalizePath, nil); response.Code != http.StatusConflict {
 		t.Fatalf("finalize with pending vote = %d %s, want conflict", response.Code, response.Body)
+	} else {
+		var pending struct {
+			Code    string   `json:"code"`
+			Missing []string `json:"missing_participants"`
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &pending); err != nil {
+			t.Fatal(err)
+		}
+		if pending.Code != "votes_pending" || len(pending.Missing) != 1 || pending.Missing[0] != second.ID {
+			t.Fatalf("pending vote response = %+v, want only missing participant %q", pending, second.ID)
+		}
 	}
 	resultPath := base + "/" + round.ID + "/result?member_id=" + url.QueryEscape(first.ID)
 	if response := performJSONRequest(handler, http.MethodGet, resultPath, nil); response.Code != http.StatusConflict {

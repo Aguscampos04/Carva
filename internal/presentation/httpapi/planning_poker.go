@@ -119,7 +119,12 @@ func planningPokerError(w http.ResponseWriter, err error) bool {
 		errors.Is(err, memberdomain.ErrProjectNotFound):
 		writeError(w, http.StatusNotFound, "Planning Poker project, story, or round not found")
 	case errors.Is(err, domain.ErrVotesPending):
-		writeError(w, http.StatusConflict, "faltan votos de participantes para finalizar la ronda")
+		var pending domain.VotesPendingError
+		if errors.As(err, &pending) {
+			writeJSON(w, http.StatusConflict, map[string]any{"error": "faltan votos de participantes para finalizar la ronda", "code": "votes_pending", "missing_participants": pending.MemberIDs})
+		} else {
+			writeErrorWithCode(w, http.StatusConflict, "votes_pending", "faltan votos de participantes para finalizar la ronda")
+		}
 	case errors.Is(err, domain.ErrNoConsensus):
 		writeError(w, http.StatusConflict, "la ronda no tiene una estimación unánime")
 	case errors.Is(err, domain.ErrRoundNotFinalized):

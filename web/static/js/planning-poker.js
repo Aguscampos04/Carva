@@ -60,6 +60,7 @@ function createPlanningPoker({ requestJSON, onEstimateRegistered = () => {} }) {
     let saving = false;
     let finalizing = false;
     let registeringAgreement = false;
+    let participantNames = new Map();
     const registeredAgreementRoundIDs = new Set();
     const base = `/api/projects/${encodeURIComponent(projectID)}/backlog/${encodeURIComponent(story.id)}/estimation`;
 
@@ -172,7 +173,9 @@ function createPlanningPoker({ requestJSON, onEstimateRegistered = () => {} }) {
         }
         const allMembers = await requestJSON(`/api/projects/${encodeURIComponent(projectID)}/members`);
         const memberNames = new Map(allMembers.map(member => [member.id, member.name]));
+        participantNames = memberNames;
         const participants = allMembers.filter(member => round.participants.includes(member.id));
+        const selectedMemberID = memberSelect.value;
         memberSelect.replaceChildren();
         for (const member of participants) {
           const option = document.createElement("option");
@@ -180,7 +183,8 @@ function createPlanningPoker({ requestJSON, onEstimateRegistered = () => {} }) {
           option.textContent = `${member.name} · ${member.id}`;
           memberSelect.append(option);
         }
-        if (!memberSelect.value && participants.length > 0) memberSelect.value = participants[0].id;
+        if (participants.some(member => member.id === selectedMemberID)) memberSelect.value = selectedMemberID;
+        else if (participants.length > 0) memberSelect.value = participants[0].id;
 
         if (round.status === "finalized") {
           start.textContent = "Iniciar nueva ronda";
@@ -228,7 +232,9 @@ function createPlanningPoker({ requestJSON, onEstimateRegistered = () => {} }) {
         await requestJSON(path, { method: "POST" });
         await load();
       } catch (error) {
-        message.textContent = error.message;
+        message.textContent = error.code === "votes_pending"
+          ? `Faltan votos de: ${(error.missingParticipants || []).map(id => participantNames.get(id) || id).join(", ")}. Los votos siguen ocultos.`
+          : error.message;
       } finally {
         finalizing = false;
         finalize.disabled = false;

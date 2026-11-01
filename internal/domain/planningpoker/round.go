@@ -1,9 +1,34 @@
 package planningpoker
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 )
+
+// VotesPendingError identifies participants without a vote without exposing any estimates.
+type VotesPendingError struct{ MemberIDs []string }
+
+func (err VotesPendingError) Error() string {
+	return fmt.Sprintf("%v: %v", ErrVotesPending, err.MemberIDs)
+}
+func (err VotesPendingError) Unwrap() error { return ErrVotesPending }
+
+func missingParticipants(round Round, votes []Vote) []string {
+	voted := make(map[string]bool, len(votes))
+	for _, vote := range votes {
+		if vote.RoundID == round.ID && vote.StoryID == round.StoryID && round.hasParticipant(vote.MemberID) {
+			voted[vote.MemberID] = true
+		}
+	}
+	missing := make([]string, 0)
+	for _, id := range round.Participants {
+		if !voted[id] {
+			missing = append(missing, id)
+		}
+	}
+	return missing
+}
 
 // RoundStatus describes whether votes may still be changed.
 type RoundStatus string
@@ -110,7 +135,7 @@ func (round Round) Finalize(votes []Vote) (RoundResult, error) {
 		return RoundResult{}, ErrRoundNotOpen
 	}
 	if len(votes) < len(round.Participants) {
-		return RoundResult{}, ErrVotesPending
+		return RoundResult{}, VotesPendingError{MemberIDs: missingParticipants(round, votes)}
 	}
 	result, err := newRoundResult(round, votes)
 	if err != nil {
@@ -153,7 +178,7 @@ func newRoundResult(round Round, votes []Vote) (RoundResult, error) {
 	}
 	for _, participant := range round.Participants {
 		if _, exists := seen[participant]; !exists {
-			return RoundResult{}, ErrVotesPending
+			return RoundResult{}, VotesPendingError{MemberIDs: missingParticipants(round, votes)}
 		}
 	}
 
