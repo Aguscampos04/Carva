@@ -11,6 +11,7 @@ function createSprintWorkspace({requestJSON, canLeave, onChanged}) {
   const body = value => ({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});
   const current = context => context === generation && project;
   function explain(error) {
+    if (error.code === 'effort_required') return 'Cargá horas trabajadas para completar esta historia.';
     if (error.status === 409) return `No se pudo realizar la operación. Si hay historias incompletas, creá un Sprint posterior abierto antes de cerrar. Un Sprint cerrado no admite nuevas asignaciones ni finalizaciones. (${error.message})`;
     return error.message;
   }
@@ -47,7 +48,7 @@ function createSprintWorkspace({requestJSON, canLeave, onChanged}) {
       if (focusID === String(sprint.id)) toggle.focus({preventScroll:true});
     }
   }
-  async function mutate(url, options, success, after=()=>{}) {
+  async function mutate(url, options, success, after=()=>{}, onError=()=>{}) {
     if(mutating||!project)return;
     mutating=true; const context=generation;let saved=false;
     const position = {left: window.scrollX || 0, top: window.scrollY || 0};
@@ -60,7 +61,7 @@ function createSprintWorkspace({requestJSON, canLeave, onChanged}) {
       after(); await onChanged();
       if(!current(context))return;
       await load(success+' ');
-    }catch(error){if(current(context))message.textContent=(saved?'La operación se guardó. Actualizá antes de repetir. ':'')+explain(error);}
+    }catch(error){if(current(context)){message.textContent=(saved?'La operación se guardó. Actualizá antes de repetir. ':'')+explain(error);onError(error);}}
     finally{if(current(context)){
       mutating=false;for(const [button, disabled] of controls)button.disabled=disabled;
       if (typeof window.scrollTo === 'function') window.scrollTo({...position, behavior:'instant'});
@@ -117,7 +118,7 @@ function createSprintWorkspace({requestJSON, canLeave, onChanged}) {
         const row=node('article',null,'planned-item');
         const storyDetails = node('details', null, 'sprint-story'); storyDetails.dataset.disclosureKey = `story-${item.backlog_item_id}`;
         storyDetails.open = refreshing && expandedCriteria.has(storyDetails.dataset.disclosureKey);
-        storyDetails.append(node('summary', item.title));
+        storyDetails.append(node('summary', `${item.title} · ID: ${item.backlog_item_id}`));
         const content = node('div', null, 'sprint-story-content'); storyDetails.append(content); row.append(storyDetails);
         content.append(node('span',sprint.closed?(item.acceptance_criteria_verified?'Completada al cierre':'Incompleta al cierre'):item.status,'badge'),node('p',item.description,'muted'));
         const values=node('p',`${CarvaWorkspace.points(item)} · Horas estimadas vigentes: ${item.estimated_hours ?? 'Pendiente de regularización'}`,'muted');content.append(values);
@@ -141,7 +142,7 @@ function createSprintWorkspace({requestJSON, canLeave, onChanged}) {
             const form = node('form', null, 'assignee-form'), label = node('label','Miembro responsable'), select = node('select');
             select.id = `assignee-${id}-${item.backlog_item_id}`; label.htmlFor = select.id;
             const none = node('option','Sin responsable'); none.value = ''; select.append(none);
-            for (const member of team) { const homonym = team.filter(m => m.name === member.name).length > 1; const option = node('option', homonym ? `${member.name} · ${member.id}` : member.name); option.value = member.id; select.append(option); }
+            for (const member of team) { const option = node('option', `${member.name} · ${member.id}`); option.value = member.id; select.append(option); }
             select.value = value.member_id || '';
             const save = node('button', 'Guardar responsable'); save.type = 'submit';
             const controls = node('div', null, 'assignee-controls'); controls.append(select, save);
@@ -172,9 +173,33 @@ function createSprintWorkspace({requestJSON, canLeave, onChanged}) {
         content.append(effort);
         if(!sprint.closed&&!item.acceptance_criteria_verified){
           const label=node('label'),check=node('input');check.type='checkbox';label.append(check,node('span','Confirmo que verifiqué todos los criterios de aceptación de esta historia.'));
+          const completionForm=node('form',null,'completion-effort-form');
+          const completionMessage=node('p',null,'form-error'); completionMessage.setAttribute('aria-live','polite');
+          async function showCompletionEffort() {
+            if(completionForm.children.length)return;
+            try {
+              const [contextValue, team]=await Promise.all([viewRequest(`${base()}/backlog/${encodeURIComponent(item.backlog_item_id)}/effort-context`),viewRequest(`${base()}/members`)]);
+              const field=(name,title,tag='input')=>{const l=node('label',title),input=node(tag);input.name=name;input.required=true;l.append(input);completionForm.append(l);return input;};
+              const member=field('member_id','Miembro','select');
+              const placeholder=node('option','Seleccionar miembro');placeholder.value='';member.append(placeholder);
+              for(const person of team){const option=node('option',`${person.name} · ${person.id}`);option.value=person.id;member.append(option);}
+              member.value='';member.required=true;
+              const date=field('work_date','Fecha de trabajo');date.type='date';date.value=contextValue.today;
+              const activity=field('activity','Actividad','textarea');
+              const hours=field('hours','Horas trabajadas');hours.type='number';hours.min='0.01';hours.step='0.01';
+              const submit=action('Guardar horas y completar',()=>{});submit.type='submit';completionForm.append(submit,completionMessage);
+              completionForm.addEventListener('submit',event=>{
+                event.preventDefault();if(mutating||!check.checked||!member.value||!date.value||!activity.value.trim()||!hours.value||!hours.validity.valid)return;
+                const completionURL=`${url}/backlog-items/${encodeURIComponent(item.backlog_item_id)}/completion`;
+                const effortJSON=exactHoursJSON({member_id:member.value,work_date:date.value,activity:activity.value,hours:hours.value},['hours']);
+                mutate(completionURL,{method:'POST',headers:{'Content-Type':'application/json'},body:`{"acceptance_criteria_verified":true,"effort":${effortJSON}}`},'Historia completada. Disponible en la pestaña Finalizadas.');
+              });
+              content.append(completionForm);
+            } catch(error) { message.textContent=error.message; }
+          }
           const complete=action('Registrar como completada',()=>{
             if(!check.checked||mutating||!canLeave())return;
-            mutate(`${url}/backlog-items/${encodeURIComponent(item.backlog_item_id)}/completion`,body({acceptance_criteria_verified:true}),'Historia completada. Disponible en la pestaña Finalizadas.');
+            mutate(`${url}/backlog-items/${encodeURIComponent(item.backlog_item_id)}/completion`,body({acceptance_criteria_verified:true}),'Historia completada. Disponible en la pestaña Finalizadas.',()=>{},error=>{if(error.code==='effort_required')showCompletionEffort();});
           });complete.disabled=true;check.addEventListener('change',()=>{complete.disabled=!check.checked;});content.append(label,complete);
         }(item.acceptance_criteria_verified ? finishedPane : pendingPane).append(row);
       }

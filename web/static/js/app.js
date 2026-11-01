@@ -56,7 +56,7 @@ async function requestJSON(url, options = {}) {
     try { data = text ? parseHoursJSON(text) : null; }
     catch { throw new Error('La respuesta no se pudo leer. Consultá de nuevo antes de repetir la operación.'); }
     if (!response.ok) {
-      const error = new Error(data?.error || 'No se pudo completar la operación.'); error.status = response.status; throw error;
+      const error = new Error(data?.error || 'No se pudo completar la operación.'); error.status = response.status; error.code = data?.code; error.missingParticipants = data?.missing_participants; throw error;
     }
     if (writing && form) dirtyForms.delete(form);
     return data;
@@ -212,7 +212,7 @@ function renderStories() {
     const row = element('article', null, 'backlog-row');
     const info = element('div'); const link = element('a', item.title, 'story-link'); link.href = W.route(currentProject.id, 'backlog', item.id);
     const meta = element('div',null,'story-meta'); meta.append(badge(item.priority), badge(item.status),element('span',W.points(item)));
-    info.append(link,meta);
+    info.append(link,element('p',`Identificador: ${item.id}`,'muted'),meta);
     const hours = element('div',null,'row-hours');
     hours.append(element('div',`Estimadas: ${item.estimated_hours == null ? 'Pendiente de regularización' : item.estimated_hours + ' h'}`), element('div',`Reales: ${item.actual_hours ?? '0.00'} h`));
     row.append(info,hours); list.append(row);

@@ -6,7 +6,7 @@ function setup(api){
   const calls=[];
   const scrolls=[];
   const effortWidgets=[];
-  const c=vm.createContext({document:{querySelector:get,createElement:tag=>new Element(tag)},encodeURIComponent,window:{confirm:()=>true,scrollX:0,scrollY:650,scrollTo:value=>scrolls.push(value)},createEffort:config=>({createWidget(project,story,sprintID){effortWidgets.push({project,story,sprintID,config});const widget=new Element(),open=new Element('button');open.click=()=>{};widget.append(open);return widget;}})});
+  const c=vm.createContext({document:{querySelector:get,createElement:tag=>new Element(tag)},encodeURIComponent,exactHoursJSON:(value,fields)=>JSON.stringify(value,(key,data)=>fields.includes(key)?Number(data):data),window:{confirm:()=>true,scrollX:0,scrollY:650,scrollTo:value=>scrolls.push(value)},createEffort:config=>({createWidget(project,story,sprintID){effortWidgets.push({project,story,sprintID,config});const widget=new Element(),open=new Element('button');open.click=()=>{};widget.append(open);return widget;}})});
   for(const name of ['workspace','sprints'])vm.runInContext(fs.readFileSync(path.join(__dirname,`../../web/static/js/${name}.js`),'utf8'),c);
   const ui=c.createSprintWorkspace({requestJSON:async(url,options={})=>{calls.push({url,...options});return api(url,options);},canLeave:()=>true,onChanged:async()=>{}});
   return {get,ui,calls,scrolls,effortWidgets};
@@ -25,6 +25,32 @@ test('UX-03: completion requires explicit verification and duplicate submission 
   assert.equal(e.calls.filter(c=>c.method).length,1);
   assert.equal(e.calls.at(-1).body,'{"acceptance_criteria_verified":true}');
   resolveWrite({...story,acceptance_criteria_verified:true});await new Promise(resolve=>setImmediate(resolve));
+});
+test('US-56: missing effort opens a completion form and retry preserves the atomic contract',async()=>{
+  const calls=[];let completed=false;
+  const e=setup((url,options)=>{
+    calls.push({url,...options});
+    if(url.endsWith('/effort-context'))return {today:'2026-11-01',sprints:[sprint]};
+    if(url.endsWith('/members'))return [{id:'member-1',name:'Ana'}];
+    if(url.endsWith('/completion')&&options.method){
+      if(!completed){const error=new Error('effort required');error.status=409;error.code='effort_required';throw error;}
+      return {...story,acceptance_criteria_verified:true};
+    }
+    if(url.endsWith('/backlog-items'))return [{...story,acceptance_criteria_verified:completed,status:completed?'Completada':'Pendiente'}];
+    return api(url);
+  });
+  await e.ui.showProject({id:'p',status:'En progreso'});
+  await all(e.get('#sprints-list')).find(n=>n.textContent==='Ver Sprint →').listeners.click();
+  const detail=e.get('#sprint-detail'),check=all(detail).find(n=>n.type==='checkbox');check.checked=true;
+  await all(detail).find(n=>n.textContent==='Registrar como completada').listeners.click();
+  await new Promise(resolve=>setImmediate(resolve));
+  const form=all(detail).find(n=>n.className==='completion-effort-form');assert(form);
+  const [member,date,activity,hours]=form.children.filter(n=>n.tagName==='label').map(n=>n.children[0]);
+  member.value='member-1';date.value='2026-11-01';activity.value='Validación';hours.value='1.25';hours.validity={valid:true};completed=true;
+  await form.listeners.submit({preventDefault(){}});await new Promise(resolve=>setImmediate(resolve));
+  const request=calls.filter(call=>call.url.endsWith('/completion')&&call.method).at(-1);
+  assert.match(request.body,/"acceptance_criteria_verified":true/);assert.match(request.body,/"hours":1.25/);assert.match(request.body,/"member_id":"member-1"/);
+  assert.equal(calls.filter(call=>call.url.endsWith('/completion')&&call.method).length,2);
 });
 test('UX-03: rejected close stays visible and makes no automatic second request',async()=>{
   const e=setup((url,options)=>{if(options.method){const error=new Error('next Sprint required');error.status=409;throw error;}return api(url);});
@@ -73,8 +99,8 @@ test('Completion preserves expanded criteria and scroll; completed stories go la
   await new Promise(resolve=>setImmediate(resolve));
   const pending=all(e.get('#sprint-detail')).find(n=>n.id==='sprint-1-process');
   const finishedPane=all(e.get('#sprint-detail')).find(n=>n.id==='sprint-1-finished');
-  assert.equal(pending.querySelector('summary').textContent,'Next');
-  assert.equal(finishedPane.querySelector('summary').textContent,'Demo');
+  assert.match(pending.querySelector('summary').textContent,/Next · ID: next/);
+  assert.match(finishedPane.querySelector('summary').textContent,/Demo · ID: story/);
   assert.equal(finishedPane.querySelector('details').open,true);
   assert.equal(finishedPane.hidden,true);
   all(e.get('#sprint-detail')).find(n=>n.textContent==='Finalizadas (1)').listeners.click();
@@ -86,7 +112,7 @@ test('Sprint story shows title only while folded and mounts effort in place with
   const e=setup(api);await e.ui.showProject({id:'p',status:'En progreso'});
   await all(e.get('#sprints-list')).find(n=>n.textContent==='Ver Sprint →').listeners.click();
   const detail=e.get('#sprint-detail'),storyDetails=detail.querySelector('details');
-  assert.equal(storyDetails.children[0].tagName,'summary');assert.equal(storyDetails.children[0].textContent,'Demo');assert.equal(storyDetails.open,false);
+  assert.equal(storyDetails.children[0].tagName,'summary');assert.match(storyDetails.children[0].textContent,/Demo · ID: story/);assert.equal(storyDetails.open,false);
   assert.equal(e.effortWidgets.length,0);
   storyDetails.open=true;storyDetails.listeners.toggle();
   assert.equal(e.effortWidgets.length,1);assert.equal(e.effortWidgets[0].sprintID,1);assert.equal(e.effortWidgets[0].story.id,'story');

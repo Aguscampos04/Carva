@@ -233,7 +233,7 @@ function createPlanningPoker({ requestJSON, onEstimateRegistered = () => {} }) {
         await load();
       } catch (error) {
         message.textContent = error.code === "votes_pending"
-          ? `Faltan votos de: ${(error.missingParticipants || []).map(id => participantNames.get(id) || id).join(", ")}. Los votos siguen ocultos.`
+          ? `Faltan votos de: ${(error.missingParticipants || []).map(id => `${participantNames.get(id) || "Miembro"} (${id})`).join(", ")}. Los votos siguen ocultos.`
           : error.message;
       } finally {
         finalizing = false;
