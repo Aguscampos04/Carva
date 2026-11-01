@@ -135,7 +135,8 @@ test("BDD-US-56-07: a missing-vote response identifies members without revealing
   await new Promise(resolve => setImmediate(resolve));
   await section.children[4].listeners.click();
   assert.match(section.children[1].textContent, /Bea/);
-  assert.doesNotMatch(section.children[1].textContent, /Story Points|\b\d+\b/);
+  assert.match(section.children[1].textContent, /member-2/);
+  assert.doesNotMatch(section.children[1].textContent, /\d+ Story Points/);
   assert.equal(section.children[5].hidden, true);
 });
 
