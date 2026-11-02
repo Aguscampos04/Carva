@@ -74,6 +74,17 @@ test('Home lists saved projects with direct links and safe titles',async()=>{
   assert.match(e.get('#projects-message').textContent,/2 proyectos/);
 });
 
+test('US-56: Backlog rows expose the full UUID for same-title stories',async()=>{
+  const {createApp}=require('./app-harness.cjs');
+  const first='123e4567-e89b-12d3-a456-426614174001',second='123e4567-e89b-12d3-a456-426614174002';
+  const stories=[first,second].map(id=>({id,title:'Misma historia',priority:'Alta',status:'Pendiente',estimated_hours:'1.00',actual_hours:'0.00'}));
+  const e=createApp(async url=>({ok:true,status:200,text:async()=>JSON.stringify(url.endsWith('/backlog')?stories:{id:'project',name:'Project',status:'En progreso'})}));
+  e.location.hash='#/proyecto/project/backlog';await e.run('navigate()');
+  const rows=e.get('#backlog-items').children;
+  const labels=rows.map(row=>row.children[0].children[1].textContent);
+  assert.equal(rows.length,2);assert.deepEqual(labels,[`Identificador: ${first}`,`Identificador: ${second}`]);
+});
+
 test('Completed stories sort last without modifying the source or other relative order',()=>{
   const items=[{id:'a',status:'Completada'},{id:'b',status:'Pendiente'},{id:'c',status:'En progreso'},{id:'d',acceptance_criteria_verified:true}];
   assert.equal(ui.pendingFirst(items).map(n=>n.id).join(','),'b,c,a,d');

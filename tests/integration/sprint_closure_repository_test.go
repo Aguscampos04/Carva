@@ -24,6 +24,7 @@ func TestCloseSprintTransfersOnlyIncompleteStoriesAndKeepsHistory(t *testing.T) 
 	fixture.assign(t, fixture.current, incomplete.ID)
 	fixture.assign(t, fixture.current, completed.ID)
 	fixture.assign(t, fixture.next, incomplete.ID)
+	fixture.recordEffort(t, fixture.current, completed.ID)
 	if _, err := fixture.service.CompleteBacklogItem(context.Background(), fixture.projectID, fixture.current.ID, completed.ID, true); err != nil {
 		t.Fatal(err)
 	}
@@ -181,6 +182,16 @@ func (fixture *sprintClosureFixture) createStory(t *testing.T, title string) bac
 func (fixture *sprintClosureFixture) assign(t *testing.T, target sprintdomain.Sprint, itemID string) {
 	t.Helper()
 	if _, err := fixture.service.AssignBacklogItem(context.Background(), fixture.projectID, target.ID, itemID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func (fixture *sprintClosureFixture) recordEffort(t *testing.T, target sprintdomain.Sprint, itemID string) {
+	t.Helper()
+	if _, err := fixture.db.Exec(`INSERT OR IGNORE INTO members(id,project_id,name) VALUES('closure-member',?,'Test member')`, fixture.projectID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.db.Exec(`INSERT INTO effort_entries(id,project_id,backlog_item_id,member_id,work_date,activity,hours_hundredths,sprint_id) VALUES(?,?,?,?,?,?,100,?)`, "effort-"+itemID+"-"+strconv.FormatInt(target.ID, 10), fixture.projectID, itemID, "closure-member", "2026-10-20", "Completed work", target.ID); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -16,6 +16,18 @@ func TestRoundFinalizeRequiresEveryParticipantToVote(t *testing.T) {
 	}
 }
 
+func TestRoundFinalizeIdentifiesMissingParticipantsWithoutVotes(t *testing.T) {
+	round := testRound(t)
+	_, err := round.Finalize([]Vote{{MemberID: "member-1", StoryID: round.StoryID, RoundID: round.ID, StoryPoints: 5}})
+	var pending VotesPendingError
+	if !errors.As(err, &pending) || len(pending.MemberIDs) != 1 || pending.MemberIDs[0] != "member-2" {
+		t.Fatalf("Finalize() missing participants = %+v, error %v", pending, err)
+	}
+	if !errors.Is(err, ErrVotesPending) {
+		t.Fatalf("Finalize() error = %v, want ErrVotesPending", err)
+	}
+}
+
 func TestRoundFinalizeRevealsAllVotesAndDetectsDifferences(t *testing.T) {
 	round := testRound(t)
 	votes := []Vote{

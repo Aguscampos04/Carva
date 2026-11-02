@@ -19,6 +19,8 @@ var (
 	ErrAlreadyClosed              = errors.New("sprint is already closed")
 	ErrClosed                     = errors.New("sprint is closed")
 	ErrNextSprintRequired         = errors.New("an open subsequent sprint is required for incomplete stories")
+	ErrEffortRequired             = errors.New("active effort is required before completing a story")
+	ErrEffortAlreadyRegistered    = errors.New("active effort was registered while completion was being prepared")
 )
 
 type Sprint struct {

@@ -16,8 +16,15 @@ class Element {
     this.disabled = false;
     this.validity = { valid: true };
   }
-  append(...children) { this.children.push(...children); }
-  replaceChildren(...children) { this.children = [...children]; }
+  append(...children) {
+    this.children.push(...children);
+    if (this.tagName === "select" && this.children.length === 1) this.value = this.children[0].value;
+  }
+  replaceChildren(...children) {
+    this.children = [];
+    if (this.tagName === "select") this.value = "";
+    this.append(...children);
+  }
   addEventListener(event, callback) { this.listeners[event] = callback; }
   setAttribute() {}
 }
@@ -65,6 +72,72 @@ test("BDD-US-12-02: selector loads only the chosen participant's vote and saves 
   const save = calls.find(call => call.options.method === "PUT");
   assert.match(save.url, /votes\/member-2$/);
   assert.deepEqual(JSON.parse(save.options.body), { story_points: 13 });
+});
+
+test("BDD-US-56-06: changing participants preserves the selected voter after reloading", async () => {
+  const calls = [];
+  const members = [{ id: "member-1", name: "Ana" }, { id: "member-2", name: "Bea" }];
+  const context = vm.createContext({
+    document: { createElement: tag => new Element(tag) },
+    encodeURIComponent,
+    URL,
+  });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../../web/static/js/planning-poker.js"), "utf8"), context);
+  const widget = context.createPlanningPoker({
+    async requestJSON(url, options = {}) {
+      calls.push({ url, options });
+      if (url.endsWith("/rounds")) return [{ id: "round-1", status: "open", participants: members.map(item => item.id) }];
+      if (url.endsWith("/members")) return members;
+      if (options.method === "PUT") return { saved: true };
+      const selected = new URL(`http://carva${url}`).searchParams.get("member_id");
+      return [{ member_id: selected, story_points: selected === "member-1" ? 3 : 8 }];
+    },
+  });
+  const section = widget.createWidget("project-1", { id: "story-1" });
+  await new Promise(resolve => setImmediate(resolve));
+  const [memberLabel, pointsLabel] = section.children[3].children;
+  const select = memberLabel.children[0];
+  const points = pointsLabel.children[0];
+  select.value = "member-2";
+  await select.listeners.change();
+  assert.equal(select.value, "member-2");
+  assert.equal(points.value, "8");
+  assert.match(calls.at(-1).url, /member_id=member-2$/);
+  points.value = "13";
+  await section.children[3].listeners.submit({ preventDefault() {} });
+  assert.match(calls.find(call => call.options.method === "PUT").url, /votes\/member-2$/);
+});
+
+test("BDD-US-56-07: a missing-vote response identifies members without revealing estimates", async () => {
+  const members = [{ id: "member-1", name: "Ana" }, { id: "member-2", name: "Bea" }];
+  const context = vm.createContext({
+    document: { createElement: tag => new Element(tag) },
+    encodeURIComponent,
+    URL,
+  });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../../web/static/js/planning-poker.js"), "utf8"), context);
+  const widget = context.createPlanningPoker({
+    async requestJSON(url) {
+      if (url.endsWith("/rounds")) return [{ id: "round-1", status: "open", participants: members.map(item => item.id) }];
+      if (url.endsWith("/members")) return members;
+      if (url.includes("/votes?")) return [];
+      if (url.includes("/finalize?")) {
+        const error = new Error("votes pending");
+        error.status = 409;
+        error.code = "votes_pending";
+        error.missingParticipants = ["member-2"];
+        throw error;
+      }
+      throw new Error(`Unexpected request ${url}`);
+    },
+  });
+  const section = widget.createWidget("project-1", { id: "story-1" });
+  await new Promise(resolve => setImmediate(resolve));
+  await section.children[4].listeners.click();
+  assert.match(section.children[1].textContent, /Bea/);
+  assert.match(section.children[1].textContent, /member-2/);
+  assert.doesNotMatch(section.children[1].textContent, /\d+ Story Points/);
+  assert.equal(section.children[5].hidden, true);
 });
 
 test("BDD-US-13-02/04: finalizing reveals every vote and displays differences", async () => {
